@@ -1,0 +1,106 @@
+blueprint:
+  name: Swiss Meteo – rain is coming
+  description: >-
+    Sends a notification when the MeteoSwiss forecast expects rain within the
+    next six hours – when it starts and how much – and runs your own actions
+    (close the awning, skip the irrigation). A second set of actions runs
+    once no rain is expected any more.
+
+
+    The "rain expected" sensor of the integration is the trigger; it looks at
+    the hourly forecast, so the notice arrives hours ahead, not when the
+    first drops fall. The quiet hours keep the notification away at night;
+    the actions still run.
+  domain: automation
+  source_url: https://github.com/prusuino/ha_swiss_meteo/blob/main/blueprints/automation/rain_expected_notification.yaml
+  author: prusuino
+  homeassistant:
+    min_version: 2025.4.0
+  input:
+    rain_sensor:
+      name: Rain expected sensor
+      description: The "Rain expected" sensor of a Swiss Meteo entry.
+      selector:
+        entity:
+          filter:
+            - integration: swiss_meteo
+              domain: binary_sensor
+              device_class: moisture
+    notify_service:
+      name: Notification action
+      description: For example notify.mobile_app_your_phone. Leave empty for no notification.
+      default: ""
+      selector:
+        text:
+    quiet_start:
+      name: Quiet hours start
+      description: No notification from this time on (the actions still run).
+      default: "22:00:00"
+      selector:
+        time:
+    quiet_end:
+      name: Quiet hours end
+      default: "07:00:00"
+      selector:
+        time:
+    rain_actions:
+      name: Actions when rain is expected
+      default: []
+      selector:
+        action:
+    dry_actions:
+      name: Actions when no rain is expected any more
+      default: []
+      selector:
+        action:
+
+mode: queued
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input rain_sensor
+    to: "on"
+    id: rain
+  - trigger: state
+    entity_id: !input rain_sensor
+    from: "on"
+    to: "off"
+    id: dry
+
+variables:
+  rain_sensor: !input rain_sensor
+  notify_service: !input notify_service
+  next_rain: "{{ state_attr(rain_sensor, 'next_rain') }}"
+  hours_until: "{{ state_attr(rain_sensor, 'hours_until_rain') }}"
+  mm_6h: "{{ state_attr(rain_sensor, 'precipitation_next_6h') }}"
+  mm_24h: "{{ state_attr(rain_sensor, 'precipitation_next_24h') }}"
+  place: "{{ device_attr(rain_sensor, 'name') }}"
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: rain
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ notify_service != '' }}"
+              - condition: not
+                conditions:
+                  - condition: time
+                    after: !input quiet_start
+                    before: !input quiet_end
+            then:
+              - action: "{{ notify_service }}"
+                data:
+                  title: "{{ place }}: rain is coming"
+                  message: >-
+                    {% if hours_until is not none and hours_until | int <= 0 %}Rain from now on{% elif hours_until is not none %}Rain in about {{ hours_until }} h ({{ as_timestamp(next_rain) | timestamp_custom('%H:%M') }}){% else %}Rain expected{% endif %}
+                    – {{ mm_6h }} mm in the next 6 h, {{ mm_24h }} mm in 24 h.
+          - sequence: !input rain_actions
+      - conditions:
+          - condition: trigger
+            id: dry
+        sequence:
+          - sequence: !input dry_actions

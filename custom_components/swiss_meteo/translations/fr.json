@@ -41,5 +41,93 @@
     "error": {
       "cannot_connect": "La liste des stations n'a pas pu être lue ; la station actuelle est conservée."
     }
+  },
+  "triggers": {
+    "rain_expected": {
+      "name": "Pluie attendue",
+      "description": "Se déclenche lorsque de la pluie est prévue dans l'une des six prochaines heures (au moins 0,1 mm en une heure).",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "rain_cleared": {
+      "name": "Plus de pluie attendue",
+      "description": "Se déclenche lorsque plus aucune pluie n'est prévue pour les six prochaines heures.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "frost_expected": {
+      "name": "Gel attendu cette nuit",
+      "description": "Se déclenche lorsque la prévision descend à 0 °C ou moins avant 9 h le lendemain matin.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "new_forecast": {
+      "name": "Nouveau cycle de prévision",
+      "description": "Se déclenche lorsqu'un nouveau cycle de prévision de MétéoSuisse a été lu (toutes les heures).",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    }
+  },
+  "conditions": {
+    "is_rain_expected": {
+      "name": "De la pluie est attendue",
+      "description": "Vérifie si de la pluie est prévue dans l'une des six prochaines heures.",
+      "fields": {
+        "behavior": {
+          "name": "Condition remplie si"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "is_dry": {
+      "name": "Aucune pluie n'est attendue",
+      "description": "Vérifie qu'aucune pluie n'est prévue pour les six prochaines heures.",
+      "fields": {
+        "behavior": {
+          "name": "Condition remplie si"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "is_frost_expected": {
+      "name": "Du gel est attendu cette nuit",
+      "description": "Vérifie si la prévision descend à 0 °C ou moins avant 9 h le lendemain matin.",
+      "fields": {
+        "behavior": {
+          "name": "Condition remplie si"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    }
   }
 }

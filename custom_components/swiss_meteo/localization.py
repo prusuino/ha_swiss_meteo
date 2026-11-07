@@ -70,6 +70,19 @@ STRINGS: dict[str, dict[str, str]] = {
     "forecast_run": {"de": "Prognoselauf", "en": "Forecast Run", "fr": "Cycle de prévision", "it": "Ciclo di previsione"},
     "station_time": {"de": "Messzeit Station", "en": "Station Measurement Time", "fr": "Heure de mesure station", "it": "Ora di misura stazione"},
     "traffic_today": {"de": "Datenverkehr heute", "en": "Data Traffic Today", "fr": "Trafic de données aujourd'hui", "it": "Traffico dati oggi"},
+    # derived figures
+    "today_mean": {"de": "Heute Tagesmittel", "en": "Today Mean Temperature", "fr": "Moyenne aujourd'hui", "it": "Media oggi"},
+    "tomorrow_mean": {"de": "Morgen Tagesmittel", "en": "Tomorrow Mean Temperature", "fr": "Moyenne demain", "it": "Media domani"},
+    "heating_degree_days_today": {"de": "Heute Heizgradtage", "en": "Today Heating Degree Days", "fr": "Degrés-jours de chauffage aujourd'hui", "it": "Gradi giorno riscaldamento oggi"},
+    "heating_degree_days_tomorrow": {"de": "Morgen Heizgradtage", "en": "Tomorrow Heating Degree Days", "fr": "Degrés-jours de chauffage demain", "it": "Gradi giorno riscaldamento domani"},
+    "radiation_today": {"de": "Heute Globalstrahlung", "en": "Today Global Radiation", "fr": "Rayonnement global aujourd'hui", "it": "Radiazione globale oggi"},
+    "radiation_tomorrow": {"de": "Morgen Globalstrahlung", "en": "Tomorrow Global Radiation", "fr": "Rayonnement global demain", "it": "Radiazione globale domani"},
+    "sunshine_today": {"de": "Heute Sonnenschein", "en": "Today Sunshine", "fr": "Ensoleillement aujourd'hui", "it": "Soleggiamento oggi"},
+    "sunshine_tomorrow": {"de": "Morgen Sonnenschein", "en": "Tomorrow Sunshine", "fr": "Ensoleillement demain", "it": "Soleggiamento domani"},
+    "precipitation_next_24h": {"de": "Niederschlag nächste 24 h", "en": "Precipitation Next 24 h", "fr": "Précipitations 24 h à venir", "it": "Precipitazioni prossime 24 h"},
+    "next_rain": {"de": "Nächster Regen", "en": "Next Rain", "fr": "Prochaine pluie", "it": "Prossima pioggia"},
+    "rain_expected": {"de": "Regen erwartet", "en": "Rain Expected", "fr": "Pluie attendue", "it": "Pioggia prevista"},
+    "frost_tonight": {"de": "Frost heute Nacht", "en": "Frost Tonight", "fr": "Gel cette nuit", "it": "Gelo stanotte"},
 }
 
 

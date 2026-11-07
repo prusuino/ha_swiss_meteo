@@ -1,0 +1,85 @@
+blueprint:
+  name: Swiss Meteo – frost tonight
+  description: >-
+    Sends a notification in the evening when the MeteoSwiss forecast expects
+    frost before the next morning – the lowest temperature and when – and
+    runs your own actions (cover the plants, drain the hose, start the
+    frost guard). Runs once per evening at the time you choose; a frost
+    that only shows up in a later run is caught by the second trigger.
+  domain: automation
+  source_url: https://github.com/prusuino/ha_swiss_meteo/blob/main/blueprints/automation/frost_tonight_notification.yaml
+  author: prusuino
+  homeassistant:
+    min_version: 2025.4.0
+  input:
+    frost_sensor:
+      name: Frost tonight sensor
+      description: The "Frost tonight" sensor of a Swiss Meteo entry.
+      selector:
+        entity:
+          filter:
+            - integration: swiss_meteo
+              domain: binary_sensor
+              device_class: cold
+    check_time:
+      name: Evening check
+      description: The time of the daily check; the notification is sent when frost is expected at that moment.
+      default: "18:00:00"
+      selector:
+        time:
+    notify_service:
+      name: Notification action
+      description: For example notify.mobile_app_your_phone. Leave empty for no notification.
+      default: ""
+      selector:
+        text:
+    frost_actions:
+      name: Actions when frost is expected
+      default: []
+      selector:
+        action:
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: time
+    at: !input check_time
+    id: evening
+  - trigger: state
+    entity_id: !input frost_sensor
+    to: "on"
+    id: appeared
+
+variables:
+  frost_sensor: !input frost_sensor
+  notify_service: !input notify_service
+  minimum: "{{ state_attr(frost_sensor, 'night_minimum') }}"
+  minimum_at: "{{ state_attr(frost_sensor, 'night_minimum_at') }}"
+  place: "{{ device_attr(frost_sensor, 'name') }}"
+
+conditions:
+  - condition: state
+    entity_id: !input frost_sensor
+    state: "on"
+  # The second trigger only counts in the evening and at night, so a frost
+  # that appears in a morning run does not notify twice.
+  - condition: or
+    conditions:
+      - condition: trigger
+        id: evening
+      - condition: time
+        after: !input check_time
+        before: "06:00:00"
+
+actions:
+  - if:
+      - condition: template
+        value_template: "{{ notify_service != '' }}"
+    then:
+      - action: "{{ notify_service }}"
+        data:
+          title: "{{ place }}: frost tonight"
+          message: >-
+            Down to {{ minimum }} °C{% if minimum_at %} at {{ as_timestamp(minimum_at) | timestamp_custom('%H:%M') }}{% endif %}.
+  - sequence: !input frost_actions

@@ -41,5 +41,93 @@
     "error": {
       "cannot_connect": "Die Stationsliste konnte nicht gelesen werden; die bisherige Station bleibt."
     }
+  },
+  "triggers": {
+    "rain_expected": {
+      "name": "Regen erwartet",
+      "description": "Löst aus, wenn für eine der nächsten sechs Stunden Regen prognostiziert ist (mindestens 0.1 mm in einer Stunde).",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "rain_cleared": {
+      "name": "Kein Regen mehr erwartet",
+      "description": "Löst aus, wenn für die nächsten sechs Stunden kein Regen mehr prognostiziert ist.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "frost_expected": {
+      "name": "Frost heute Nacht erwartet",
+      "description": "Löst aus, wenn die Prognose bis 09:00 Uhr des nächsten Morgens auf 0 °C oder tiefer fällt.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "new_forecast": {
+      "name": "Neuer Prognoselauf",
+      "description": "Löst aus, wenn ein neuer MeteoSchweiz-Prognoselauf gelesen wurde (stündlich).",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    }
+  },
+  "conditions": {
+    "is_rain_expected": {
+      "name": "Regen wird erwartet",
+      "description": "Prüft, ob für eine der nächsten sechs Stunden Regen prognostiziert ist.",
+      "fields": {
+        "behavior": {
+          "name": "Bedingung erfüllt wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "is_dry": {
+      "name": "Kein Regen wird erwartet",
+      "description": "Prüft, ob für die nächsten sechs Stunden kein Regen prognostiziert ist.",
+      "fields": {
+        "behavior": {
+          "name": "Bedingung erfüllt wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "is_frost_expected": {
+      "name": "Frost wird heute Nacht erwartet",
+      "description": "Prüft, ob die Prognose bis 09:00 Uhr des nächsten Morgens auf 0 °C oder tiefer fällt.",
+      "fields": {
+        "behavior": {
+          "name": "Bedingung erfüllt wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    }
   }
 }

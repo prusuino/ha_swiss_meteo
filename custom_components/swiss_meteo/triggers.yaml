@@ -1,0 +1,42 @@
+.trigger_common_fields: &trigger_common_fields
+  behavior:
+    required: true
+    default: each
+    selector:
+      automation_behavior:
+        mode: trigger
+  for:
+    required: true
+    default: 00:00:00
+    selector:
+      duration:
+
+.rain_target: &rain_target
+  entity:
+    - integration: swiss_meteo
+      domain: binary_sensor
+      device_class: moisture
+
+rain_expected:
+  fields: *trigger_common_fields
+  target: *rain_target
+
+rain_cleared:
+  fields: *trigger_common_fields
+  target: *rain_target
+
+frost_expected:
+  fields: *trigger_common_fields
+  target:
+    entity:
+      - integration: swiss_meteo
+        domain: binary_sensor
+        device_class: cold
+
+new_forecast:
+  fields: *trigger_common_fields
+  target:
+    entity:
+      - integration: swiss_meteo
+        domain: sensor
+        device_class: timestamp

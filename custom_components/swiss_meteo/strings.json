@@ -41,5 +41,93 @@
     "error": {
       "cannot_connect": "The station list could not be read; the current station is kept."
     }
+  },
+  "triggers": {
+    "rain_expected": {
+      "name": "Rain expected",
+      "description": "Triggers when rain is forecast for one of the next six hours (at least 0.1 mm in an hour).",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "rain_cleared": {
+      "name": "Rain no longer expected",
+      "description": "Triggers when no rain is forecast for the next six hours any more.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "frost_expected": {
+      "name": "Frost expected tonight",
+      "description": "Triggers when the forecast drops to 0 °C or below before 09:00 the next morning.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "new_forecast": {
+      "name": "New forecast run",
+      "description": "Triggers when a new MeteoSwiss forecast run has been read (hourly).",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    }
+  },
+  "conditions": {
+    "is_rain_expected": {
+      "name": "Rain is expected",
+      "description": "Tests if rain is forecast for one of the next six hours.",
+      "fields": {
+        "behavior": {
+          "name": "Condition passes if"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "is_dry": {
+      "name": "No rain is expected",
+      "description": "Tests if no rain is forecast for the next six hours.",
+      "fields": {
+        "behavior": {
+          "name": "Condition passes if"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "is_frost_expected": {
+      "name": "Frost is expected tonight",
+      "description": "Tests if the forecast drops to 0 °C or below before 09:00 the next morning.",
+      "fields": {
+        "behavior": {
+          "name": "Condition passes if"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    }
   }
 }

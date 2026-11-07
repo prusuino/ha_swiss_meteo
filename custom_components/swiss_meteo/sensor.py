@@ -31,6 +31,16 @@ from homeassistant.util import dt as dt_util
 from .const import ATTRIBUTION, DOMAIN, STATION_PARAMS
 from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
 from .device import device_info, entry_suffix
+from .derived import (
+    HDD_BASE,
+    HDD_THRESHOLD,
+    day_mean,
+    day_sum,
+    heating_degree_days,
+    hours_covered,
+    next_rain,
+    window_sum,
+)
 from .forecast import daily_values
 from .localization import t
 
@@ -68,6 +78,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     for day_key in ("today", "tomorrow"):
         for what in ("max", "min", "precipitation"):
             entities.append(DayValueSensor(hass, entry, data.forecast, day_key, what))
+    for key in DERIVED_KEYS:
+        if not data.forecast.hourly_enabled and key not in _DAILY_ONLY_KEYS:
+            continue
+        entities.append(DerivedSensor(hass, entry, data.forecast, key))
     entities.append(ForecastRunSensor(hass, entry, data.forecast))
     entities.append(TrafficSensor(hass, entry, data.forecast))
     async_add_entities(entities)
@@ -152,6 +166,88 @@ class DayValueSensor(_Base):
         if self._offset:
             day = day + timedelta(days=self._offset)
         return daily_values(snap, param).get(day)
+
+
+# key -> (device class, unit, icon, enabled by default)
+_DERIVED_META: dict[str, tuple] = {
+    "today_mean": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, "mdi:thermometer", True),
+    "tomorrow_mean": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, "mdi:thermometer", True),
+    "heating_degree_days_today": (None, "K·d", "mdi:radiator", True),
+    "heating_degree_days_tomorrow": (None, "K·d", "mdi:radiator", True),
+    "radiation_today": (None, "kWh/m²", "mdi:solar-power-variant", True),
+    "radiation_tomorrow": (None, "kWh/m²", "mdi:solar-power-variant", True),
+    "sunshine_today": (SensorDeviceClass.DURATION, UnitOfTime.HOURS, "mdi:white-balance-sunny", True),
+    "sunshine_tomorrow": (SensorDeviceClass.DURATION, UnitOfTime.HOURS, "mdi:white-balance-sunny", True),
+    "precipitation_next_24h": (SensorDeviceClass.PRECIPITATION, UnitOfPrecipitationDepth.MILLIMETERS, "mdi:weather-pouring", True),
+    "next_rain": (SensorDeviceClass.TIMESTAMP, None, "mdi:weather-rainy", True),
+}
+DERIVED_KEYS = tuple(_DERIVED_META)
+# These work from the daily files alone (mean from high and low).
+_DAILY_ONLY_KEYS = ("today_mean", "tomorrow_mean", "heating_degree_days_today", "heating_degree_days_tomorrow")
+
+
+class DerivedSensor(_Base):
+    """A figure computed from the forecast series: daily mean and heating
+    degree days (SIA 381/3, 12/20), global radiation and sunshine sums,
+    the precipitation of the next 24 hours, the next hour with rain."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator, key: str) -> None:
+        super().__init__(hass, entry, coordinator, key)
+        self._key = key
+        device_class, unit, icon, enabled = _DERIVED_META[key]
+        if device_class is not None:
+            self._attr_device_class = device_class
+        if unit is not None:
+            self._attr_native_unit_of_measurement = unit
+        self._attr_icon = icon
+        self._attr_entity_registry_enabled_default = enabled
+        if device_class != SensorDeviceClass.TIMESTAMP:
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+            self._attr_suggested_display_precision = 1
+
+    def _day(self):
+        day = dt_util.now().date()
+        return day + timedelta(days=1) if self._key.endswith("_tomorrow") else day
+
+    @property
+    def native_value(self):
+        snap = self.coordinator.data
+        if snap is None:
+            return None
+        key = self._key
+        if key in ("today_mean", "tomorrow_mean"):
+            return day_mean(snap, self._day())
+        if key.startswith("heating_degree_days"):
+            return heating_degree_days(day_mean(snap, self._day()))
+        if key.startswith("radiation"):
+            total = day_sum(snap, "gre000h0", self._day())  # W/m² hourly means -> Wh/m²
+            return round(total / 1000, 2) if total is not None else None
+        if key.startswith("sunshine"):
+            total = day_sum(snap, "sre000h0", self._day())  # minutes
+            return round(total / 60, 1) if total is not None else None
+        if key == "precipitation_next_24h":
+            return window_sum(snap.hourly.get("rre150h0"), 24)
+        if key == "next_rain":
+            hit = next_rain(snap)
+            return hit[0] if hit else None
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        snap = self.coordinator.data
+        if snap is None:
+            return {}
+        key = self._key
+        if key.startswith("heating_degree_days"):
+            return {"threshold": HDD_THRESHOLD, "base": HDD_BASE, "mean_temperature": day_mean(snap, self._day())}
+        if key.startswith(("radiation", "sunshine", "today_mean", "tomorrow_mean")):
+            return {"hours_in_forecast": hours_covered(snap, self._day())}
+        if key == "next_rain":
+            hit = next_rain(snap)
+            if hit is None:
+                return {}
+            return {"precipitation_mm": hit[1], "hours_until": max(0, round((hit[0] - dt_util.utcnow()).total_seconds() / 3600))}
+        return {}
 
 
 class ForecastRunSensor(_Base):

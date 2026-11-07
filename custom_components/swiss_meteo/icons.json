@@ -1,0 +1,27 @@
+{
+  "triggers": {
+    "rain_expected": {
+      "trigger": "mdi:weather-rainy"
+    },
+    "rain_cleared": {
+      "trigger": "mdi:weather-partly-cloudy"
+    },
+    "frost_expected": {
+      "trigger": "mdi:snowflake-alert"
+    },
+    "new_forecast": {
+      "trigger": "mdi:clock-check-outline"
+    }
+  },
+  "conditions": {
+    "is_rain_expected": {
+      "condition": "mdi:weather-rainy"
+    },
+    "is_dry": {
+      "condition": "mdi:weather-partly-cloudy"
+    },
+    "is_frost_expected": {
+      "condition": "mdi:snowflake-alert"
+    }
+  }
+}

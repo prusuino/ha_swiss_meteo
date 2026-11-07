@@ -41,5 +41,93 @@
     "error": {
       "cannot_connect": "L'elenco delle stazioni non è stato letto; la stazione attuale viene mantenuta."
     }
+  },
+  "triggers": {
+    "rain_expected": {
+      "name": "Pioggia prevista",
+      "description": "Si attiva quando è prevista pioggia in una delle prossime sei ore (almeno 0,1 mm in un'ora).",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "rain_cleared": {
+      "name": "Pioggia non più prevista",
+      "description": "Si attiva quando per le prossime sei ore non è più prevista pioggia.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "frost_expected": {
+      "name": "Gelo previsto stanotte",
+      "description": "Si attiva quando la previsione scende a 0 °C o meno prima delle 9 del mattino seguente.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "new_forecast": {
+      "name": "Nuovo ciclo di previsione",
+      "description": "Si attiva quando è stato letto un nuovo ciclo di previsione di MeteoSvizzera (ogni ora).",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    }
+  },
+  "conditions": {
+    "is_rain_expected": {
+      "name": "È prevista pioggia",
+      "description": "Verifica se è prevista pioggia in una delle prossime sei ore.",
+      "fields": {
+        "behavior": {
+          "name": "Condizione soddisfatta se"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "is_dry": {
+      "name": "Non è prevista pioggia",
+      "description": "Verifica che non sia prevista pioggia per le prossime sei ore.",
+      "fields": {
+        "behavior": {
+          "name": "Condizione soddisfatta se"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "is_frost_expected": {
+      "name": "È previsto gelo stanotte",
+      "description": "Verifica se la previsione scende a 0 °C o meno prima delle 9 del mattino seguente.",
+      "fields": {
+        "behavior": {
+          "name": "Condizione soddisfatta se"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    }
   }
 }

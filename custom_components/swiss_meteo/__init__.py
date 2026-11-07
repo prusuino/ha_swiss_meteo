@@ -13,7 +13,7 @@ from .frontend import async_serve_frontend
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["weather", "sensor"]
+PLATFORMS = ["weather", "sensor", "binary_sensor"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
