@@ -62,6 +62,7 @@ def daily_forecast(snap: ForecastSnapshot) -> list[dict]:
     prob = snap.hourly.get("rp0003i0")
     wind = snap.hourly.get("fu3010h0")
     gust = snap.hourly.get("fu3010h1")
+    sunshine = snap.hourly.get("sre000h0")
     today = dt_util.now().date()
     out: list[dict] = []
     for day in sorted(set(symbols) | set(highs) | set(lows)):
@@ -80,9 +81,15 @@ def daily_forecast(snap: ForecastSnapshot) -> list[dict]:
             "symbol": _int(symbols.get(day)),
             "precipitation_min": p10.get(day),
             "precipitation_max": p90.get(day),
+            "sunshine_hours": _hours(day_from_hourly(sunshine, day, sum)),
         }
         out.append({k: v for k, v in entry.items() if v is not None or k in ("datetime", "condition")})
     return out
+
+
+def _hours(minutes: float | None) -> float | None:
+    """Sunshine minutes summed over a day, as hours with one decimal."""
+    return round(minutes / 60, 1) if minutes is not None else None
 
 
 def cloud_coverage(snap: ForecastSnapshot, when: datetime) -> float | None:

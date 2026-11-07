@@ -31,6 +31,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Natural Earth
+
+The outline of Switzerland and the lakes drawn by the map card are derived
+from Natural Earth (https://www.naturalearthdata.com), 1:10m cultural and
+physical vectors, which are in the public domain.
+
 ## MeteoSwiss open data
 
 The forecast, station and pollen data come from the Federal Office of

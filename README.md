@@ -12,7 +12,7 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 
 | Entity | Description |
 |---|---|
-| `weather.swiss_meteo_<id>` | The weather entity. Condition from the MeteoSwiss symbol (day/night aware), temperature, humidity, dew point, pressure, wind, gusts and bearing from the station when one is configured (else from the forecast). **Daily forecast** for nine days: condition, high, low, precipitation and its 10–90 % range, chance of rain, wind and gusts. **Hourly forecast** (option, on by default) for the coming 200+ hours: temperature with its 10–90 % range, precipitation with its range, chance of rain, wind, gusts, bearing, cloud cover, global radiation, sunshine minutes, zero-degree level and the symbol code. Attributes: `forecast_run`, `symbol`, `symbol_meaning`, `precipitation_probability`, `zero_degree_level`, `station`, `station_time`. |
+| `weather.swiss_meteo_<id>` | The weather entity. Condition from the MeteoSwiss symbol (day/night aware), temperature, humidity, dew point, pressure, wind, gusts and bearing from the station when one is configured (else from the forecast). **Daily forecast** for nine days: condition, high, low, precipitation and its 10–90 % range, chance of rain, wind and gusts. **Hourly forecast** (option, on by default) for the coming 200+ hours: temperature with its 10–90 % range, precipitation with its range, chance of rain, wind, gusts, bearing, cloud cover, global radiation, sunshine minutes, zero-degree level and the symbol code. Attributes: `forecast_run`, `symbol`, `symbol_meaning`, `precipitation_probability`, `zero_degree_level`, `station`, `station_time`, and the point's `point_name`, `latitude`, `longitude` and `elevation` (so the entity can be placed on a map). |
 | `sensor.swiss_meteo_<id>_temperature` … | The station's 10-minute values: temperature, dew point, humidity, pressure (QNH), wind, gusts, wind direction, precipitation, sunshine, global radiation enabled by default; temperature at 5 cm, pressure QFF and station level, diffuse radiation, snow depth, wind chill and soil temperatures at 5/10/20 cm created disabled. Unavailable once the station's file is older than 45 minutes. |
 | `sensor.swiss_meteo_<id>_today_max` / `_today_min` / `_today_precipitation` | Today's high, low and precipitation from the daily forecast; the same for tomorrow (`_tomorrow_…`). |
 | `sensor.swiss_meteo_<id>_forecast_run` | When the forecast run in use was issued (diagnostic), with the parameters read and any that were missing. |
@@ -48,6 +48,29 @@ show_hourly: true
 show_daily: true
 ```
 
+Two more cards come with the same file, in the look of the MeteoSwiss website:
+
+**Swiss Meteo – daily list** (`custom:swiss-meteo-daily-card`): the nine-day list — weekday, symbol, low and high in boxes, precipitation with its 10–90 % range — with the *Wind* and *Sunshine* toggles that add the day's wind, gusts and sunshine hours to each row. `theme: meteo` (default) uses the dark blue MeteoSwiss palette, `theme: ha` your Home Assistant theme.
+
+```yaml
+type: custom:swiss-meteo-daily-card
+entity: weather.swiss_meteo_ab12
+days: 8
+show_wind: false
+show_sunshine: false
+show_toggles: true
+theme: meteo
+```
+
+**Swiss Meteo – map** (`custom:swiss-meteo-map-card`): Switzerland with a forecast pill for every configured place — symbol, name, low and high of the chosen day (`day: 0` today, `1` tomorrow, …). Add the integration once per place you want on the map; without `entities` every Swiss Meteo weather entity is shown. The outline and the lakes come from [Natural Earth](https://www.naturalearthdata.com) (public domain).
+
+```yaml
+type: custom:swiss-meteo-map-card
+day: 0
+show_names: true
+# entities: [weather.swiss_meteo_ab12, weather.swiss_meteo_cd34]
+```
+
 The standard `weather-forecast` card and the weather tile features work with the entity as well.
 
 ## Installation
@@ -72,7 +95,7 @@ Each entry is one place; add the integration again for another postal code or a 
 ## Notes
 
 - The forecast is the one shown in the MeteoSwiss app and on its website for the postal code, updated every hour; the symbol codes (1–42 by day, 101–142 by night) are mapped to Home Assistant conditions and, in the card, to Meteocons.
-- Daily highs, lows and precipitation count the local calendar day. The hourly list starts with the current hour; past hours of the run are dropped.
+- Daily highs, lows and precipitation count the local calendar day; the daily entries also carry the day's maximum wind and gusts, the chance of rain and the sunshine hours. The hourly list starts with the current hour; past hours of the run are dropped.
 - MeteoSwiss has announced a point API for the local forecast (beta by the end of 2026). The file reader is built behind an interface so the integration can switch to it when it is there — entities and ids will not change.
 - **Weather warnings** are not part of the MeteoSwiss open data. Home Assistant's `meteoalarm` integration carries the official warnings at region level; a warning entity for this integration is on the list.
 - **Download diagnostics** (entry menu) gives the entry's configuration (coordinates redacted), the parameters read, the newest values and the traffic figures.

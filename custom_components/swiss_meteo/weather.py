@@ -21,7 +21,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTRIBUTION, DOMAIN
+from .const import ATTRIBUTION, CONF_POINT_HEIGHT, CONF_POINT_LAT, CONF_POINT_LON, CONF_POINT_NAME, DOMAIN
 from .coordinator import EntryData, ForecastCoordinator
 from .device import device_info, entry_suffix
 from .forecast import daily_forecast, hourly_forecast, value_at
@@ -157,6 +157,11 @@ class SwissMeteoWeather(CoordinatorEntity[ForecastCoordinator], WeatherEntity):
             "precipitation_probability": self._hourly_now("rp0003i0"),
             "global_radiation": self._hourly_now("gre000h0"),
             "zero_degree_level": self._hourly_now("zprfr0hs"),
+            # the point itself, for the map card (and Home Assistant's map)
+            "point_name": self._entry.data.get(CONF_POINT_NAME),
+            "latitude": self._entry.data.get(CONF_POINT_LAT),
+            "longitude": self._entry.data.get(CONF_POINT_LON),
+            "elevation": self._entry.data.get(CONF_POINT_HEIGHT),
         }
         if self._station is not None and self._station.data is not None:
             attrs["station"] = self._station.station
