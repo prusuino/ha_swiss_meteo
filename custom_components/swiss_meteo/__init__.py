@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import CONF_STATION, DOMAIN
 from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
+from .frontend import async_serve_frontend
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.warning("%s: station %s not readable yet, its sensors start unavailable", entry.title, station.station)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = EntryData(forecast=forecast, station=station)
+    await async_serve_frontend(hass)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

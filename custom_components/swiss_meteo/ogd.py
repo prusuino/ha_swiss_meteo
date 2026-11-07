@@ -383,6 +383,12 @@ async def _row_at(rf: _RangeFile, offset: int) -> tuple[tuple[int, int, str] | N
 
 
 async def _read_point_major(rf: _RangeFile, point: tuple[int, int], lo: int = 0, hi: int | None = None) -> list[bytes]:
+    return [line for _off, line in await _find_point_block(rf, point, lo, hi)]
+
+
+async def _find_point_block(
+    rf: _RangeFile, point: tuple[int, int], lo: int = 0, hi: int | None = None
+) -> list[tuple[int, bytes]]:
     """Binary search for the point's block between `lo` and `hi` (the
     whole file by default). Points are grouped by type (the order of the
     types is whatever the file has) and sorted by id inside a type, so
@@ -447,7 +453,7 @@ async def _read_point_major(rf: _RangeFile, point: tuple[int, int], lo: int = 0,
             length += 8 * _PROBE
         if touches_end:
             length += 8 * _PROBE
-    return [line for _off, line in rows]
+    return rows
 
 
 async def _date_samples(rf: _RangeFile, probes: int) -> list[tuple[int, str]]:
@@ -479,6 +485,45 @@ async def _date_boundary(rf: _RangeFile, lo: int, hi: int, date_after: str) -> i
             return lo + pos
         pos = end + 1
     return hi
+
+
+async def _read_date_major_small(rf: _RangeFile, point: tuple[int, int]) -> list[bytes]:
+    """Date-major file with a handful of timestamp blocks (the daily
+    temperature files): find the point's row in the first block by
+    search, then read a small window at the predicted position in each
+    later block, one block at a time, correcting the step with every hit.
+    Costs about 80 KB where reading the file would cost 1.3 MB."""
+    samples = await _date_samples(rf, 12)
+    dates = sorted({d for _o, d in samples})
+    if len(dates) < 2:
+        return await _read_whole(rf, point)
+    lo = max(o for o, d in samples if d == dates[0])
+    hi = min(o for o, d in samples if d == dates[1])
+    first_end = await _date_boundary(rf, lo, hi, dates[1])
+    rows = await _find_point_block(rf, point, 0, first_end)
+    if not rows:
+        return await _read_block_search(rf, point)
+    out = [line for _off, line in rows]
+    last_hit = rows[0][0]
+    step = first_end
+    for _ in range(len(dates) - 1):
+        predicted = last_hit + step
+        if predicted >= rf.size:
+            break
+        hit = None
+        for window in (4 * 1024, 24 * 1024):
+            start = max(0, predicted - window // 2)
+            chunk = await rf.read(start, window)
+            found = _rows_of(chunk, start, point, start == 0)
+            if found:
+                hit = found[0]
+                break
+        if hit is None:
+            return await _read_block_search(rf, point)
+        out.append(hit[1])
+        step = hit[0] - last_hit
+        last_hit = hit[0]
+    return out
 
 
 async def _read_block_search(rf: _RangeFile, point: tuple[int, int]) -> list[bytes]:
@@ -618,7 +663,7 @@ async def async_read_point(
     elif param in DATE_MAJOR_PARAMS:
         # Few blocks (daily values): search each block; many (hourly): predict.
         if size <= 3 * 1024 * 1024:
-            rows = await _read_block_search(rf, point)
+            rows = await _read_date_major_small(rf, point)
         else:
             rows = await _read_date_major(rf, point)
     else:
