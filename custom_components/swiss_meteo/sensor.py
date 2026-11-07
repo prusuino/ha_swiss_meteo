@@ -65,6 +65,15 @@ _STATION_META: dict[str, tuple] = {
     "soil_temperature_5cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False, "mdi:thermometer-lines"),
     "soil_temperature_10cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False, "mdi:thermometer-lines"),
     "soil_temperature_20cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False, "mdi:thermometer-lines"),
+    "surface_temperature": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False, "mdi:thermometer-low"),
+    "vapour_pressure": (SensorDeviceClass.PRESSURE, UnitOfPressure.HPA, SensorStateClass.MEASUREMENT, False, "mdi:water-percent"),
+    "wind_gust_3s": (SensorDeviceClass.WIND_SPEED, UnitOfSpeed.KILOMETERS_PER_HOUR, SensorStateClass.MEASUREMENT, False, "mdi:weather-windy"),
+    "geopotential_850": (None, "gpm", SensorStateClass.MEASUREMENT, False, "mdi:altimeter"),
+    "geopotential_700": (None, "gpm", SensorStateClass.MEASUREMENT, False, "mdi:altimeter"),
+    "longwave_incoming": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False, "mdi:radiator"),
+    "longwave_outgoing": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False, "mdi:radiator-disabled"),
+    "reflected_radiation": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False, "mdi:white-balance-sunny"),
+    "foehn_index": (None, None, SensorStateClass.MEASUREMENT, False, "mdi:weather-windy-variant"),
 }
 
 

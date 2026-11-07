@@ -108,4 +108,14 @@ STATION_PARAMS: dict[str, tuple[str, str]] = {
     "tso005s0": ("soil_temperature_5cm", "°C"),
     "tso010s0": ("soil_temperature_10cm", "°C"),
     "tso020s0": ("soil_temperature_20cm", "°C"),
+    # the rest of the file's columns, created disabled
+    "tresurs0": ("surface_temperature", "°C"),
+    "pva200s0": ("vapour_pressure", "hPa"),
+    "fu3010z3": ("wind_gust_3s", "km/h"),
+    "ppz850s0": ("geopotential_850", "gpm"),
+    "ppz700s0": ("geopotential_700", "gpm"),
+    "oli000z0": ("longwave_incoming", "W/m²"),
+    "olo000z0": ("longwave_outgoing", "W/m²"),
+    "osr000z0": ("reflected_radiation", "W/m²"),
+    "wcc006s0": ("foehn_index", ""),
 }
