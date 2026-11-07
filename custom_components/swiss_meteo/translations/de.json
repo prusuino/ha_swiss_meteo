@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Swiss Meteo",
+        "description": "Für welchen Ort soll die Prognose gelten? Der Standort von Home Assistant ist vorausgefüllt; für einen anderen Ort den Marker verschieben. Die Stundenprognose liest rund 2 MB je Modelllauf (stündlich); die Tagesprognose allein bleibt unter 1 MB. Erweiterte Werte ergänzen die Stundenprognose um Unsicherheitsbereich von Temperatur und Niederschlag, Wolkenschichten und Nullgradgrenze.",
+        "data": {
+          "location": "Standort",
+          "hourly": "Stundenprognose",
+          "extended": "Erweiterte Stundenwerte (Unsicherheitsbereich, Wolkenschichten, Nullgradgrenze)"
+        }
+      },
+      "place": {
+        "title": "Prognosepunkt und Wetterstation",
+        "description": "Die dem Standort nächsten Prognosepunkte und SwissMetNet-Stationen, nächste zuerst. Wähle den Punkt, der zu deinem Ort passt (PLZ-Zentrum, Bergpunkt oder Station), und die Station, deren Messwerte am besten passen – Höhe und Lage zählen mehr als die Distanz. Ohne Station kommen die aktuellen Werte aus der Prognose.",
+        "data": {
+          "point": "Prognosepunkt",
+          "station": "Wetterstation (Messwerte)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Dieser Prognosepunkt ist bereits eingerichtet."
+    },
+    "error": {
+      "cannot_connect": "Die Open Data von MeteoSchweiz konnten nicht gelesen werden. Verbindung prüfen und erneut versuchen."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Swiss Meteo Einstellungen",
+        "description": "Stundenprognose oder erweiterte Werte ein- oder ausschalten oder eine andere Wetterstation für die Messwerte wählen (die acht dem Prognosepunkt nächsten sind aufgeführt). Eine Änderung lädt den Eintrag neu; Entitäts-IDs und Verlauf bleiben erhalten.",
+        "data": {
+          "hourly": "Stundenprognose",
+          "extended": "Erweiterte Stundenwerte (Unsicherheitsbereich, Wolkenschichten, Nullgradgrenze)",
+          "station": "Wetterstation (Messwerte)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Die Stationsliste konnte nicht gelesen werden; die bisherige Station bleibt."
+    }
+  }
+}

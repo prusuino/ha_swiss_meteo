@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Swiss Meteo",
+        "description": "Where should the forecast be for? Your Home Assistant location is pre-filled; move the marker for another place. The hourly forecast reads about 2 MB per model run (every hour); the daily forecast alone stays below 1 MB. Extended values add the temperature and precipitation uncertainty range, the cloud layers and the zero-degree level to the hourly forecast.",
+        "data": {
+          "location": "Location",
+          "hourly": "Hourly forecast",
+          "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)"
+        }
+      },
+      "place": {
+        "title": "Forecast point and weather station",
+        "description": "The forecast points and SwissMetNet stations nearest to the location, nearest first. Pick the point that matches your place (a postal code centre, a mountain spot or a station) and the station whose live values suit you best — altitude and exposure matter more than distance. Without a station, the current values come from the forecast.",
+        "data": {
+          "point": "Forecast point",
+          "station": "Weather station (live values)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This forecast point is already set up."
+    },
+    "error": {
+      "cannot_connect": "The MeteoSwiss open data could not be read. Check the connection and try again."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Swiss Meteo settings",
+        "description": "Switch the hourly forecast or the extended values on or off, or pick another weather station for the live values (the eight nearest to the forecast point are listed). Changing a setting reloads the entry; entity ids and history are kept.",
+        "data": {
+          "hourly": "Hourly forecast",
+          "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)",
+          "station": "Weather station (live values)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "The station list could not be read; the current station is kept."
+    }
+  }
+}

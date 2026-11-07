@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Swiss Meteo",
+        "description": "Pour quel lieu la prévision doit-elle valoir ? L'emplacement de Home Assistant est prérempli ; déplacez le marqueur pour un autre lieu. La prévision horaire lit environ 2 Mo par cycle de modèle (toutes les heures) ; la prévision journalière seule reste sous 1 Mo. Les valeurs étendues ajoutent à la prévision horaire la marge d'incertitude de la température et des précipitations, les couches nuageuses et l'isotherme 0 °C.",
+        "data": {
+          "location": "Lieu",
+          "hourly": "Prévision horaire",
+          "extended": "Valeurs horaires étendues (incertitude, couches nuageuses, isotherme 0 °C)"
+        }
+      },
+      "place": {
+        "title": "Point de prévision et station météo",
+        "description": "Les points de prévision et les stations SwissMetNet les plus proches du lieu, le plus proche en premier. Choisissez le point qui correspond à votre lieu (centre de code postal, point de montagne ou station) et la station dont les mesures conviennent le mieux – l'altitude et l'exposition comptent plus que la distance. Sans station, les valeurs actuelles proviennent de la prévision.",
+        "data": {
+          "point": "Point de prévision",
+          "station": "Station météo (mesures)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Ce point de prévision est déjà configuré."
+    },
+    "error": {
+      "cannot_connect": "Les données ouvertes de MétéoSuisse n'ont pas pu être lues. Vérifiez la connexion et réessayez."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Paramètres Swiss Meteo",
+        "description": "Activer ou désactiver la prévision horaire ou les valeurs étendues, ou choisir une autre station météo pour les mesures (les huit plus proches du point de prévision sont listées). Une modification recharge l'entrée ; les identifiants d'entités et l'historique sont conservés.",
+        "data": {
+          "hourly": "Prévision horaire",
+          "extended": "Valeurs horaires étendues (incertitude, couches nuageuses, isotherme 0 °C)",
+          "station": "Station météo (mesures)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "La liste des stations n'a pas pu être lue ; la station actuelle est conservée."
+    }
+  }
+}

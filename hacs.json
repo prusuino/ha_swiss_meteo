@@ -1,0 +1,7 @@
+{
+  "name": "Swiss Meteo (MeteoSwiss Open Data)",
+  "zip_release": true,
+  "filename": "swiss_meteo.zip",
+  "render_readme": true,
+  "homeassistant": "2025.4.0"
+}

@@ -1,0 +1,13 @@
+{
+  "domain": "swiss_meteo",
+  "name": "Swiss Meteo (MeteoSwiss Open Data)",
+  "codeowners": ["@prusuino"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/prusuino/ha_swiss_meteo",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/prusuino/ha_swiss_meteo/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

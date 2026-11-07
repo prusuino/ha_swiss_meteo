@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Swiss Meteo",
+        "description": "Per quale luogo deve valere la previsione? La posizione di Home Assistant è precompilata; sposta il segnaposto per un altro luogo. La previsione oraria legge circa 2 MB per ciclo del modello (ogni ora); la sola previsione giornaliera resta sotto 1 MB. I valori estesi aggiungono alla previsione oraria il margine di incertezza di temperatura e precipitazioni, gli strati nuvolosi e l'isoterma 0 °C.",
+        "data": {
+          "location": "Posizione",
+          "hourly": "Previsione oraria",
+          "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)"
+        }
+      },
+      "place": {
+        "title": "Punto di previsione e stazione meteo",
+        "description": "I punti di previsione e le stazioni SwissMetNet più vicini alla posizione, il più vicino per primo. Scegli il punto che corrisponde al tuo luogo (centro del codice postale, punto di montagna o stazione) e la stazione le cui misure si adattano meglio – altitudine ed esposizione contano più della distanza. Senza stazione, i valori attuali provengono dalla previsione.",
+        "data": {
+          "point": "Punto di previsione",
+          "station": "Stazione meteo (misure)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Questo punto di previsione è già configurato."
+    },
+    "error": {
+      "cannot_connect": "I dati aperti di MeteoSvizzera non sono stati letti. Controlla la connessione e riprova."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Impostazioni Swiss Meteo",
+        "description": "Attivare o disattivare la previsione oraria o i valori estesi, oppure scegliere un'altra stazione meteo per le misure (sono elencate le otto più vicine al punto di previsione). Una modifica ricarica la voce; gli ID delle entità e la cronologia vengono mantenuti.",
+        "data": {
+          "hourly": "Previsione oraria",
+          "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)",
+          "station": "Stazione meteo (misure)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "L'elenco delle stazioni non è stato letto; la stazione attuale viene mantenuta."
+    }
+  }
+}
