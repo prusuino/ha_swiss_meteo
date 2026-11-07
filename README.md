@@ -48,7 +48,20 @@ show_hourly: true
 show_daily: true
 ```
 
-Two more cards come with the same file, in the look of the MeteoSwiss website:
+The main card uses the dark blue MeteoSwiss palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead. Three more cards come with the same file, in the look of the MeteoSwiss website:
+
+**Swiss Meteo – forecast** (`custom:swiss-meteo-forecast-card`): the drop-in for Home Assistant's `weather-forecast` card with the same options — current conditions on top and a row of days (symbol, low and high, precipitation) or hours (symbol, temperature, precipitation or chance of rain).
+
+```yaml
+type: custom:swiss-meteo-forecast-card
+entity: weather.swiss_meteo_ab12
+forecast_type: daily   # or hourly
+show_current: true
+show_forecast: true
+columns: 0             # 0 = automatic (7 days / 8 hours)
+theme: meteo
+```
+
 
 **Swiss Meteo – daily list** (`custom:swiss-meteo-daily-card`): the nine-day list — weekday, symbol, low and high in boxes, precipitation with its 10–90 % range — with the *Wind* and *Sunshine* toggles that add the day's wind, gusts and sunshine hours to each row. `theme: meteo` (default) uses the dark blue MeteoSwiss palette, `theme: ha` your Home Assistant theme.
 
