@@ -1,0 +1,94 @@
+# Swiss Meteo for Home Assistant
+
+A Home Assistant custom integration for the **MeteoSwiss** forecast and measurements, from the official open data: the local forecast of your postal code (nine days, hour by hour, with the uncertainty range), the live values of the nearest SwissMetNet station every ten minutes, and a dashboard card with animated icons — read so sparingly that the hourly forecast costs a few megabytes a day, not hundreds.
+
+> **Open data only.** Everything comes from the files MeteoSwiss publishes under CC BY 4.0 on the federal geodata platform. No app backend, no scraping, no API key, no third-party service, no Python dependencies.
+
+## Background
+
+Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Swiss postal code, the automatic station network, radar, pollen. The forecast, though, comes as one file per parameter and model run covering all of Switzerland — 30 to 34 MB for an hourly value, every hour. Reading your place out of that without pulling the whole file is what this integration does differently: the rows of one forecast point are fetched with HTTP range requests — a binary search over the file where the rows are grouped by point, a predicted position where they are grouped by hour — so a parameter costs some 40 KB instead of 33 MB. The traffic is shown as a sensor, so you can see it stay small.
+
+## What it provides
+
+| Entity | Description |
+|---|---|
+| `weather.swiss_meteo_<id>` | The weather entity. Condition from the MeteoSwiss symbol (day/night aware), temperature, humidity, dew point, pressure, wind, gusts and bearing from the station when one is configured (else from the forecast). **Daily forecast** for nine days: condition, high, low, precipitation and its 10–90 % range, chance of rain, wind and gusts. **Hourly forecast** (option, on by default) for the coming 200+ hours: temperature with its 10–90 % range, precipitation with its range, chance of rain, wind, gusts, bearing, cloud cover, global radiation, sunshine minutes, zero-degree level and the symbol code. Attributes: `forecast_run`, `symbol`, `symbol_meaning`, `precipitation_probability`, `zero_degree_level`, `station`, `station_time`. |
+| `sensor.swiss_meteo_<id>_temperature` … | The station's 10-minute values: temperature, dew point, humidity, pressure (QNH), wind, gusts, wind direction, precipitation, sunshine, global radiation enabled by default; temperature at 5 cm, pressure QFF and station level, diffuse radiation, snow depth, wind chill and soil temperatures at 5/10/20 cm created disabled. Unavailable once the station's file is older than 45 minutes. |
+| `sensor.swiss_meteo_<id>_today_max` / `_today_min` / `_today_precipitation` | Today's high, low and precipitation from the daily forecast; the same for tomorrow (`_tomorrow_…`). |
+| `sensor.swiss_meteo_<id>_forecast_run` | When the forecast run in use was issued (diagnostic), with the parameters read and any that were missing. |
+| `sensor.swiss_meteo_<id>_station_time` | Time of the newest station row (diagnostic). |
+| `sensor.swiss_meteo_<id>_traffic_today` | Megabytes read from MeteoSwiss since midnight (diagnostic), with the request count. |
+
+`<id>` is a short per-entry code so that two places do not collide; names are translated (German, English, French, Italian), ids are not.
+
+Data updates: a new forecast run is looked for every 15 minutes with a single HEAD request and read when it appears (hourly values with every run, daily values at most every three hours); the station file is read every ten minutes. Everything is read from `data.geo.admin.ch` over TLS.
+
+## Dashboard card
+
+The integration ships a Lovelace card, **Swiss Meteo** (`custom:swiss-meteo-card`), with a visual editor: the current conditions with a large animated icon and the station values, an hourly chart — temperature line with its uncertainty band, precipitation bars with their 10–90 % range (the chance of rain sets their opacity), the symbols along the top, day boundaries — and the nine-day strip with high, low, precipitation, chance and range. The icons are [Meteocons](https://meteocons.com) by Bas Milius (MIT), bundled with the integration; the MeteoSwiss pictures themselves are proprietary and not used.
+
+The card file is served by the integration, but registering it as a Lovelace resource is left to you — the resource list is part of your dashboard configuration. It is a one-time step:
+
+**Settings → Dashboards → ⋮ (top right) → Resources → + Add resource**
+
+| | |
+|---|---|
+| URL | `/swiss_meteo_files/swiss-meteo-card.js` |
+| Resource type | JavaScript module |
+
+Then reload the page (Ctrl/Cmd+Shift+R). The *Resources* entry is only shown when **Advanced mode** is enabled in your user profile. Afterwards the card appears in the card picker as **Swiss Meteo**:
+
+```yaml
+type: custom:swiss-meteo-card
+entity: weather.swiss_meteo_ab12
+hours: 24        # 12–72 hours in the chart
+days: 9          # 1–9 days in the strip
+show_current: true
+show_hourly: true
+show_daily: true
+```
+
+The standard `weather-forecast` card and the weather tile features work with the entity as well.
+
+## Installation
+
+### Home Assistant Marketplace / HACS
+
+Add `https://github.com/prusuino/ha_swiss_meteo` as a custom repository (category *Integration*), install **Swiss Meteo**, restart Home Assistant.
+
+### Manual
+
+Copy `custom_components/swiss_meteo` into your `custom_components` directory and restart.
+
+## Setup
+
+1. **Settings → Devices & Services → Add Integration → Swiss Meteo.**
+2. Confirm or move the **location** (your Home Assistant location is pre-filled), and choose whether you want the **hourly forecast** (about 2 MB per model run, every hour) and the **extended hourly values** (temperature and precipitation uncertainty range, cloud layers, zero-degree level — about twice that).
+3. Pick the **forecast point** — the five nearest are listed with their distance: postal-code centres, weather stations and mountain points (summits, passes, resorts) — and the **weather station** for the live values among the four nearest. Altitude and exposure matter more than distance: a station on a nearby hill is not your valley. Without a station the current values come from the forecast.
+4. Done. The **Configure** dialog switches the hourly forecast and the extended values on or off and lets you pick another station (the eight nearest are listed); a change reloads the entry, entity ids and history are kept.
+
+Each entry is one place; add the integration again for another postal code or a summit.
+
+## Notes
+
+- The forecast is the one shown in the MeteoSwiss app and on its website for the postal code, updated every hour; the symbol codes (1–42 by day, 101–142 by night) are mapped to Home Assistant conditions and, in the card, to Meteocons.
+- Daily highs, lows and precipitation count the local calendar day. The hourly list starts with the current hour; past hours of the run are dropped.
+- MeteoSwiss has announced a point API for the local forecast (beta by the end of 2026). The file reader is built behind an interface so the integration can switch to it when it is there — entities and ids will not change.
+- **Weather warnings** are not part of the MeteoSwiss open data. Home Assistant's `meteoalarm` integration carries the official warnings at region level; a warning entity for this integration is on the list.
+- **Download diagnostics** (entry menu) gives the entry's configuration (coordinates redacted), the parameters read, the newest values and the traffic figures.
+
+## Disclaimer
+
+This is an independent project and is not affiliated with, endorsed by or supported by the Federal Office of Meteorology and Climatology MeteoSwiss. Data: MeteoSwiss, CC BY 4.0. The forecast and the measurements are provided as published; the author gives no warranty for their correctness, completeness or availability. Do not rely on this integration for safety-relevant decisions — MeteoSwiss's own warnings and channels remain the authoritative source.
+
+## License
+
+MIT — see [LICENSE](LICENSE). Third-party notices in [NOTICE.md](NOTICE.md).
+
+## Related integrations
+
+Part of a series of Home Assistant integrations for Switzerland by the same author: [Swiss Hail Protection](https://github.com/prusuino/ha_swiss_hail_protection), [Swiss Public Alerts](https://github.com/prusuino/ha_swiss_public_alerts), [Swiss Waters](https://github.com/prusuino/ha_swiss_waters), [Swiss Avalanche Bulletin](https://github.com/prusuino/ha_swiss_avalanche_bulletin), [Swiss Earthquakes](https://github.com/prusuino/ha_swiss_earthquakes), [Swiss Transport](https://github.com/prusuino/ha_swiss_transport), [Swiss Electricity Price](https://github.com/prusuino/ha_swiss_electricity_price), [Swiss Solar Reference Price](https://github.com/prusuino/ha_swiss_solar_reference_price), [Swiss Charging Stations](https://github.com/prusuino/ha_swiss_charging_stations), [Swiss Lottery](https://github.com/prusuino/ha_swiss_lottery).
+
+## Support
+
+Questions and bug reports: [Issues](../../issues). Please attach the diagnostics download to a bug report.
