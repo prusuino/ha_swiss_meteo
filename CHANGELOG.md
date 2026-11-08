@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0 — unreleased
+
+- Radar nowcast from the MeteoSwiss precipitation composite (PRECIP, every 5 minutes, 29 KB per frame, read without an HDF5 library): rain rate at the point, distance to the nearest rain, estimated minutes until rain arrives from the motion of the rain field; binary sensors "Raining" and "Rain approaching"; triggers "Rain approaching", "Rain started", "Rain stopped"; conditions "It is raining", "It is not raining", "Rain is approaching"; radar chip on the main card; option to switch the radar off.
+
 ## 1.3.1 — 2026-11-08
 
 - README: screenshots of every card (main card in the three colour schemes, forecast, daily list, map, sky, compact sizes).

@@ -30,7 +30,17 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     station = data.station if data else None
     pollen = data.pollen if data else None
     warnings = data.warnings if data else None
+    radar = data.radar if data else None
     return {
+        "radar": {
+            "enabled": radar is not None,
+            "last_update_success": radar.last_update_success if radar else None,
+            "frame_time": radar.data.frame_ts.isoformat() if radar and radar.data else None,
+            "rate": radar.data.rate if radar and radar.data else None,
+            "nearest_km": radar.data.nearest_km if radar and radar.data else None,
+            "eta_min": radar.data.eta_min if radar and radar.data else None,
+            "speed_kmh": radar.data.speed_kmh if radar and radar.data else None,
+        },
         "warnings": {
             "enabled": warnings is not None,
             "last_update_success": warnings.last_update_success if warnings else None,

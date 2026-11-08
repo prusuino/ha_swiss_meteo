@@ -37,6 +37,11 @@ const LABELS = {
   hours: { de: "Stunden", en: "hours", fr: "heures", it: "ore" },
   pollen: { de: "Pollen", en: "Pollen", fr: "Pollens", it: "Pollini" },
   warning: { de: "Warnung", en: "Warning", fr: "Alerte", it: "Allerta" },
+  radar: { de: "Radar", en: "Radar", fr: "Radar", it: "Radar" },
+  rain_now: { de: "Regen jetzt", en: "Raining now", fr: "Il pleut", it: "Piove ora" },
+  rain_in: { de: "Regen in ~{n} min", en: "Rain in ~{n} min", fr: "Pluie dans ~{n} min", it: "Pioggia tra ~{n} min" },
+  dry_near: { de: "trocken, Regen in {km} km", en: "dry, rain {km} km away", fr: "sec, pluie à {km} km", it: "asciutto, pioggia a {km} km" },
+  dry: { de: "trocken, kein Regen im Umkreis", en: "dry, no rain within 60 km", fr: "sec, pas de pluie à 60 km", it: "asciutto, nessuna pioggia entro 60 km" },
   from: { de: "ab", en: "from", fr: "dès", it: "da" },
   until: { de: "bis", en: "until", fr: "jusqu'à", it: "fino a" },
   level_none: { de: "keine", en: "none", fr: "aucun", it: "nessuno" },
@@ -65,6 +70,7 @@ const EDITOR_LABELS = {
   animated: { de: "Animierte Symbole", en: "Animated icons", fr: "Icônes animées", it: "Icone animate" },
   size: { de: "Grösse (Symbole und Schrift)", en: "Size (icons and text)", fr: "Taille (icônes et texte)", it: "Dimensione (icone e testo)" },
   show_pollen: { de: "Pollen anzeigen", en: "Show pollen", fr: "Afficher les pollens", it: "Mostra pollini" },
+  show_radar: { de: "Radar-Chip anzeigen", en: "Show radar chip", fr: "Afficher la puce radar", it: "Mostra chip radar" },
   show_warnings: { de: "Warnbanner anzeigen (nur wenn Warnungen vorliegen)", en: "Show warning banner (only while warnings exist)", fr: "Afficher le bandeau d'alerte (seulement s'il y a des alertes)", it: "Mostra banner allerte (solo se ci sono allerte)" },
   pollen_entity: { de: "Pollen-Sensor (leer lassen = automatisch der des Eintrags)", en: "Pollen sensor (leave empty = the entry's own, automatically)", fr: "Capteur de pollens (vide = celui de l'entrée, automatiquement)", it: "Sensore pollini (vuoto = quello della voce, automaticamente)" },
 };
@@ -130,6 +136,12 @@ function pollenEntity(hass, config) {
   return id && hass.states[id] ? id : null;
 }
 const TREE_POLLEN = new Set(["birch", "alder", "hazel", "beech", "ash", "oak"]);
+// The entry's radar sensors, derived from the weather entity id.
+function radarEntity(hass, config, key) {
+  const m = /^weather\.(.+)$/.exec(config.entity || "");
+  const id = m ? `sensor.${m[1]}_radar_${key}` : null;
+  return id && hass.states[id] ? id : null;
+}
 // The entry's warning-level sensor, derived from the weather entity id.
 function warningEntity(hass, config) {
   if (config.warning_entity) return config.warning_entity;
@@ -217,6 +229,7 @@ class SwissMeteoCard extends HTMLElement {
       show_daily: true,
       show_pollen: true,
       show_warnings: true,
+      show_radar: true,
       animated: true,
       size: "normal",
       theme: "meteo",
@@ -249,7 +262,9 @@ class SwissMeteoCard extends HTMLElement {
     const state = hass.states[this._config.entity];
     const pollen = this._config.show_pollen ? hass.states[pollenEntity(hass, this._config) || ""] : null;
     const warn = this._config.show_warnings !== false ? hass.states[warningEntity(hass, this._config) || ""] : null;
-    const stamp = (state ? state.last_updated + "|" + JSON.stringify(state.attributes).length : "none") + (pollen ? "|" + pollen.last_updated : "") + (warn ? "|" + warn.last_updated : "");
+    const radarSt = this._config.show_radar !== false ? hass.states[radarEntity(hass, this._config, "rain_eta") || ""] : null;
+    const radarRate = this._config.show_radar !== false ? hass.states[radarEntity(hass, this._config, "rain_rate") || ""] : null;
+    const stamp = (state ? state.last_updated + "|" + JSON.stringify(state.attributes).length : "none") + (pollen ? "|" + pollen.last_updated : "") + (warn ? "|" + warn.last_updated : "") + (radarSt ? "|" + radarSt.last_updated : "") + (radarRate ? "|" + radarRate.last_updated : "");
     if (stamp !== this._lastState) {
       this._lastState = stamp;
       this._render();
@@ -353,6 +368,27 @@ class SwissMeteoCard extends HTMLElement {
       const species = level === "none" ? "" : highest.map((s) => L(hass, s)).join(", ");
       const icon = level === "none" || !highest.length ? "pollen" : highest.every((s) => TREE_POLLEN.has(s)) ? "pollen-tree" : "pollen-grass";
       chips.push([L(hass, "pollen"), `${esc(levelText)}${species ? ` <span class="sub">${esc(species)}</span>` : ""}`, icon, pollenId]);
+    }
+    const etaId = this._config.show_radar !== false ? radarEntity(hass, this._config, "rain_eta") : null;
+    const rateSt = etaId ? hass.states[radarEntity(hass, this._config, "rain_rate") || ""] : null;
+    const distSt = etaId ? hass.states[radarEntity(hass, this._config, "rain_distance") || ""] : null;
+    const etaSt = etaId ? hass.states[etaId] : null;
+    if (etaSt && etaSt.state !== "unavailable" && rateSt && rateSt.state !== "unavailable") {
+      const rate = Number(rateSt.state);
+      let text;
+      let icon = "raindrop-measure";
+      if (rate >= 0.1) {
+        text = `${L(hass, "rain_now")} <span class="sub">${fmt(rate, 1)} mm/h</span>`;
+        icon = "rain";
+      } else if (etaSt.state !== "unknown" && Number(etaSt.state) > 0) {
+        text = esc(L(hass, "rain_in").replace("{n}", fmt(Number(etaSt.state))));
+        icon = "raindrops";
+      } else if (distSt && distSt.state !== "unknown" && distSt.state !== "unavailable") {
+        text = esc(L(hass, "dry_near").replace("{km}", fmt(Number(distSt.state))));
+      } else {
+        text = esc(L(hass, "dry"));
+      }
+      chips.push([L(hass, "radar"), text, icon, etaId]);
     }
     const station = a.station ? `<div class="station">${esc(L(hass, "station"))} ${esc(a.station)}${a.station_time ? " · " + esc(new Date(a.station_time).toLocaleTimeString(lang(hass), { hour: "2-digit", minute: "2-digit" })) : ""}</div>` : "";
     return `<div class="current">
@@ -546,7 +582,7 @@ customElements.define("swiss-meteo-card", SwissMeteoCard);
 
 class SwissMeteoCardEditor extends HTMLElement {
   setConfig(config) {
-    this._config = { hours: 24, days: 9, show_current: true, show_hourly: true, show_daily: true, show_pollen: true, show_warnings: true, animated: true, size: "normal", theme: "meteo", ...config };
+    this._config = { hours: 24, days: 9, show_current: true, show_hourly: true, show_daily: true, show_pollen: true, show_warnings: true, show_radar: true, animated: true, size: "normal", theme: "meteo", ...config };
     this._render();
   }
   set hass(hass) {
@@ -581,6 +617,7 @@ class SwissMeteoCardEditor extends HTMLElement {
       { name: "show_daily", selector: { boolean: {} } },
       { name: "show_pollen", selector: { boolean: {} } },
       { name: "show_warnings", selector: { boolean: {} } },
+      { name: "show_radar", selector: { boolean: {} } },
       { name: "pollen_entity", selector: { entity: { domain: "sensor" } } },
       { name: "size", selector: { select: { mode: "dropdown", options: [{ value: "small", label: "small" }, { value: "normal", label: "normal" }, { value: "large", label: "large" }, { value: "xl", label: "XL" }] } } },
       { name: "animated", selector: { boolean: {} } },

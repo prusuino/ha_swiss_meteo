@@ -54,3 +54,15 @@ warning_issued:
 warning_cleared:
   fields: *trigger_common_fields
   target: *warning_target
+
+rain_starting:
+  fields: *trigger_common_fields
+  target: *rain_target
+
+rain_started:
+  fields: *trigger_common_fields
+  target: *rain_target
+
+rain_stopped:
+  fields: *trigger_common_fields
+  target: *rain_target

@@ -22,6 +22,7 @@ from homeassistant.const import (
     UnitOfSpeed,
     UnitOfTemperature,
     UnitOfTime,
+    UnitOfVolumetricFlux,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -44,6 +45,7 @@ from .derived import (
 from .forecast import daily_values
 from .localization import t
 from .meteoalarm import LEVELS as WARNING_LEVELS, WarningsCoordinator
+from .radar import RadarCoordinator
 from .pollen import LEVELS, SPECIES, PollenCoordinator
 
 # key -> (device class, unit, state class, enabled by default, icon)
@@ -99,6 +101,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         entities.append(PollenLevelSensor(hass, entry, data.pollen))
     if data.warnings is not None:
         entities.append(WarningLevelSensor(hass, entry, data.warnings))
+    if data.radar is not None:
+        entities += [RadarRateSensor(hass, entry, data.radar), RadarDistanceSensor(hass, entry, data.radar), RadarEtaSensor(hass, entry, data.radar)]
     entities.append(ForecastRunSensor(hass, entry, data.forecast))
     entities.append(TrafficSensor(hass, entry, data.forecast))
     async_add_entities(entities)
@@ -377,6 +381,91 @@ class WarningLevelSensor(_Base):
             "feed_alerts": data.total,
             "fetched": data.fetched.isoformat(),
         }
+
+
+class _RadarBase(_Base):
+    """Common part of the radar sensors: available while the newest frame is recent."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator, key: str) -> None:
+        super().__init__(hass, entry, coordinator, key)
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.fresh
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        d = self.coordinator.data
+        if d is None:
+            return {}
+        return {"radar_time": d.frame_ts.isoformat(), "rain_cells_in_window": d.rain_pixels_window, "estimate": "derived from the MeteoSwiss PRECIP radar composite, not an official nowcast"}
+
+
+class RadarRateSensor(_RadarBase):
+    """Rain rate at the point right now (the 3×3 km maximum around it)."""
+
+    _attr_device_class = SensorDeviceClass.PRECIPITATION_INTENSITY
+    _attr_native_unit_of_measurement = UnitOfVolumetricFlux.MILLIMETERS_PER_HOUR
+    _attr_suggested_display_precision = 1
+    _attr_icon = "mdi:weather-pouring"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "radar_rain_rate")
+
+    @property
+    def native_value(self) -> float | None:
+        return self.coordinator.data.rate if self.coordinator.data else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        d = self.coordinator.data
+        return {**super().extra_state_attributes, "rate_at_point": d.rate_point} if d else {}
+
+
+class RadarDistanceSensor(_RadarBase):
+    """Distance to the nearest rain cell (0.5 mm/h or more), up to 60 km; unknown beyond."""
+
+    _attr_device_class = SensorDeviceClass.DISTANCE
+    _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
+    _attr_suggested_display_precision = 0
+    _attr_icon = "mdi:radar"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "radar_rain_distance")
+
+    @property
+    def native_value(self) -> float | None:
+        return self.coordinator.data.nearest_km if self.coordinator.data else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        d = self.coordinator.data
+        return {**super().extra_state_attributes, "bearing": d.nearest_bearing, "search_radius_km": 60} if d else {}
+
+
+class RadarEtaSensor(_RadarBase):
+    """Minutes until rain reaches the point, from the motion of the rain
+    field in the last frames (0 while it rains); unknown when no rain is
+    heading here within two hours."""
+
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = UnitOfTime.MINUTES
+    _attr_suggested_display_precision = 0
+    _attr_icon = "mdi:timer-sand"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "radar_rain_eta")
+
+    @property
+    def native_value(self) -> int | None:
+        return self.coordinator.data.eta_min if self.coordinator.data else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        d = self.coordinator.data
+        return {**super().extra_state_attributes, "speed_kmh": d.speed_kmh, "direction": d.direction} if d else {}
 
 
 class ForecastRunSensor(_Base):

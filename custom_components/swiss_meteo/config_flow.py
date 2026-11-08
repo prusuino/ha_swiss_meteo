@@ -25,6 +25,7 @@ from .const import (
     CONF_POINT_TYPE,
     CONF_POLLEN_STATION,
     CONF_POLLEN_STATION_NAME,
+    CONF_RADAR,
     CONF_STATION,
     CONF_STATION_NAME,
     CONF_WARNINGS,
@@ -117,6 +118,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
         self._hourly = True
         self._extended = False
         self._warnings = True
+        self._radar = True
         self._all_points: list[Point] = []
         self._all_stations: list[Station] = []
         self._all_pollen: list[PollenStation] = []
@@ -130,6 +132,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             self._hourly = bool(user_input.get(CONF_HOURLY, True))
             self._extended = bool(user_input.get(CONF_EXTENDED, False))
             self._warnings = bool(user_input.get(CONF_WARNINGS, True))
+            self._radar = bool(user_input.get(CONF_RADAR, True))
             search = str(user_input.get(CONF_SEARCH) or "").strip()
             session = async_get_clientsession(self.hass)
             try:
@@ -164,6 +167,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_HOURLY, default=True): selector.BooleanSelector(),
                 vol.Required(CONF_EXTENDED, default=False): selector.BooleanSelector(),
                 vol.Required(CONF_WARNINGS, default=True): selector.BooleanSelector(),
+                vol.Required(CONF_RADAR, default=True): selector.BooleanSelector(),
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
@@ -217,6 +221,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_HOURLY: self._hourly,
                     CONF_EXTENDED: self._extended,
                     CONF_WARNINGS: self._warnings,
+                    CONF_RADAR: self._radar,
                 },
             )
         point_options = [
@@ -278,6 +283,7 @@ class SwissMeteoOptionsFlow(OptionsFlow):
                 CONF_HOURLY: bool(user_input.get(CONF_HOURLY, True)),
                 CONF_EXTENDED: bool(user_input.get(CONF_EXTENDED, False)),
                 CONF_WARNINGS: bool(user_input.get(CONF_WARNINGS, True)),
+                CONF_RADAR: bool(user_input.get(CONF_RADAR, True)),
                 CONF_STATION: "" if station_abbr == NO_STATION else station_abbr,
                 CONF_STATION_NAME: station_name,
                 CONF_POLLEN_STATION: "" if pollen_abbr == NO_STATION else pollen_abbr,
@@ -312,6 +318,7 @@ class SwissMeteoOptionsFlow(OptionsFlow):
                 vol.Required(CONF_HOURLY, default=entry.options.get(CONF_HOURLY, entry.data.get(CONF_HOURLY, True))): selector.BooleanSelector(),
                 vol.Required(CONF_EXTENDED, default=entry.options.get(CONF_EXTENDED, entry.data.get(CONF_EXTENDED, False))): selector.BooleanSelector(),
                 vol.Required(CONF_WARNINGS, default=entry.options.get(CONF_WARNINGS, entry.data.get(CONF_WARNINGS, True))): selector.BooleanSelector(),
+                vol.Required(CONF_RADAR, default=entry.options.get(CONF_RADAR, entry.data.get(CONF_RADAR, True))): selector.BooleanSelector(),
                 vol.Required(CONF_STATION, default=current_station): selector.SelectSelector(
                     selector.SelectSelectorConfig(options=station_options, mode=selector.SelectSelectorMode.DROPDOWN)
                 ),

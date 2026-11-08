@@ -9,7 +9,8 @@
           "hourly": "Hourly forecast",
           "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)",
           "search": "Place or postal code (optional; searching replaces the map location)",
-          "warnings": "Official warnings (MeteoSwiss via MeteoAlarm)"
+          "warnings": "Official warnings (MeteoSwiss via MeteoAlarm)",
+          "radar": "Radar nowcast (rain now, nearest rain, rain in N minutes; about 8 MB a day)"
         }
       },
       "place": {
@@ -47,7 +48,8 @@
           "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)",
           "station": "Weather station (live values)",
           "pollen_station": "Pollen station",
-          "warnings": "Official warnings (MeteoSwiss via MeteoAlarm)"
+          "warnings": "Official warnings (MeteoSwiss via MeteoAlarm)",
+          "radar": "Radar nowcast (rain now, nearest rain, rain in N minutes; about 8 MB a day)"
         }
       }
     },
@@ -127,6 +129,42 @@
           "name": "For at least"
         }
       }
+    },
+    "rain_starting": {
+      "name": "Rain approaching",
+      "description": "Triggers when the radar shows rain reaching the forecast point within about 30 minutes, or rain has started there.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "rain_started": {
+      "name": "Rain started",
+      "description": "Triggers when the radar shows rain at the forecast point.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "rain_stopped": {
+      "name": "Rain stopped",
+      "description": "Triggers when the radar no longer shows rain at the forecast point.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
     }
   },
   "conditions": {
@@ -169,6 +207,42 @@
     "is_warning_active": {
       "name": "A warning is in force",
       "description": "Passes while an official warning (MeteoSwiss via MeteoAlarm) is in force for the forecast point.",
+      "fields": {
+        "behavior": {
+          "name": "Condition passes if"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "is_raining": {
+      "name": "It is raining",
+      "description": "Passes while the radar shows rain at the forecast point.",
+      "fields": {
+        "behavior": {
+          "name": "Condition passes if"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "is_not_raining": {
+      "name": "It is not raining",
+      "description": "Passes while the radar shows no rain at the forecast point.",
+      "fields": {
+        "behavior": {
+          "name": "Condition passes if"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "is_rain_approaching": {
+      "name": "Rain is approaching",
+      "description": "Passes while the radar shows rain reaching the forecast point within about 30 minutes, or rain there.",
       "fields": {
         "behavior": {
           "name": "Condition passes if"

@@ -40,3 +40,15 @@ is_warning_active:
       - integration: swiss_meteo
         domain: binary_sensor
         device_class: safety
+
+is_raining:
+  fields: *condition_common_fields
+  target: *rain_target
+
+is_not_raining:
+  fields: *condition_common_fields
+  target: *rain_target
+
+is_rain_approaching:
+  fields: *condition_common_fields
+  target: *rain_target

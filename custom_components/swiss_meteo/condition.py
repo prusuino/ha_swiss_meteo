@@ -28,21 +28,35 @@ else:
     FROST_SPECS = {BINARY_SENSOR_DOMAIN: DomainSpec(device_class=BinarySensorDeviceClass.COLD)}
     WARN_SPECS = {BINARY_SENSOR_DOMAIN: DomainSpec(device_class=BinarySensorDeviceClass.SAFETY)}
 
-    def _own_entities(hass: HomeAssistant, entities: set[str]) -> set[str]:
+    def _own_entities(hass: HomeAssistant, entities: set[str], suffix: str | None = None) -> set[str]:
         registry = er.async_get(hass)
         return {
             entity_id
             for entity_id in entities
-            if (entry := registry.async_get(entity_id)) is not None and entry.platform == DOMAIN
+            if (entry := registry.async_get(entity_id)) is not None
+            and entry.platform == DOMAIN
+            and (not suffix or (entry.unique_id or "").endswith(suffix))
         }
 
     class _IsRainExpected(make_entity_state_condition(RAIN_SPECS, STATE_ON)):
         def entity_filter(self, entities: set[str]) -> set[str]:
-            return _own_entities(self._hass, super().entity_filter(entities))
+            return _own_entities(self._hass, super().entity_filter(entities), "_rain_expected")
 
     class _IsDry(make_entity_state_condition(RAIN_SPECS, STATE_OFF)):
         def entity_filter(self, entities: set[str]) -> set[str]:
-            return _own_entities(self._hass, super().entity_filter(entities))
+            return _own_entities(self._hass, super().entity_filter(entities), "_rain_expected")
+
+    class _IsRaining(make_entity_state_condition(RAIN_SPECS, STATE_ON)):
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities), "_raining")
+
+    class _IsNotRaining(make_entity_state_condition(RAIN_SPECS, STATE_OFF)):
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities), "_raining")
+
+    class _IsRainApproaching(make_entity_state_condition(RAIN_SPECS, STATE_ON)):
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities), "_rain_approaching")
 
     class _IsFrostExpected(make_entity_state_condition(FROST_SPECS, STATE_ON)):
         def entity_filter(self, entities: set[str]) -> set[str]:
@@ -57,6 +71,9 @@ else:
         "is_dry": _IsDry,
         "is_frost_expected": _IsFrostExpected,
         "is_warning_active": _IsWarningActive,
+        "is_raining": _IsRaining,
+        "is_not_raining": _IsNotRaining,
+        "is_rain_approaching": _IsRainApproaching,
     }
 
 

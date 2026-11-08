@@ -66,11 +66,15 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 | `sensor.swiss_meteo_<id>_pollen_level` | The highest load class of the day over the seven species: none, low, moderate, high, very high (MeteoSwiss classes, from the mean daily concentration), with the class per species as attributes. |
 | `sensor.swiss_meteo_<id>_warning_level` | The highest colour of the **official warnings** in force for the forecast point — none, yellow, orange, red (MeteoAlarm's levels; MeteoSwiss publishes its warnings through MeteoAlarm, the EUMETNET warning service). Attributes: the warnings in force and the announced ones (event, level, type, headline, description, instruction, onset, expiry, area names), counts, the next onset. Switzerland's alerts carry the warned area as polygons, so the integration matches them to your point itself — no region to pick, no key, one 1–20 KB feed read every ten minutes. |
 | `binary_sensor.swiss_meteo_<id>_warning_active` | On while an official warning is in force for the point (device class *safety*), with the warnings as attributes. |
+| `sensor.swiss_meteo_<id>_radar_rain_rate` / `_radar_rain_distance` / `_radar_rain_eta` | **Radar nowcast** from the MeteoSwiss precipitation composite (PRECIP, 1 km, every 5 minutes, 29 KB per frame): the rain rate at your point right now (mm/h, the 3×3 km maximum), the distance to the nearest rain cell within 60 km, and the estimated minutes until rain reaches the point, derived from the motion of the rain field between the last frames (0 while it rains, unknown when nothing is heading your way within two hours). An estimate of the integration, not an official nowcast — the official INCA nowcast is not open data. Can be switched off in the options. |
+| `binary_sensor.swiss_meteo_<id>_raining` / `_rain_approaching` | Radar: on while it rains at the point (0.1 mm/h or more), and on while it rains or rain is estimated within 30 minutes. |
 | `sensor.swiss_meteo_<id>_forecast_run` | When the forecast run in use was issued (diagnostic), with the parameters read and any that were missing. |
 | `sensor.swiss_meteo_<id>_station_time` | Time of the newest station row (diagnostic). |
 | `sensor.swiss_meteo_<id>_traffic_today` | Megabytes read from MeteoSwiss since midnight (diagnostic), with the request count. |
 
 `<id>` is a short per-entry code so that two places do not collide; names are translated (German, English, French, Italian), ids are not.
+
+The radar nowcast reads one 29 KB frame every five minutes (about 8 MB a day) and estimates the motion of the rain field within 80 km of your point from consecutive frames; the chip on the main card says "raining now", "rain in ~25 min" or how far the nearest rain is.
 
 Data updates: a new forecast run is looked for every 15 minutes with a single HEAD request and read when it appears (hourly values with every run, daily values at most every three hours); the station file is read every ten minutes. Everything is read from `data.geo.admin.ch` over TLS.
 
@@ -88,8 +92,10 @@ On Home Assistant 2026.10 or newer the integration adds its own entries to the a
 | **New forecast run** | a new MeteoSwiss run has been read (hourly) |
 | **Warning issued** | an official warning comes into force for the point |
 | **Warning cleared** | no official warning is in force any more |
+| **Rain approaching** | the radar shows rain reaching the point within about 30 minutes, or rain has started |
+| **Rain started** / **Rain stopped** | the radar shows rain at the point / no longer |
 
-On 2026.11 or newer there are also the conditions **Rain is expected**, **No rain is expected**, **Frost is expected tonight** and **A warning is in force**. Each trigger and condition targets the integration's own entities (pick an entity, a device or an area); the usual *for* duration and *trigger when* / *condition passes if* options apply.
+On 2026.11 or newer there are also the conditions **Rain is expected**, **No rain is expected**, **Frost is expected tonight**, **A warning is in force**, **It is raining**, **It is not raining** and **Rain is approaching**. Each trigger and condition targets the integration's own entities (pick an entity, a device or an area); the usual *for* duration and *trigger when* / *condition passes if* options apply.
 
 ```yaml
 triggers:
@@ -162,6 +168,7 @@ show_hourly: true
 show_daily: true
 show_pollen: true   # pollen chip from the entry's pollen-level sensor (pollen_entity: another one)
 show_warnings: true # banner for official warnings (warning_entity: another warning-level sensor)
+show_radar: true    # radar chip: raining now / rain in N min / nearest rain
 size: normal        # or small, large, xl
 animated: true
 ```

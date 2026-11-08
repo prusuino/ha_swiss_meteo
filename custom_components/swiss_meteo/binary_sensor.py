@@ -22,6 +22,7 @@ from .derived import RAIN_THRESHOLD_MM, next_rain, night_minimum, window_sum
 from .device import device_info, entry_suffix
 from .localization import t
 from .meteoalarm import WarningsCoordinator
+from .radar import RadarCoordinator
 
 RAIN_WINDOW_HOURS = 6
 FROST_THRESHOLD = 0.0
@@ -34,6 +35,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         entities += [RainExpectedSensor(hass, entry, data.forecast), FrostTonightSensor(hass, entry, data.forecast)]
     if data.warnings is not None:
         entities.append(WarningActiveSensor(hass, entry, data.warnings))
+    if data.radar is not None:
+        entities += [RainingSensor(hass, entry, data.radar), RainApproachingSensor(hass, entry, data.radar)]
     async_add_entities(entities)
 
 
@@ -166,3 +169,53 @@ class WarningActiveSensor(CoordinatorEntity[WarningsCoordinator], BinarySensorEn
         if data is None:
             return {}
         return {"level": data.level(), "count": len(data.active), "upcoming": len(data.upcoming), "warnings": data.as_list(brief=True)}
+
+
+class _RadarBinary(CoordinatorEntity[RadarCoordinator], BinarySensorEntity):
+    _attr_has_entity_name = True
+    _attr_attribution = ATTRIBUTION
+    _attr_device_class = BinarySensorDeviceClass.MOISTURE
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator, key: str) -> None:
+        super().__init__(coordinator)
+        self._attr_name = t(key, hass)
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_device_info = device_info(hass, entry)
+        self.entity_id = f"binary_sensor.{DOMAIN}_{entry_suffix(entry)}_{key}"
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.fresh
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        d = self.coordinator.data
+        if d is None:
+            return {}
+        return {"rain_rate": d.rate, "nearest_rain_km": d.nearest_km, "eta_min": d.eta_min, "speed_kmh": d.speed_kmh, "direction": d.direction, "radar_time": d.frame_ts.isoformat()}
+
+
+class RainingSensor(_RadarBinary):
+    """On while the radar shows rain at the point (0.1 mm/h or more within 1 km)."""
+
+    _attr_icon = "mdi:weather-rainy"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "raining")
+
+    @property
+    def is_on(self) -> bool | None:
+        return self.coordinator.data.raining if self.coordinator.data else None
+
+
+class RainApproachingSensor(_RadarBinary):
+    """On while it rains or rain is estimated to reach the point within 30 minutes."""
+
+    _attr_icon = "mdi:weather-rainy"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "rain_approaching")
+
+    @property
+    def is_on(self) -> bool | None:
+        return self.coordinator.data.approaching if self.coordinator.data else None

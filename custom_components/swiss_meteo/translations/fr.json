@@ -9,7 +9,8 @@
           "hourly": "Prévision horaire",
           "extended": "Valeurs horaires étendues (incertitude, couches nuageuses, isotherme 0 °C)",
           "search": "Localité ou NPA (facultatif ; la recherche remplace la position sur la carte)",
-          "warnings": "Alertes officielles (MétéoSuisse via MeteoAlarm)"
+          "warnings": "Alertes officielles (MétéoSuisse via MeteoAlarm)",
+          "radar": "Prévision immédiate radar (pluie maintenant, pluie la plus proche, pluie dans N minutes ; environ 8 Mo par jour)"
         }
       },
       "place": {
@@ -47,7 +48,8 @@
           "extended": "Valeurs horaires étendues (incertitude, couches nuageuses, isotherme 0 °C)",
           "station": "Station météo (mesures)",
           "pollen_station": "Station pollinique",
-          "warnings": "Alertes officielles (MétéoSuisse via MeteoAlarm)"
+          "warnings": "Alertes officielles (MétéoSuisse via MeteoAlarm)",
+          "radar": "Prévision immédiate radar (pluie maintenant, pluie la plus proche, pluie dans N minutes ; environ 8 Mo par jour)"
         }
       }
     },
@@ -127,6 +129,42 @@
           "name": "Pendant au moins"
         }
       }
+    },
+    "rain_starting": {
+      "name": "Pluie en approche",
+      "description": "Se déclenche lorsque le radar montre de la pluie atteignant le point de prévision dans environ 30 minutes, ou qu'il commence à y pleuvoir.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "rain_started": {
+      "name": "La pluie a commencé",
+      "description": "Se déclenche lorsque le radar montre de la pluie au point de prévision.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "rain_stopped": {
+      "name": "La pluie a cessé",
+      "description": "Se déclenche lorsque le radar ne montre plus de pluie au point de prévision.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
     }
   },
   "conditions": {
@@ -169,6 +207,42 @@
     "is_warning_active": {
       "name": "Une alerte est en vigueur",
       "description": "Est vraie tant qu'une alerte officielle (MétéoSuisse via MeteoAlarm) est en vigueur pour le point de prévision.",
+      "fields": {
+        "behavior": {
+          "name": "Condition remplie si"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "is_raining": {
+      "name": "Il pleut",
+      "description": "Est vraie tant que le radar montre de la pluie au point de prévision.",
+      "fields": {
+        "behavior": {
+          "name": "Condition remplie si"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "is_not_raining": {
+      "name": "Il ne pleut pas",
+      "description": "Est vraie tant que le radar ne montre pas de pluie au point de prévision.",
+      "fields": {
+        "behavior": {
+          "name": "Condition remplie si"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "is_rain_approaching": {
+      "name": "La pluie approche",
+      "description": "Est vraie tant que le radar montre de la pluie atteignant le point de prévision dans environ 30 minutes, ou de la pluie sur place.",
       "fields": {
         "behavior": {
           "name": "Condition remplie si"

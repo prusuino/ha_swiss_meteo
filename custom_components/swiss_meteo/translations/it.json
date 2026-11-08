@@ -9,7 +9,8 @@
           "hourly": "Previsione oraria",
           "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)",
           "search": "Località o NPA (facoltativo; la ricerca sostituisce la posizione sulla mappa)",
-          "warnings": "Allerte ufficiali (MeteoSvizzera via MeteoAlarm)"
+          "warnings": "Allerte ufficiali (MeteoSvizzera via MeteoAlarm)",
+          "radar": "Nowcast radar (pioggia ora, pioggia più vicina, pioggia tra N minuti; circa 8 MB al giorno)"
         }
       },
       "place": {
@@ -47,7 +48,8 @@
           "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)",
           "station": "Stazione meteo (misure)",
           "pollen_station": "Stazione pollinica",
-          "warnings": "Allerte ufficiali (MeteoSvizzera via MeteoAlarm)"
+          "warnings": "Allerte ufficiali (MeteoSvizzera via MeteoAlarm)",
+          "radar": "Nowcast radar (pioggia ora, pioggia più vicina, pioggia tra N minuti; circa 8 MB al giorno)"
         }
       }
     },
@@ -127,6 +129,42 @@
           "name": "Per almeno"
         }
       }
+    },
+    "rain_starting": {
+      "name": "Pioggia in arrivo",
+      "description": "Si attiva quando il radar mostra pioggia che raggiunge il punto di previsione entro circa 30 minuti, o inizia a piovere lì.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "rain_started": {
+      "name": "È iniziato a piovere",
+      "description": "Si attiva quando il radar mostra pioggia sul punto di previsione.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "rain_stopped": {
+      "name": "Ha smesso di piovere",
+      "description": "Si attiva quando il radar non mostra più pioggia sul punto di previsione.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
     }
   },
   "conditions": {
@@ -169,6 +207,42 @@
     "is_warning_active": {
       "name": "Un'allerta è in vigore",
       "description": "È vera finché un'allerta ufficiale (MeteoSvizzera via MeteoAlarm) è in vigore per il punto di previsione.",
+      "fields": {
+        "behavior": {
+          "name": "Condizione soddisfatta se"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "is_raining": {
+      "name": "Piove",
+      "description": "È vera finché il radar mostra pioggia sul punto di previsione.",
+      "fields": {
+        "behavior": {
+          "name": "Condizione soddisfatta se"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "is_not_raining": {
+      "name": "Non piove",
+      "description": "È vera finché il radar non mostra pioggia sul punto di previsione.",
+      "fields": {
+        "behavior": {
+          "name": "Condizione soddisfatta se"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "is_rain_approaching": {
+      "name": "La pioggia si avvicina",
+      "description": "È vera finché il radar mostra pioggia che raggiunge il punto di previsione entro circa 30 minuti, o pioggia sul posto.",
       "fields": {
         "behavior": {
           "name": "Condizione soddisfatta se"

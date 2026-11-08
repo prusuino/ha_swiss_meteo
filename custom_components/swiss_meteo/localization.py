@@ -103,6 +103,11 @@ STRINGS: dict[str, dict[str, str]] = {
     "pollen_level": {"de": "Pollenbelastung", "en": "Pollen Load", "fr": "Charge pollinique", "it": "Carico pollinico"},
     "warning_level": {"de": "Warnstufe", "en": "Warning Level", "fr": "Niveau d'alerte", "it": "Livello di allerta"},
     "warning_active": {"de": "Warnung aktiv", "en": "Warning Active", "fr": "Alerte en cours", "it": "Allerta in corso"},
+    "radar_rain_rate": {"de": "Radar Regenrate", "en": "Radar Rain Rate", "fr": "Radar intensité de pluie", "it": "Radar intensità di pioggia"},
+    "radar_rain_distance": {"de": "Radar nächster Regen", "en": "Radar Nearest Rain", "fr": "Radar pluie la plus proche", "it": "Radar pioggia più vicina"},
+    "radar_rain_eta": {"de": "Radar Regen in", "en": "Radar Rain In", "fr": "Radar pluie dans", "it": "Radar pioggia tra"},
+    "raining": {"de": "Es regnet", "en": "Raining", "fr": "Il pleut", "it": "Piove"},
+    "rain_approaching": {"de": "Regen zieht auf", "en": "Rain Approaching", "fr": "Pluie en approche", "it": "Pioggia in arrivo"},
     "model_pollen": {"de": "{station}, Pollen {pollen}", "en": "{station}, pollen {pollen}", "fr": "{station}, pollen {pollen}", "it": "{station}, pollini {pollen}"},
 }
 

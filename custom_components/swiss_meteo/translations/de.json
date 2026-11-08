@@ -9,7 +9,8 @@
           "hourly": "Stundenprognose",
           "extended": "Erweiterte Stundenwerte (Unsicherheitsbereich, Wolkenschichten, Nullgradgrenze)",
           "search": "Ort oder PLZ (optional; die Suche ersetzt die Kartenposition)",
-          "warnings": "Amtliche Warnungen (MeteoSchweiz via MeteoAlarm)"
+          "warnings": "Amtliche Warnungen (MeteoSchweiz via MeteoAlarm)",
+          "radar": "Radar-Nowcast (Regen jetzt, nächster Regen, Regen in N Minuten; rund 8 MB pro Tag)"
         }
       },
       "place": {
@@ -47,7 +48,8 @@
           "extended": "Erweiterte Stundenwerte (Unsicherheitsbereich, Wolkenschichten, Nullgradgrenze)",
           "station": "Wetterstation (Messwerte)",
           "pollen_station": "Pollenstation",
-          "warnings": "Amtliche Warnungen (MeteoSchweiz via MeteoAlarm)"
+          "warnings": "Amtliche Warnungen (MeteoSchweiz via MeteoAlarm)",
+          "radar": "Radar-Nowcast (Regen jetzt, nächster Regen, Regen in N Minuten; rund 8 MB pro Tag)"
         }
       }
     },
@@ -127,6 +129,42 @@
           "name": "Für mindestens"
         }
       }
+    },
+    "rain_starting": {
+      "name": "Regen zieht auf",
+      "description": "Löst aus, wenn das Radar Regen zeigt, der den Prognosepunkt in etwa 30 Minuten erreicht, oder es dort zu regnen beginnt.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "rain_started": {
+      "name": "Regen hat eingesetzt",
+      "description": "Löst aus, wenn das Radar Regen am Prognosepunkt zeigt.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "rain_stopped": {
+      "name": "Regen hat aufgehört",
+      "description": "Löst aus, wenn das Radar am Prognosepunkt keinen Regen mehr zeigt.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
     }
   },
   "conditions": {
@@ -169,6 +207,42 @@
     "is_warning_active": {
       "name": "Eine Warnung ist in Kraft",
       "description": "Trifft zu, solange eine amtliche Warnung (MeteoSchweiz via MeteoAlarm) für den Prognosepunkt in Kraft ist.",
+      "fields": {
+        "behavior": {
+          "name": "Bedingung erfüllt wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "is_raining": {
+      "name": "Es regnet",
+      "description": "Trifft zu, solange das Radar Regen am Prognosepunkt zeigt.",
+      "fields": {
+        "behavior": {
+          "name": "Bedingung erfüllt wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "is_not_raining": {
+      "name": "Es regnet nicht",
+      "description": "Trifft zu, solange das Radar keinen Regen am Prognosepunkt zeigt.",
+      "fields": {
+        "behavior": {
+          "name": "Bedingung erfüllt wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "is_rain_approaching": {
+      "name": "Regen zieht auf",
+      "description": "Trifft zu, solange das Radar Regen zeigt, der den Prognosepunkt in etwa 30 Minuten erreicht, oder Regen dort.",
       "fields": {
         "behavior": {
           "name": "Bedingung erfüllt wenn"

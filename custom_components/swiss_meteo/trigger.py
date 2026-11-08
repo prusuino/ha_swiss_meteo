@@ -52,13 +52,31 @@ else:
         """Rain expected within the next hours: the rain sensor turns on."""
 
         def entity_filter(self, entities: set[str]) -> set[str]:
-            return _own_entities(self._hass, super().entity_filter(entities))
+            return _own_entities(self._hass, super().entity_filter(entities), "_rain_expected")
 
     class _RainCleared(make_entity_target_state_trigger(RAIN_SPECS, STATE_OFF)):
         """No rain expected any more: the rain sensor turns off."""
 
         def entity_filter(self, entities: set[str]) -> set[str]:
-            return _own_entities(self._hass, super().entity_filter(entities))
+            return _own_entities(self._hass, super().entity_filter(entities), "_rain_expected")
+
+    class _RainStarting(make_entity_target_state_trigger(RAIN_SPECS, STATE_ON)):
+        """Radar: rain is about to reach the point (within 30 minutes) or has started."""
+
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities), "_rain_approaching")
+
+    class _RainStarted(make_entity_target_state_trigger(RAIN_SPECS, STATE_ON)):
+        """Radar: it starts raining at the point."""
+
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities), "_raining")
+
+    class _RainStopped(make_entity_target_state_trigger(RAIN_SPECS, STATE_OFF)):
+        """Radar: the rain at the point has stopped."""
+
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities), "_raining")
 
     class _FrostExpected(make_entity_target_state_trigger(FROST_SPECS, STATE_ON)):
         """Frost expected tonight: the frost sensor turns on."""
@@ -93,6 +111,9 @@ else:
         "new_forecast": _NewForecast,
         "warning_issued": _WarningIssued,
         "warning_cleared": _WarningCleared,
+        "rain_starting": _RainStarting,
+        "rain_started": _RainStarted,
+        "rain_stopped": _RainStopped,
     }
 
 

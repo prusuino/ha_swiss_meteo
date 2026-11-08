@@ -34,6 +34,7 @@ CONF_POLLEN_STATION_NAME = "pollen_station_name"
 CONF_HOURLY = "hourly"  # hourly forecast on/off (the expensive part)
 CONF_EXTENDED = "extended"  # uncertainty quantiles, cloud layers, zero-degree level
 CONF_WARNINGS = "warnings"  # official warnings (MeteoAlarm) on/off
+CONF_RADAR = "radar"  # radar nowcast (PRECIP composite every 5 min) on/off
 
 POINT_TYPE_STATION = 1
 POINT_TYPE_POSTAL = 2
