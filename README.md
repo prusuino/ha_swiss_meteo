@@ -25,7 +25,11 @@ A Home Assistant custom integration for the **MeteoSwiss** forecast and measurem
 
 ## Screenshots
 
-The cards, here for Zürich (the Swiss Meteo palette, the glass look and the Home Assistant theme):
+The cards, here for Zürich. The main card in the Swiss Meteo palette, the glass look and the Home Assistant theme:
+
+| Swiss Meteo palette | Glass | Home Assistant theme |
+|---|---|---|
+| ![Main card](docs/card-main.png) | ![Main card, glass](docs/card-main-glass.png) | ![Main card, Home Assistant theme](docs/card-main-ha.png) |
 
 | Forecast card, daily and hourly | Daily list |
 |---|---|
