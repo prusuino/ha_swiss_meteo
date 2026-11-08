@@ -26,7 +26,7 @@ const LABELS = {
   gust: { de: "Böen", en: "Gusts", fr: "Rafales", it: "Raffiche" },
   pressure: { de: "Druck", en: "Pressure", fr: "Pression", it: "Pressione" },
   dew_point: { de: "Taupunkt", en: "Dew point", fr: "Point de rosée", it: "Punto di rugiada" },
-  rain_prob: { de: "Regenwahrsch.", en: "Rain chance", fr: "Prob. de pluie", it: "Prob. pioggia" },
+  rain_prob: { de: "Regenrisiko", en: "Rain chance", fr: "Risque pluie", it: "Rischio pioggia" },
   zero_degree: { de: "Nullgradgrenze", en: "Zero-degree level", fr: "Isotherme 0 °C", it: "Isoterma 0 °C" },
   station: { de: "Station", en: "Station", fr: "Station", it: "Stazione" },
   forecast: { de: "Prognose", en: "Forecast", fr: "Prévision", it: "Previsione" },
@@ -423,9 +423,10 @@ class SwissMeteoCard extends HTMLElement {
       .station { font-size: calc(0.95em * var(--fs)); color: var(--sm-dim); margin-top: 4px; }
       .chips { grid-area: chips; display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; }
       ha-card.meteo .chips { background: var(--sm-panel); border-radius: 4px; padding: 10px 14px; margin-top: 10px; gap: 10px 14px; }
-      .chip { display: flex; align-items: center; gap: 6px; flex: 1 1 calc(150px * var(--fs)); min-width: calc(140px * var(--fs)); }
+      .chip { display: flex; align-items: center; gap: 6px; flex: 1 1 calc(150px * var(--fs)); min-width: calc(140px * var(--fs)); overflow: hidden; }
+      .chip > div { min-width: 0; }
       .chip img { width: calc(46px * var(--fs)); height: calc(46px * var(--fs)); margin: -5px 0; }
-      .chip .k { font-size: calc(0.95em * var(--fs)); color: var(--sm-dim); line-height: 1.2; }
+      .chip .k { font-size: calc(0.95em * var(--fs)); color: var(--sm-dim); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .chip .v { font-size: calc(1.2em * var(--fs)); font-weight: 500; line-height: 1.2; }
       .chip.link { cursor: pointer; }
       .chip .sub { font-size: 0.75em; font-weight: 400; opacity: 0.8; }
@@ -469,7 +470,7 @@ class SwissMeteoCard extends HTMLElement {
         --gl-panel: rgba(30,60,115,0.45); --gl-tile: rgba(120,175,255,0.28); --gl-box: rgba(120,175,255,0.2); --gl-today: rgba(90,169,255,0.22);
         background: var(--gl-bg); color: #fff; border-radius: 20px; border: 1px solid var(--gl-border); box-shadow: var(--gl-shadow); }
       ha-card.gl { --sm-panel: var(--gl-panel); --sm-box: var(--gl-box); --sm-line: var(--gl-tile); --sm-temp: #5aa9ff; --sm-rain: #7dc4ff; --sm-dim: #b9c8e4; }
-      ha-card.gl .chips { background: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(150px * var(--fs)), 1fr)); gap: 8px; }
+      ha-card.gl .chips { background: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(164px * var(--fs)), 1fr)); gap: 8px; }
       ha-card.gl .chip { background: var(--gl-panel); border: 1px solid var(--gl-tile); border-radius: 12px; padding: 8px 10px; min-width: 0; }
       ha-card.gl .hourly { background: var(--gl-panel); border: 1px solid var(--gl-tile); border-radius: 14px; padding: 8px 6px 4px; }
       ha-card.gl .daily { background: none; padding: 0; gap: 3px; }
