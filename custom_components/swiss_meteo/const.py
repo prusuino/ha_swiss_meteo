@@ -4,6 +4,7 @@ from __future__ import annotations
 DOMAIN = "swiss_meteo"
 
 ATTRIBUTION = "Source: MeteoSwiss (Open Data, CC BY 4.0)"
+ATTRIBUTION_WARNINGS = "Source: MeteoSwiss via MeteoAlarm (EUMETNET), CC BY 4.0"
 
 # Sent with every request. MeteoSwiss serves the files from the federal
 # geodata platform; identifying the client helps them attribute traffic.
@@ -32,6 +33,7 @@ CONF_POLLEN_STATION = "pollen_station"  # pollen station abbreviation, "" for no
 CONF_POLLEN_STATION_NAME = "pollen_station_name"
 CONF_HOURLY = "hourly"  # hourly forecast on/off (the expensive part)
 CONF_EXTENDED = "extended"  # uncertainty quantiles, cloud layers, zero-degree level
+CONF_WARNINGS = "warnings"  # official warnings (MeteoAlarm) on/off
 
 POINT_TYPE_STATION = 1
 POINT_TYPE_POSTAL = 2

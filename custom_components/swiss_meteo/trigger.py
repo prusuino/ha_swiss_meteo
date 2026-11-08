@@ -1,5 +1,5 @@
 """Triggers for Swiss Meteo in the automation editor: rain expected, dry
-again, frost tonight, new forecast run. Each targets the integration's own
+again, frost tonight, new forecast run, official warning issued or cleared. Each targets the integration's own
 entities; a target that expands to other entities (an area, say) is
 narrowed to the ones this integration created.
 
@@ -32,6 +32,7 @@ else:
     RAIN_SPECS = {BINARY_SENSOR_DOMAIN: DomainSpec(device_class=BinarySensorDeviceClass.MOISTURE)}
     FROST_SPECS = {BINARY_SENSOR_DOMAIN: DomainSpec(device_class=BinarySensorDeviceClass.COLD)}
     RUN_SPECS = {SENSOR_DOMAIN: DomainSpec(device_class=SensorDeviceClass.TIMESTAMP)}
+    WARN_SPECS = {BINARY_SENSOR_DOMAIN: DomainSpec(device_class=BinarySensorDeviceClass.SAFETY)}
 
     def _own_entities(hass: HomeAssistant, entities: set[str], suffix: str | None = None) -> set[str]:
         """Keep only entities created by this integration (and, given a
@@ -65,6 +66,18 @@ else:
         def entity_filter(self, entities: set[str]) -> set[str]:
             return _own_entities(self._hass, super().entity_filter(entities))
 
+    class _WarningIssued(make_entity_target_state_trigger(WARN_SPECS, STATE_ON)):
+        """An official warning comes into force: the warning sensor turns on."""
+
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities))
+
+    class _WarningCleared(make_entity_target_state_trigger(WARN_SPECS, STATE_OFF)):
+        """No official warning in force any more."""
+
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities))
+
     class _NewForecast(EntityTriggerBase):
         """A new forecast run has been read (the run sensor changes)."""
 
@@ -78,6 +91,8 @@ else:
         "rain_cleared": _RainCleared,
         "frost_expected": _FrostExpected,
         "new_forecast": _NewForecast,
+        "warning_issued": _WarningIssued,
+        "warning_cleared": _WarningCleared,
     }
 
 

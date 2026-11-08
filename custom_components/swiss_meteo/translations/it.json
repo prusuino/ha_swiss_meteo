@@ -7,7 +7,9 @@
         "data": {
           "location": "Posizione",
           "hourly": "Previsione oraria",
-          "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)"
+          "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)",
+          "search": "Località o NPA (facoltativo; la ricerca sostituisce la posizione sulla mappa)",
+          "warnings": "Allerte ufficiali (MeteoSvizzera via MeteoAlarm)"
         }
       },
       "place": {
@@ -18,13 +20,21 @@
           "station": "Stazione meteo (misure)",
           "pollen_station": "Stazione pollinica"
         }
+      },
+      "search": {
+        "title": "Scegli la località",
+        "description": "I punti di previsione che corrispondono alla ricerca. Le stazioni più vicine vengono poi proposte attorno alla località scelta.",
+        "data": {
+          "point": "Località"
+        }
       }
     },
     "abort": {
       "already_configured": "Questo punto di previsione è già configurato."
     },
     "error": {
-      "cannot_connect": "I dati aperti di MeteoSvizzera non sono stati letti. Controlla la connessione e riprova."
+      "cannot_connect": "I dati aperti di MeteoSvizzera non sono stati letti. Controlla la connessione e riprova.",
+      "no_match": "Nessun punto di previsione corrisponde a questo testo; prova con il NPA o un'altra grafia."
     }
   },
   "options": {
@@ -36,7 +46,8 @@
           "hourly": "Previsione oraria",
           "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)",
           "station": "Stazione meteo (misure)",
-          "pollen_station": "Stazione pollinica"
+          "pollen_station": "Stazione pollinica",
+          "warnings": "Allerte ufficiali (MeteoSvizzera via MeteoAlarm)"
         }
       }
     },
@@ -92,6 +103,30 @@
           "name": "Per almeno"
         }
       }
+    },
+    "warning_issued": {
+      "name": "Allerta emessa",
+      "description": "Si attiva quando un'allerta ufficiale (MeteoSvizzera via MeteoAlarm) entra in vigore per il punto di previsione.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "warning_cleared": {
+      "name": "Allerta revocata",
+      "description": "Si attiva quando nessuna allerta ufficiale è più in vigore per il punto di previsione.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
     }
   },
   "conditions": {
@@ -122,6 +157,18 @@
     "is_frost_expected": {
       "name": "È previsto gelo stanotte",
       "description": "Verifica se la previsione scende a 0 °C o meno prima delle 9 del mattino seguente.",
+      "fields": {
+        "behavior": {
+          "name": "Condizione soddisfatta se"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "is_warning_active": {
+      "name": "Un'allerta è in vigore",
+      "description": "È vera finché un'allerta ufficiale (MeteoSvizzera via MeteoAlarm) è in vigore per il punto di previsione.",
       "fields": {
         "behavior": {
           "name": "Condizione soddisfatta se"
@@ -199,6 +246,14 @@
           "moderate": "Moderato",
           "high": "Forte",
           "very_high": "Molto forte"
+        }
+      },
+      "warning_level": {
+        "state": {
+          "none": "Nessuno",
+          "yellow": "Giallo",
+          "orange": "Arancione",
+          "red": "Rosso"
         }
       }
     }

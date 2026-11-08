@@ -26,6 +26,7 @@ except ImportError:  # Home Assistant before 2026.11: no condition platform API
 else:
     RAIN_SPECS = {BINARY_SENSOR_DOMAIN: DomainSpec(device_class=BinarySensorDeviceClass.MOISTURE)}
     FROST_SPECS = {BINARY_SENSOR_DOMAIN: DomainSpec(device_class=BinarySensorDeviceClass.COLD)}
+    WARN_SPECS = {BINARY_SENSOR_DOMAIN: DomainSpec(device_class=BinarySensorDeviceClass.SAFETY)}
 
     def _own_entities(hass: HomeAssistant, entities: set[str]) -> set[str]:
         registry = er.async_get(hass)
@@ -47,10 +48,15 @@ else:
         def entity_filter(self, entities: set[str]) -> set[str]:
             return _own_entities(self._hass, super().entity_filter(entities))
 
+    class _IsWarningActive(make_entity_state_condition(WARN_SPECS, STATE_ON)):
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities))
+
     CONDITIONS: dict[str, type[Condition]] = {
         "is_rain_expected": _IsRainExpected,
         "is_dry": _IsDry,
         "is_frost_expected": _IsFrostExpected,
+        "is_warning_active": _IsWarningActive,
     }
 
 

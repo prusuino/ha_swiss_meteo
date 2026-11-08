@@ -36,6 +36,9 @@ const LABELS = {
   unavailable: { de: "Keine Daten", en: "No data", fr: "Pas de données", it: "Nessun dato" },
   hours: { de: "Stunden", en: "hours", fr: "heures", it: "ore" },
   pollen: { de: "Pollen", en: "Pollen", fr: "Pollens", it: "Pollini" },
+  warning: { de: "Warnung", en: "Warning", fr: "Alerte", it: "Allerta" },
+  from: { de: "ab", en: "from", fr: "dès", it: "da" },
+  until: { de: "bis", en: "until", fr: "jusqu'à", it: "fino a" },
   level_none: { de: "keine", en: "none", fr: "aucun", it: "nessuno" },
   level_low: { de: "schwach", en: "low", fr: "faible", it: "debole" },
   level_moderate: { de: "mässig", en: "moderate", fr: "modéré", it: "moderato" },
@@ -62,6 +65,7 @@ const EDITOR_LABELS = {
   animated: { de: "Animierte Symbole", en: "Animated icons", fr: "Icônes animées", it: "Icone animate" },
   size: { de: "Grösse (Symbole und Schrift)", en: "Size (icons and text)", fr: "Taille (icônes et texte)", it: "Dimensione (icone e testo)" },
   show_pollen: { de: "Pollen anzeigen", en: "Show pollen", fr: "Afficher les pollens", it: "Mostra pollini" },
+  show_warnings: { de: "Warnbanner anzeigen", en: "Show warning banner", fr: "Afficher le bandeau d'alerte", it: "Mostra banner allerte" },
   pollen_entity: { de: "Pollen-Sensor (leer lassen = automatisch der des Eintrags)", en: "Pollen sensor (leave empty = the entry's own, automatically)", fr: "Capteur de pollens (vide = celui de l'entrée, automatiquement)", it: "Sensore pollini (vuoto = quello della voce, automaticamente)" },
 };
 
@@ -126,6 +130,40 @@ function pollenEntity(hass, config) {
   return id && hass.states[id] ? id : null;
 }
 const TREE_POLLEN = new Set(["birch", "alder", "hazel", "beech", "ash", "oak"]);
+// The entry's warning-level sensor, derived from the weather entity id.
+function warningEntity(hass, config) {
+  if (config.warning_entity) return config.warning_entity;
+  const m = /^weather\.(.+)$/.exec(config.entity || "");
+  const id = m ? `sensor.${m[1]}_warning_level` : null;
+  return id && hass.states[id] ? id : null;
+}
+// The warning banner rows of a card: one per warning in force or announced.
+function warningRows(hass, config) {
+  if (config.show_warnings === false) return "";
+  const id = warningEntity(hass, config);
+  const st = id ? hass.states[id] : null;
+  if (!st || st.state === "unavailable" || st.state === "unknown") return "";
+  const items = Array.isArray(st.attributes.warnings) ? st.attributes.warnings.slice(0, 3) : [];
+  if (!items.length) return "";
+  const l = lang(hass);
+  const when = (w) => {
+    const f = (iso) => new Date(iso).toLocaleString(l, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+    if (w.upcoming && w.onset) return `${L(hass, "from")} ${f(w.onset)}`;
+    return w.expires ? `${L(hass, "until")} ${f(w.expires)}` : "";
+  };
+  return `<div class="warns" data-entity="${esc(id)}">${items.map((w) => `<div class="warn ${esc(w.level)}${w.upcoming ? " soon" : ""}"><span class="wl">${esc(L(hass, "warning"))}</span><span class="we">${esc(w.event)}</span><span class="wt">${esc(when(w))}</span></div>`).join("")}</div>`;
+}
+const WARN_CSS = `
+      .warns { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 4px; cursor: pointer; }
+      .warn { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; font-size: 0.95em; color: #fff; background: #d8232a; }
+      .warn.yellow { background: #f5c400; color: #1c2733; }
+      .warn.orange { background: #f08a00; color: #1c2733; }
+      .warn.red { background: #d8232a; }
+      .warn.soon { opacity: 0.85; }
+      .warn .wl { font-weight: 700; text-transform: uppercase; font-size: 0.8em; letter-spacing: 0.04em; }
+      .warn .we { flex: 1 1 auto; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .warn .wt { font-size: 0.85em; white-space: nowrap; opacity: 0.9; }
+`;
 // The entity a new card starts with: the first Swiss Meteo weather entity
 // of the instance (whether or not the dashboard uses it already), else
 // the first weather entity offered by the picker.
@@ -177,6 +215,7 @@ class SwissMeteoCard extends HTMLElement {
       show_hourly: true,
       show_daily: true,
       show_pollen: true,
+      show_warnings: true,
       animated: true,
       size: "normal",
       theme: "meteo",
@@ -208,7 +247,8 @@ class SwissMeteoCard extends HTMLElement {
     if (!this._subscribed && hass.connection && this._config) this._subscribe();
     const state = hass.states[this._config.entity];
     const pollen = this._config.show_pollen ? hass.states[pollenEntity(hass, this._config) || ""] : null;
-    const stamp = (state ? state.last_updated + "|" + JSON.stringify(state.attributes).length : "none") + (pollen ? "|" + pollen.last_updated : "");
+    const warn = this._config.show_warnings !== false ? hass.states[warningEntity(hass, this._config) || ""] : null;
+    const stamp = (state ? state.last_updated + "|" + JSON.stringify(state.attributes).length : "none") + (pollen ? "|" + pollen.last_updated : "") + (warn ? "|" + warn.last_updated : "");
     if (stamp !== this._lastState) {
       this._lastState = stamp;
       this._render();
@@ -271,6 +311,7 @@ class SwissMeteoCard extends HTMLElement {
     }
     const parts = [this._style(), `<ha-card class="${cls}">`];
     parts.push(`<div class="head"><div class="title">${esc(title)}</div></div>`);
+    parts.push(warningRows(hass, this._config));
     if (this._config.show_current) parts.push(this._renderCurrent(state));
     if (this._config.show_hourly && this._hourly && this._hourly.length) parts.push(this._renderHourly());
     if (this._config.show_daily && this._daily && this._daily.length) parts.push(this._renderDaily());
@@ -279,7 +320,7 @@ class SwissMeteoCard extends HTMLElement {
     parts.push("</ha-card>");
     this.shadowRoot.innerHTML = parts.join("");
     this.shadowRoot.querySelector(".head")?.addEventListener("click", () => this._more(state.entity_id));
-    for (const el of this.shadowRoot.querySelectorAll(".chip.link")) el.addEventListener("click", () => this._more(el.dataset.entity));
+    for (const el of this.shadowRoot.querySelectorAll(".chip.link, .warns")) el.addEventListener("click", () => this._more(el.dataset.entity));
   }
 
   _more(entityId) {
@@ -465,6 +506,7 @@ class SwissMeteoCard extends HTMLElement {
       .daily .range { font-size: calc(0.72em * var(--fs)); color: var(--sm-dim); opacity: 0.8; }
       .foot { font-size: 0.72em; opacity: 0.55; margin-top: 8px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .dot { display: none; }
+${WARN_CSS}
       ha-card.gl { --gl-bg: linear-gradient(165deg, #152c56 0%, #0c1b38 55%, #0a152d 100%); --gl-border: rgba(120,175,255,0.45);
         --gl-shadow: 0 0 0 1px rgba(120,175,255,0.12), 0 0 26px rgba(80,140,255,0.22), 0 12px 36px rgba(0,0,0,0.5);
         --gl-panel: rgba(30,60,115,0.45); --gl-tile: rgba(120,175,255,0.28); --gl-box: rgba(120,175,255,0.2); --gl-today: rgba(90,169,255,0.22);
@@ -492,7 +534,7 @@ customElements.define("swiss-meteo-card", SwissMeteoCard);
 
 class SwissMeteoCardEditor extends HTMLElement {
   setConfig(config) {
-    this._config = { hours: 24, days: 9, show_current: true, show_hourly: true, show_daily: true, show_pollen: true, animated: true, size: "normal", theme: "meteo", ...config };
+    this._config = { hours: 24, days: 9, show_current: true, show_hourly: true, show_daily: true, show_pollen: true, show_warnings: true, animated: true, size: "normal", theme: "meteo", ...config };
     this._render();
   }
   set hass(hass) {
@@ -526,6 +568,7 @@ class SwissMeteoCardEditor extends HTMLElement {
       { name: "show_hourly", selector: { boolean: {} } },
       { name: "show_daily", selector: { boolean: {} } },
       { name: "show_pollen", selector: { boolean: {} } },
+      { name: "show_warnings", selector: { boolean: {} } },
       { name: "pollen_entity", selector: { entity: { domain: "sensor" } } },
       { name: "size", selector: { select: { mode: "dropdown", options: [{ value: "normal", label: "normal" }, { value: "large", label: "large" }, { value: "xl", label: "XL" }] } } },
       { name: "animated", selector: { boolean: {} } },
@@ -573,6 +616,7 @@ const LIST_EDITOR_LABELS = {
   show_details: { de: "Details (Feuchte, Wind, Niederschlag)", en: "Details (humidity, wind, precipitation)", fr: "Détails (humidité, vent, précipitations)", it: "Dettagli (umidità, vento, precipitazioni)" },
   background: { de: "Hintergrund", en: "Background", fr: "Arrière-plan", it: "Sfondo" },
   animated: EDITOR_LABELS.animated,
+  show_warnings: EDITOR_LABELS.show_warnings,
   size: EDITOR_LABELS.size,
 };
 function LL(hass, key) {
@@ -1147,6 +1191,7 @@ class SwissMeteoForecastCard extends HTMLElement {
     } else {
       parts.push(`<div class="title small">${esc(title)}</div>`);
     }
+    parts.push(warningRows(hass, this._config));
     if (this._config.show_forecast && this._forecast && this._forecast.length) {
       const wanted = Number(this._config.columns) || autoColumns(this, hourly ? 8 : 7, (hourly ? 50 : 62) * fsOf(this._config) + (this._config.theme === "glass" ? 8 : 0));
       const rows = this._forecast.slice(0, Math.max(3, Math.min(hourly ? 24 : 9, wanted)));
@@ -1167,6 +1212,12 @@ class SwissMeteoForecastCard extends HTMLElement {
     }
     parts.push("</div></ha-card>");
     this.shadowRoot.innerHTML = parts.join("");
+    this.shadowRoot.querySelector(".warns")?.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const e2 = new Event("hass-more-info", { bubbles: true, composed: true });
+      e2.detail = { entityId: ev.currentTarget.dataset.entity };
+      this.dispatchEvent(e2);
+    });
     this.shadowRoot.querySelector(".current, .title")?.addEventListener("click", () => {
       const ev = new Event("hass-more-info", { bubbles: true, composed: true });
       ev.detail = { entityId: this._config.entity };
@@ -1211,6 +1262,7 @@ class SwissMeteoForecastCard extends HTMLElement {
       .t.one { font-size: calc(1.05em * var(--fs)); }
       .rain { font-size: calc(0.78em * var(--fs)); color: var(--sm-rain); }
       .rain.dry { color: var(--sm-dim); opacity: 0.8; }
+${WARN_CSS}
       ha-card.gl { --gl-bg: linear-gradient(165deg, #152c56 0%, #0c1b38 55%, #0a152d 100%); --gl-border: rgba(120,175,255,0.45);
         --gl-shadow: 0 0 0 1px rgba(120,175,255,0.12), 0 0 26px rgba(80,140,255,0.22), 0 12px 36px rgba(0,0,0,0.5);
         --gl-panel: rgba(30,60,115,0.45); --gl-tile: rgba(120,175,255,0.28); --gl-box: rgba(120,175,255,0.2); --gl-today: rgba(90,169,255,0.22);
@@ -1238,6 +1290,7 @@ SwissMeteoForecastCardEditor.schema = [
   { name: "size", selector: { select: { mode: "dropdown", options: [{ value: "normal", label: "normal" }, { value: "large", label: "large" }, { value: "xl", label: "XL" }] } } },
   { name: "animated", selector: { boolean: {} } },
   { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "ha", label: "Home Assistant" }, { value: "glass", label: "Glass" }] } } },
+  { name: "show_warnings", selector: { boolean: {} } },
 ];
 customElements.define("swiss-meteo-forecast-card-editor", SwissMeteoForecastCardEditor);
 
@@ -1335,6 +1388,7 @@ class SwissMeteoSkyCard extends HTMLElement {
     } else {
       parts.push(`<div class="top"><div class="who"><div class="loc">${esc(name)}</div></div></div>`);
     }
+    parts.push(warningRows(hass, this._config));
     if (this._config.show_details) {
       const det = [];
       if (a.humidity != null) det.push(["humidity", `${fmt(a.humidity)} %`]);
@@ -1363,6 +1417,11 @@ class SwissMeteoSkyCard extends HTMLElement {
     }
     parts.push("</div></ha-card>");
     this.shadowRoot.innerHTML = parts.join("");
+    this.shadowRoot.querySelector(".warns")?.addEventListener("click", (ev) => {
+      const e2 = new Event("hass-more-info", { bubbles: true, composed: true });
+      e2.detail = { entityId: ev.currentTarget.dataset.entity };
+      this.dispatchEvent(e2);
+    });
     this.shadowRoot.querySelector(".top")?.addEventListener("click", () => {
       const ev = new Event("hass-more-info", { bubbles: true, composed: true });
       ev.detail = { entityId: this._config.entity };
@@ -1408,6 +1467,7 @@ class SwissMeteoSkyCard extends HTMLElement {
       .d img { width: var(--ico-row); height: var(--ico-row); margin: calc(var(--ico-row) * -0.08) 0; }
       .hi { font-size: calc(1.2em * var(--fs)); font-weight: 700; margin-top: 0; }
       .lo { font-size: calc(0.95em * var(--fs)); color: var(--sk-dim); white-space: nowrap; }
+${WARN_CSS}
       ha-card.gl { --gl-bg: linear-gradient(165deg, #152c56 0%, #0c1b38 55%, #0a152d 100%); --gl-border: rgba(120,175,255,0.45);
         --gl-shadow: 0 0 0 1px rgba(120,175,255,0.12), 0 0 26px rgba(80,140,255,0.22), 0 12px 36px rgba(0,0,0,0.5);
         --gl-panel: rgba(30,60,115,0.45); --gl-tile: rgba(120,175,255,0.28); --gl-box: rgba(120,175,255,0.2); --gl-today: rgba(90,169,255,0.22);
@@ -1436,6 +1496,7 @@ SwissMeteoSkyCardEditor.schema = [
   { name: "animated", selector: { boolean: {} } },
   { name: "background", selector: { select: { mode: "dropdown", options: [{ value: "sky", label: "Sky" }, { value: "panel", label: "Panel" }] } } },
   { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "ha", label: "Home Assistant" }, { value: "sky", label: "Banner blue" }, { value: "glass", label: "Glass" }] } } },
+  { name: "show_warnings", selector: { boolean: {} } },
 ];
 customElements.define("swiss-meteo-sky-card-editor", SwissMeteoSkyCardEditor);
 

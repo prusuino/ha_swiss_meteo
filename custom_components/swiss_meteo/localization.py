@@ -101,6 +101,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "pollen_ash": {"de": "Pollen Esche", "en": "Pollen Ash", "fr": "Pollen frêne", "it": "Polline frassino"},
     "pollen_oak": {"de": "Pollen Eiche", "en": "Pollen Oak", "fr": "Pollen chêne", "it": "Polline quercia"},
     "pollen_level": {"de": "Pollenbelastung", "en": "Pollen Load", "fr": "Charge pollinique", "it": "Carico pollinico"},
+    "warning_level": {"de": "Warnstufe", "en": "Warning Level", "fr": "Niveau d'alerte", "it": "Livello di allerta"},
+    "warning_active": {"de": "Warnung aktiv", "en": "Warning Active", "fr": "Alerte en cours", "it": "Allerta in corso"},
     "model_pollen": {"de": "{station}, Pollen {pollen}", "en": "{station}, pollen {pollen}", "fr": "{station}, pollen {pollen}", "it": "{station}, pollini {pollen}"},
 }
 

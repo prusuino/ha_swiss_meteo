@@ -26,6 +26,7 @@ from .const import (
     CONF_POLLEN_STATION_NAME,
     CONF_STATION,
     CONF_STATION_NAME,
+    CONF_WARNINGS,
     DOMAIN,
     POINT_TYPE_MOUNTAIN,
     POINT_TYPE_POSTAL,
@@ -37,7 +38,9 @@ from .pollen import PollenStation, async_fetch_pollen_stations
 _LOGGER = logging.getLogger(__name__)
 
 CONF_LOCATION = "location"
+CONF_SEARCH = "search"
 CONF_POINT = "point"
+_MAX_MATCHES = 12
 NO_STATION = "none"
 _NEAREST_POINTS = 5
 _NEAREST_STATIONS = 4
@@ -66,6 +69,33 @@ def _point_value(point: Point) -> str:
     return f"{point.point_type}:{point.point_id}"
 
 
+def search_points(points: list[Point], text: str) -> list[Point]:
+    """The points whose postal code or name matches the text: postal code
+    prefix first, then names starting with the text, then names containing
+    it. The text may also be '8001 Zürich' style; the postal code alone
+    decides then."""
+    q = " ".join(text.split()).lower()
+    if not q:
+        return []
+    first = q.split(" ", 1)[0]
+    plz = first if first.isdigit() else ""
+    name_q = q[len(first):].strip() if plz else q
+    tiers: tuple[list[Point], list[Point], list[Point]] = ([], [], [])
+    for p in points:
+        name = (p.name or "").lower()
+        code = str(p.postal_code or "")
+        if plz:
+            if code.startswith(plz) and (not name_q or name_q in name):
+                tiers[0].append(p)
+            continue
+        if name.startswith(q):
+            tiers[1].append(p)
+        elif q in name:
+            tiers[2].append(p)
+    out = tiers[0] + tiers[1] + tiers[2]
+    return out[:_MAX_MATCHES]
+
+
 class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
@@ -77,6 +107,9 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
         self._pollen: list[tuple[float, PollenStation]] = []
         self._hourly = True
         self._extended = False
+        self._warnings = True
+        self._all_points: list[Point] = []
+        self._matches: list[Point] = []
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
@@ -85,6 +118,8 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             self._lat, self._lon = float(loc["latitude"]), float(loc["longitude"])
             self._hourly = bool(user_input.get(CONF_HOURLY, True))
             self._extended = bool(user_input.get(CONF_EXTENDED, False))
+            self._warnings = bool(user_input.get(CONF_WARNINGS, True))
+            search = str(user_input.get(CONF_SEARCH) or "").strip()
             session = async_get_clientsession(self.hass)
             try:
                 points = await async_fetch_points(session)
@@ -94,21 +129,55 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("Point lists not readable: %s", err)
                 errors["base"] = "cannot_connect"
             else:
-                self._points = nearest(points, self._lat, self._lon, _NEAREST_POINTS)
-                self._stations = nearest(stations, self._lat, self._lon, _NEAREST_STATIONS)
-                self._pollen = nearest(pollen, self._lat, self._lon, _NEAREST_POLLEN)
-                return await self.async_step_place()
+                self._all_points = points
+                self._all_stations = stations
+                self._all_pollen = pollen
+                if search:
+                    self._matches = search_points(points, search)
+                    if not self._matches:
+                        errors[CONF_SEARCH] = "no_match"
+                    else:
+                        return await self.async_step_search()
+                if not errors:
+                    self._points = nearest(points, self._lat, self._lon, _NEAREST_POINTS)
+                    self._stations = nearest(stations, self._lat, self._lon, _NEAREST_STATIONS)
+                    self._pollen = nearest(pollen, self._lat, self._lon, _NEAREST_POLLEN)
+                    return await self.async_step_place()
         schema = vol.Schema(
             {
                 vol.Required(
                     CONF_LOCATION,
                     default={"latitude": self.hass.config.latitude, "longitude": self.hass.config.longitude},
                 ): selector.LocationSelector(),
+                vol.Optional(CONF_SEARCH, default=""): selector.TextSelector(),
                 vol.Required(CONF_HOURLY, default=True): selector.BooleanSelector(),
                 vol.Required(CONF_EXTENDED, default=False): selector.BooleanSelector(),
+                vol.Required(CONF_WARNINGS, default=True): selector.BooleanSelector(),
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+    async def async_step_search(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The places matching the search text; the chosen one becomes the
+        location, and the stations are picked around it."""
+        if user_input is not None:
+            chosen = user_input[CONF_POINT]
+            point = next(p for p in self._matches if _point_value(p) == chosen)
+            self._lat, self._lon = point.lat, point.lon
+            others = [(d, p) for d, p in nearest(self._all_points, self._lat, self._lon, _NEAREST_POINTS) if _point_value(p) != chosen]
+            self._points = [(0.0, point)] + others[: _NEAREST_POINTS - 1]
+            self._stations = nearest(self._all_stations, self._lat, self._lon, _NEAREST_STATIONS)
+            self._pollen = nearest(self._all_pollen, self._lat, self._lon, _NEAREST_POLLEN)
+            return await self.async_step_place()
+        options = [selector.SelectOptionDict(value=_point_value(p), label=_point_label(0.0, p).rsplit(" – ", 1)[0]) for p in self._matches]
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_POINT, default=options[0]["value"]): selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=options, mode=selector.SelectSelectorMode.LIST)
+                ),
+            }
+        )
+        return self.async_show_form(step_id="search", data_schema=schema)
 
     async def async_step_place(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
@@ -136,6 +205,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_POLLEN_STATION_NAME: pollen.name if pollen else "",
                     CONF_HOURLY: self._hourly,
                     CONF_EXTENDED: self._extended,
+                    CONF_WARNINGS: self._warnings,
                 },
             )
         point_options = [
@@ -196,6 +266,7 @@ class SwissMeteoOptionsFlow(OptionsFlow):
             options = {
                 CONF_HOURLY: bool(user_input.get(CONF_HOURLY, True)),
                 CONF_EXTENDED: bool(user_input.get(CONF_EXTENDED, False)),
+                CONF_WARNINGS: bool(user_input.get(CONF_WARNINGS, True)),
                 CONF_STATION: "" if station_abbr == NO_STATION else station_abbr,
                 CONF_STATION_NAME: station_name,
                 CONF_POLLEN_STATION: "" if pollen_abbr == NO_STATION else pollen_abbr,
@@ -229,6 +300,7 @@ class SwissMeteoOptionsFlow(OptionsFlow):
             {
                 vol.Required(CONF_HOURLY, default=entry.options.get(CONF_HOURLY, entry.data.get(CONF_HOURLY, True))): selector.BooleanSelector(),
                 vol.Required(CONF_EXTENDED, default=entry.options.get(CONF_EXTENDED, entry.data.get(CONF_EXTENDED, False))): selector.BooleanSelector(),
+                vol.Required(CONF_WARNINGS, default=entry.options.get(CONF_WARNINGS, entry.data.get(CONF_WARNINGS, True))): selector.BooleanSelector(),
                 vol.Required(CONF_STATION, default=current_station): selector.SelectSelector(
                     selector.SelectSelectorConfig(options=station_options, mode=selector.SelectSelectorMode.DROPDOWN)
                 ),

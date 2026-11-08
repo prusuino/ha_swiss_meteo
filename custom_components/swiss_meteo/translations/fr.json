@@ -7,7 +7,9 @@
         "data": {
           "location": "Lieu",
           "hourly": "Prévision horaire",
-          "extended": "Valeurs horaires étendues (incertitude, couches nuageuses, isotherme 0 °C)"
+          "extended": "Valeurs horaires étendues (incertitude, couches nuageuses, isotherme 0 °C)",
+          "search": "Localité ou NPA (facultatif ; la recherche remplace la position sur la carte)",
+          "warnings": "Alertes officielles (MétéoSuisse via MeteoAlarm)"
         }
       },
       "place": {
@@ -18,13 +20,21 @@
           "station": "Station météo (mesures)",
           "pollen_station": "Station pollinique"
         }
+      },
+      "search": {
+        "title": "Choisir la localité",
+        "description": "Les points de prévision correspondant à la recherche. Les stations les plus proches sont ensuite proposées autour de la localité choisie.",
+        "data": {
+          "point": "Localité"
+        }
       }
     },
     "abort": {
       "already_configured": "Ce point de prévision est déjà configuré."
     },
     "error": {
-      "cannot_connect": "Les données ouvertes de MétéoSuisse n'ont pas pu être lues. Vérifiez la connexion et réessayez."
+      "cannot_connect": "Les données ouvertes de MétéoSuisse n'ont pas pu être lues. Vérifiez la connexion et réessayez.",
+      "no_match": "Aucun point de prévision ne correspond à ce texte ; essayez le NPA ou une autre orthographe."
     }
   },
   "options": {
@@ -36,7 +46,8 @@
           "hourly": "Prévision horaire",
           "extended": "Valeurs horaires étendues (incertitude, couches nuageuses, isotherme 0 °C)",
           "station": "Station météo (mesures)",
-          "pollen_station": "Station pollinique"
+          "pollen_station": "Station pollinique",
+          "warnings": "Alertes officielles (MétéoSuisse via MeteoAlarm)"
         }
       }
     },
@@ -92,6 +103,30 @@
           "name": "Pendant au moins"
         }
       }
+    },
+    "warning_issued": {
+      "name": "Alerte émise",
+      "description": "Se déclenche lorsqu'une alerte officielle (MétéoSuisse via MeteoAlarm) entre en vigueur pour le point de prévision.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "warning_cleared": {
+      "name": "Alerte levée",
+      "description": "Se déclenche lorsqu'aucune alerte officielle n'est plus en vigueur pour le point de prévision.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
     }
   },
   "conditions": {
@@ -122,6 +157,18 @@
     "is_frost_expected": {
       "name": "Du gel est attendu cette nuit",
       "description": "Vérifie si la prévision descend à 0 °C ou moins avant 9 h le lendemain matin.",
+      "fields": {
+        "behavior": {
+          "name": "Condition remplie si"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "is_warning_active": {
+      "name": "Une alerte est en vigueur",
+      "description": "Est vraie tant qu'une alerte officielle (MétéoSuisse via MeteoAlarm) est en vigueur pour le point de prévision.",
       "fields": {
         "behavior": {
           "name": "Condition remplie si"
@@ -199,6 +246,14 @@
           "moderate": "Modérée",
           "high": "Forte",
           "very_high": "Très forte"
+        }
+      },
+      "warning_level": {
+        "state": {
+          "none": "Aucun",
+          "yellow": "Jaune",
+          "orange": "Orange",
+          "red": "Rouge"
         }
       }
     }

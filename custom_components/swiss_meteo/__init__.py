@@ -11,12 +11,13 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_POLLEN_STATION, CONF_STATION, DOMAIN, STATION_PARAMS
+from .const import CONF_POLLEN_STATION, CONF_STATION, CONF_WARNINGS, DOMAIN, STATION_PARAMS
 from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
 from .device import entry_suffix
 from .frontend import async_serve_frontend
 from .history import GROUPS, HistoryError, async_import_history
 from .pollen import PollenCoordinator
+from .warnings import WarningsCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -94,7 +95,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not pollen.last_update_success:
             _LOGGER.warning("Entry %s: pollen station %s not readable yet, its sensors start unavailable", entry_suffix(entry), pollen.station)
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = EntryData(forecast=forecast, station=station, pollen=pollen)
+    warnings: WarningsCoordinator | None = None
+    if entry.options.get(CONF_WARNINGS, entry.data.get(CONF_WARNINGS, True)):
+        warnings = WarningsCoordinator(hass, entry)
+        await warnings.async_refresh()
+        if not warnings.last_update_success:
+            _LOGGER.warning("Entry %s: warnings feed not readable yet, the warning entities start unavailable", entry_suffix(entry))
+
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = EntryData(forecast=forecast, station=station, pollen=pollen, warnings=warnings)
     await async_serve_frontend(hass)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

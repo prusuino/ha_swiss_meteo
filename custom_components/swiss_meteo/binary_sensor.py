@@ -16,11 +16,12 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTRIBUTION, DOMAIN
+from .const import ATTRIBUTION, ATTRIBUTION_WARNINGS, DOMAIN
 from .coordinator import EntryData, ForecastCoordinator
 from .derived import RAIN_THRESHOLD_MM, next_rain, night_minimum, window_sum
 from .device import device_info, entry_suffix
 from .localization import t
+from .warnings import WarningsCoordinator
 
 RAIN_WINDOW_HOURS = 6
 FROST_THRESHOLD = 0.0
@@ -28,9 +29,12 @@ FROST_THRESHOLD = 0.0
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     data: EntryData = hass.data[DOMAIN][entry.entry_id]
-    if not data.forecast.hourly_enabled:
-        return
-    async_add_entities([RainExpectedSensor(hass, entry, data.forecast), FrostTonightSensor(hass, entry, data.forecast)])
+    entities: list[BinarySensorEntity] = []
+    if data.forecast.hourly_enabled:
+        entities += [RainExpectedSensor(hass, entry, data.forecast), FrostTonightSensor(hass, entry, data.forecast)]
+    if data.warnings is not None:
+        entities.append(WarningActiveSensor(hass, entry, data.warnings))
+    async_add_entities(entities)
 
 
 class _Base(CoordinatorEntity[ForecastCoordinator], BinarySensorEntity):
@@ -129,3 +133,36 @@ class FrostTonightSensor(_Base):
             "night_minimum": low[1],
             "night_minimum_at": dt_util.as_local(low[0]).isoformat(),
         }
+
+
+class WarningActiveSensor(CoordinatorEntity[WarningsCoordinator], BinarySensorEntity):
+    """On while an official warning (MeteoAlarm) is in force for the
+    forecast point."""
+
+    _attr_has_entity_name = True
+    _attr_attribution = ATTRIBUTION_WARNINGS
+    _attr_device_class = BinarySensorDeviceClass.SAFETY
+    _attr_icon = "mdi:alert-outline"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: WarningsCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_name = t("warning_active", hass)
+        self._attr_unique_id = f"{entry.entry_id}_warning_active"
+        self._attr_device_info = device_info(hass, entry)
+        self.entity_id = f"binary_sensor.{DOMAIN}_{entry_suffix(entry)}_warning_active"
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.fresh
+
+    @property
+    def is_on(self) -> bool | None:
+        data = self.coordinator.data
+        return bool(data.active) if data else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data
+        if data is None:
+            return {}
+        return {"level": data.level(), "count": len(data.active), "upcoming": len(data.upcoming), "warnings": [w.as_dict() for w in data.items]}

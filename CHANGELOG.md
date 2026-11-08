@@ -15,6 +15,8 @@ First release.
 - Derived sensors: daily mean temperature, heating degree days (SIA 381/3, 12/20), global radiation and sunshine sums for today and tomorrow, precipitation of the next 24 hours, next rain. Binary sensors "Rain expected" (next six hours) and "Frost tonight".
 - Automation editor entries: triggers "Rain expected", "Rain no longer expected", "Frost expected tonight", "New forecast run" (Home Assistant 2026.10+), conditions "Rain is expected", "No rain is expected", "Frost is expected tonight" (2026.11+). Blueprints "Rain is coming" and "Frost tonight".
 - Action `swiss_meteo.import_history`: the station's archive (hourly since 1980, daily since the station's start) into the long-term statistics — mean/min/max of the station sensors, totals of precipitation, sunshine, evaporation and heating degree days as separate statistics.
+- Official warnings (MeteoSwiss via MeteoAlarm): warning-level sensor (none, yellow, orange, red) with the warnings in force and announced as attributes, "Warning active" binary sensor, triggers "Warning issued" / "Warning cleared", condition "A warning is in force", warning banners on the main, forecast and sky cards. The alerts' polygons are matched to the forecast point locally.
+- Setup by place name or postal code as an alternative to the map marker.
 - Pollen: the hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak from the chosen MeteoSwiss pollen station, with the day's mean and the MeteoSwiss load classes; an overall load-class sensor, shown as a chip on the main card.
 - Brand icon and logo.
 - German, English, French and Italian.

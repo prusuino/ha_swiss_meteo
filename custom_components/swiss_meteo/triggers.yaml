@@ -40,3 +40,17 @@ new_forecast:
       - integration: swiss_meteo
         domain: sensor
         device_class: timestamp
+
+.warning_target: &warning_target
+  entity:
+    - integration: swiss_meteo
+      domain: binary_sensor
+      device_class: safety
+
+warning_issued:
+  fields: *trigger_common_fields
+  target: *warning_target
+
+warning_cleared:
+  fields: *trigger_common_fields
+  target: *warning_target

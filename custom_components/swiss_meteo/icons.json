@@ -11,6 +11,12 @@
     },
     "new_forecast": {
       "trigger": "mdi:clock-check-outline"
+    },
+    "warning_issued": {
+      "trigger": "mdi:alert"
+    },
+    "warning_cleared": {
+      "trigger": "mdi:alert-circle-check-outline"
     }
   },
   "conditions": {
@@ -22,6 +28,9 @@
     },
     "is_frost_expected": {
       "condition": "mdi:snowflake-alert"
+    },
+    "is_warning_active": {
+      "condition": "mdi:alert"
     }
   }
 }

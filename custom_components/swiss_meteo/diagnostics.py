@@ -29,7 +29,16 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     snap = data.forecast.data if data and data.forecast.data else None
     station = data.station if data else None
     pollen = data.pollen if data else None
+    warnings = data.warnings if data else None
     return {
+        "warnings": {
+            "enabled": warnings is not None,
+            "last_update_success": warnings.last_update_success if warnings else None,
+            "fetched": warnings.data.fetched.isoformat() if warnings and warnings.data else None,
+            "feed_alerts": warnings.data.total if warnings and warnings.data else None,
+            "unlocated": warnings.data.unlocated if warnings and warnings.data else None,
+            "matching": [{"event": w.event, "level": w.level, "type": w.type_key, "upcoming": w.upcoming} for w in warnings.data.items] if warnings and warnings.data else None,
+        },
         "pollen": {
             "configured": pollen.station if pollen else None,
             "last_update_success": pollen.last_update_success if pollen else None,

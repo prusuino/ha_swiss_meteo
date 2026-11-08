@@ -7,7 +7,9 @@
         "data": {
           "location": "Location",
           "hourly": "Hourly forecast",
-          "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)"
+          "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)",
+          "search": "Place or postal code (optional; searching replaces the map location)",
+          "warnings": "Official warnings (MeteoSwiss via MeteoAlarm)"
         }
       },
       "place": {
@@ -18,13 +20,21 @@
           "station": "Weather station (live values)",
           "pollen_station": "Pollen station"
         }
+      },
+      "search": {
+        "title": "Choose the place",
+        "description": "The forecast points matching your search. The nearest stations are then offered around the chosen place.",
+        "data": {
+          "point": "Place"
+        }
       }
     },
     "abort": {
       "already_configured": "This forecast point is already set up."
     },
     "error": {
-      "cannot_connect": "The MeteoSwiss open data could not be read. Check the connection and try again."
+      "cannot_connect": "The MeteoSwiss open data could not be read. Check the connection and try again.",
+      "no_match": "No forecast point matches this text; try the postal code or another spelling."
     }
   },
   "options": {
@@ -36,7 +46,8 @@
           "hourly": "Hourly forecast",
           "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)",
           "station": "Weather station (live values)",
-          "pollen_station": "Pollen station"
+          "pollen_station": "Pollen station",
+          "warnings": "Official warnings (MeteoSwiss via MeteoAlarm)"
         }
       }
     },
@@ -92,6 +103,30 @@
           "name": "For at least"
         }
       }
+    },
+    "warning_issued": {
+      "name": "Warning issued",
+      "description": "Triggers when an official warning (MeteoSwiss via MeteoAlarm) comes into force for the forecast point.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "warning_cleared": {
+      "name": "Warning cleared",
+      "description": "Triggers when no official warning is in force for the forecast point any more.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
     }
   },
   "conditions": {
@@ -122,6 +157,18 @@
     "is_frost_expected": {
       "name": "Frost is expected tonight",
       "description": "Tests if the forecast drops to 0 °C or below before 09:00 the next morning.",
+      "fields": {
+        "behavior": {
+          "name": "Condition passes if"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "is_warning_active": {
+      "name": "A warning is in force",
+      "description": "Passes while an official warning (MeteoSwiss via MeteoAlarm) is in force for the forecast point.",
       "fields": {
         "behavior": {
           "name": "Condition passes if"
@@ -199,6 +246,14 @@
           "moderate": "Moderate",
           "high": "High",
           "very_high": "Very high"
+        }
+      },
+      "warning_level": {
+        "state": {
+          "none": "None",
+          "yellow": "Yellow",
+          "orange": "Orange",
+          "red": "Red"
         }
       }
     }

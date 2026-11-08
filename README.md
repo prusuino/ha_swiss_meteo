@@ -4,7 +4,7 @@
 
 A Home Assistant custom integration for the **MeteoSwiss** forecast and measurements, from the official open data: the local forecast of your postal code (nine days, hour by hour, with the uncertainty range), the live values of the nearest SwissMetNet station every ten minutes, and a dashboard card with animated icons — read so sparingly that the hourly forecast costs a few megabytes a day, not hundreds.
 
-> **Open data only.** Everything comes from the files MeteoSwiss publishes under CC BY 4.0 on the federal geodata platform. No app backend, no scraping, no API key, no third-party service, no Python dependencies.
+> **Open data only.** Everything comes from the files MeteoSwiss publishes under CC BY 4.0 on the federal geodata platform, plus the official warnings from MeteoAlarm (EUMETNET, CC BY 4.0), where MeteoSwiss publishes them. No app backend, no scraping, no API key, no third-party service, no Python dependencies.
 
 ## Background
 
@@ -27,6 +27,8 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 | `binary_sensor.swiss_meteo_<id>_frost_tonight` | On when the forecast drops to 0 °C or below before 09:00 the next morning, with the minimum and its hour. |
 | `sensor.swiss_meteo_<id>_pollen_birch` / `_grasses` / `_alder` / `_hazel` / `_beech` / `_ash` / `_oak` | Hourly pollen concentration (pollen/m³) of the chosen MeteoSwiss pollen station, with the day's mean and the MeteoSwiss load class (`level`) as attributes. |
 | `sensor.swiss_meteo_<id>_pollen_level` | The highest load class of the day over the seven species: none, low, moderate, high, very high (MeteoSwiss classes, from the mean daily concentration), with the class per species as attributes. |
+| `sensor.swiss_meteo_<id>_warning_level` | The highest colour of the **official warnings** in force for the forecast point — none, yellow, orange, red (MeteoAlarm's levels; MeteoSwiss publishes its warnings through MeteoAlarm, the EUMETNET warning service). Attributes: the warnings in force and the announced ones (event, level, type, headline, description, instruction, onset, expiry, area names), counts, the next onset. Switzerland's alerts carry the warned area as polygons, so the integration matches them to your point itself — no region to pick, no key, one 1–20 KB feed read every ten minutes. |
+| `binary_sensor.swiss_meteo_<id>_warning_active` | On while an official warning is in force for the point (device class *safety*), with the warnings as attributes. |
 | `sensor.swiss_meteo_<id>_forecast_run` | When the forecast run in use was issued (diagnostic), with the parameters read and any that were missing. |
 | `sensor.swiss_meteo_<id>_station_time` | Time of the newest station row (diagnostic). |
 | `sensor.swiss_meteo_<id>_traffic_today` | Megabytes read from MeteoSwiss since midnight (diagnostic), with the request count. |
@@ -47,8 +49,10 @@ On Home Assistant 2026.10 or newer the integration adds its own entries to the a
 | **Rain no longer expected** | the six-hour window is dry again |
 | **Frost expected tonight** | the forecast drops to 0 °C or below before the next morning |
 | **New forecast run** | a new MeteoSwiss run has been read (hourly) |
+| **Warning issued** | an official warning comes into force for the point |
+| **Warning cleared** | no official warning is in force any more |
 
-On 2026.11 or newer there are also the conditions **Rain is expected**, **No rain is expected** and **Frost is expected tonight**. Each trigger and condition targets the integration's own entities (pick an entity, a device or an area); the usual *for* duration and *trigger when* / *condition passes if* options apply.
+On 2026.11 or newer there are also the conditions **Rain is expected**, **No rain is expected**, **Frost is expected tonight** and **A warning is in force**. Each trigger and condition targets the integration's own entities (pick an entity, a device or an area); the usual *for* duration and *trigger when* / *condition passes if* options apply.
 
 ```yaml
 triggers:
@@ -120,11 +124,12 @@ show_current: true
 show_hourly: true
 show_daily: true
 show_pollen: true   # pollen chip from the entry's pollen-level sensor
+show_warnings: true # banner for official warnings (main, forecast and sky cards)
 size: normal        # or large, xl
 animated: true
 ```
 
-With a pollen station configured, the current values carry a **pollen chip**: the day's load class and the species behind it; a click opens the pollen-level sensor. `pollen_entity` names another pollen-level sensor, `show_pollen: false` drops the chip. The main card uses the dark blue Swiss Meteo palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead. Every card takes `theme: ha` to follow your Home Assistant theme instead of the Swiss Meteo palette, `theme: glass` for the deep-blue glass look (glowing borders, values and days as tiles, blue temperature line), and `animated: false` for still icons. Four more cards come with the same file, in the look of the MeteoSwiss website:
+With a pollen station configured, the current values carry a **pollen chip**: the day's load class and the species behind it; a click opens the pollen-level sensor. `pollen_entity` names another pollen-level sensor, `show_pollen: false` drops the chip. With official warnings on, the main, forecast and sky cards show a **warning banner** per warning in force or announced (yellow, orange or red; a click opens the warning sensor); `show_warnings: false` drops it. The main card uses the dark blue Swiss Meteo palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead. Every card takes `theme: ha` to follow your Home Assistant theme instead of the Swiss Meteo palette, `theme: glass` for the deep-blue glass look (glowing borders, values and days as tiles, blue temperature line), and `animated: false` for still icons. Four more cards come with the same file, in the look of the MeteoSwiss website:
 
 **Swiss Meteo – forecast** (`custom:swiss-meteo-forecast-card`): the drop-in for Home Assistant's `weather-forecast` card with the same options — current conditions on top and a row of days (symbol, low and high, precipitation) or hours (symbol, temperature, precipitation or chance of rain).
 
@@ -194,8 +199,9 @@ Copy `custom_components/swiss_meteo` into your `custom_components` directory and
 
 1. **Settings → Devices & Services → Add Integration → Swiss Meteo.**
 2. Confirm or move the **location** (your Home Assistant location is pre-filled), and choose whether you want the **hourly forecast** (about 2 MB per model run, every hour) and the **extended hourly values** (temperature and precipitation uncertainty range, cloud layers, zero-degree level — about twice that).
+2b. Or type a **place name or postal code** instead of moving the marker: the matching forecast points are listed, and the stations are then offered around the one you choose.
 3. Pick the **forecast point** — the five nearest are listed with their distance: postal-code centres, weather stations and mountain points (summits, passes, resorts) — the **weather station** for the live values among the four nearest, and the **pollen station** among the three nearest of the 15 MeteoSwiss pollen stations (hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak with the MeteoSwiss load classes; the pollen file is read every 30 minutes, 1 KB). Altitude and exposure matter more than distance: a station on a nearby hill is not your valley. Without a station the current values come from the forecast.
-4. Done. The **Configure** dialog switches the hourly forecast and the extended values on or off and lets you pick another weather station (the eight nearest are listed) or pollen station; a change reloads the entry, entity ids and history are kept.
+4. Done. The **Configure** dialog switches the hourly forecast, the extended values and the official warnings on or off and lets you pick another weather station (the eight nearest are listed) or pollen station; a change reloads the entry, entity ids and history are kept.
 
 Each entry is one place; add the integration again for another postal code or a summit.
 

@@ -37,6 +37,14 @@ The outline of Switzerland and the lakes drawn by the map card are derived
 from Natural Earth (https://www.naturalearthdata.com), 1:10m cultural and
 physical vectors, which are in the public domain.
 
+## MeteoAlarm
+
+The official warnings come from MeteoAlarm (https://meteoalarm.org), the
+EUMETNET severe-weather warning service through which MeteoSwiss publishes
+its warnings, under the Creative Commons Attribution 4.0 licence and
+MeteoAlarm's terms and conditions; the warnings are shown unaltered with
+their source.
+
 ## MeteoSwiss open data
 
 The forecast, station and pollen data come from the Federal Office of

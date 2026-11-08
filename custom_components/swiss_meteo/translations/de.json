@@ -7,7 +7,9 @@
         "data": {
           "location": "Standort",
           "hourly": "Stundenprognose",
-          "extended": "Erweiterte Stundenwerte (Unsicherheitsbereich, Wolkenschichten, Nullgradgrenze)"
+          "extended": "Erweiterte Stundenwerte (Unsicherheitsbereich, Wolkenschichten, Nullgradgrenze)",
+          "search": "Ort oder PLZ (optional; die Suche ersetzt die Kartenposition)",
+          "warnings": "Amtliche Warnungen (MeteoSchweiz via MeteoAlarm)"
         }
       },
       "place": {
@@ -18,13 +20,21 @@
           "station": "Wetterstation (Messwerte)",
           "pollen_station": "Pollenstation"
         }
+      },
+      "search": {
+        "title": "Ort wählen",
+        "description": "Die Prognosepunkte, die zur Suche passen. Die nächsten Stationen werden danach rund um den gewählten Ort angeboten.",
+        "data": {
+          "point": "Ort"
+        }
       }
     },
     "abort": {
       "already_configured": "Dieser Prognosepunkt ist bereits eingerichtet."
     },
     "error": {
-      "cannot_connect": "Die Open Data von MeteoSchweiz konnten nicht gelesen werden. Verbindung prüfen und erneut versuchen."
+      "cannot_connect": "Die Open Data von MeteoSchweiz konnten nicht gelesen werden. Verbindung prüfen und erneut versuchen.",
+      "no_match": "Kein Prognosepunkt passt zu diesem Text; versuche die PLZ oder eine andere Schreibweise."
     }
   },
   "options": {
@@ -36,7 +46,8 @@
           "hourly": "Stundenprognose",
           "extended": "Erweiterte Stundenwerte (Unsicherheitsbereich, Wolkenschichten, Nullgradgrenze)",
           "station": "Wetterstation (Messwerte)",
-          "pollen_station": "Pollenstation"
+          "pollen_station": "Pollenstation",
+          "warnings": "Amtliche Warnungen (MeteoSchweiz via MeteoAlarm)"
         }
       }
     },
@@ -92,6 +103,30 @@
           "name": "Für mindestens"
         }
       }
+    },
+    "warning_issued": {
+      "name": "Warnung ausgegeben",
+      "description": "Löst aus, wenn eine amtliche Warnung (MeteoSchweiz via MeteoAlarm) für den Prognosepunkt in Kraft tritt.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "warning_cleared": {
+      "name": "Warnung aufgehoben",
+      "description": "Löst aus, wenn für den Prognosepunkt keine amtliche Warnung mehr in Kraft ist.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
     }
   },
   "conditions": {
@@ -122,6 +157,18 @@
     "is_frost_expected": {
       "name": "Frost wird heute Nacht erwartet",
       "description": "Prüft, ob die Prognose bis 09:00 Uhr des nächsten Morgens auf 0 °C oder tiefer fällt.",
+      "fields": {
+        "behavior": {
+          "name": "Bedingung erfüllt wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "is_warning_active": {
+      "name": "Eine Warnung ist in Kraft",
+      "description": "Trifft zu, solange eine amtliche Warnung (MeteoSchweiz via MeteoAlarm) für den Prognosepunkt in Kraft ist.",
       "fields": {
         "behavior": {
           "name": "Bedingung erfüllt wenn"
@@ -199,6 +246,14 @@
           "moderate": "Mässig",
           "high": "Stark",
           "very_high": "Sehr stark"
+        }
+      },
+      "warning_level": {
+        "state": {
+          "none": "Keine",
+          "yellow": "Gelb",
+          "orange": "Orange",
+          "red": "Rot"
         }
       }
     }

@@ -32,3 +32,11 @@ is_frost_expected:
       - integration: swiss_meteo
         domain: binary_sensor
         device_class: cold
+
+is_warning_active:
+  fields: *condition_common_fields
+  target:
+    entity:
+      - integration: swiss_meteo
+        domain: binary_sensor
+        device_class: safety

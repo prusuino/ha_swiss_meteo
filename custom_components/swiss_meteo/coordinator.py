@@ -44,6 +44,7 @@ from .ogd import (
 
 if TYPE_CHECKING:
     from .pollen import PollenCoordinator
+    from .warnings import WarningsCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -198,3 +199,4 @@ class EntryData:
     forecast: ForecastCoordinator
     station: StationCoordinator | None
     pollen: "PollenCoordinator | None" = None
+    warnings: "WarningsCoordinator | None" = None

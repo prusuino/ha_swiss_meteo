@@ -28,7 +28,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTRIBUTION, DOMAIN, STATION_PARAMS
+from .const import ATTRIBUTION, ATTRIBUTION_WARNINGS, DOMAIN, STATION_PARAMS
 from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
 from .device import device_info, entry_suffix
 from .derived import (
@@ -43,6 +43,7 @@ from .derived import (
 )
 from .forecast import daily_values
 from .localization import t
+from .warnings import LEVELS as WARNING_LEVELS, WarningsCoordinator
 from .pollen import LEVELS, SPECIES, PollenCoordinator
 
 # key -> (device class, unit, state class, enabled by default, icon)
@@ -96,6 +97,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         for species in SPECIES:
             entities.append(PollenSensor(hass, entry, data.pollen, species))
         entities.append(PollenLevelSensor(hass, entry, data.pollen))
+    if data.warnings is not None:
+        entities.append(WarningLevelSensor(hass, entry, data.warnings))
     entities.append(ForecastRunSensor(hass, entry, data.forecast))
     entities.append(TrafficSensor(hass, entry, data.forecast))
     async_add_entities(entities)
@@ -329,6 +332,51 @@ class PollenLevelSensor(_Base):
             attrs[species] = self.coordinator.level(species)
         attrs["highest"] = [s for s in SPECIES if self.coordinator.level(s) == self.coordinator.overall_level()]
         return attrs
+
+
+class WarningLevelSensor(_Base):
+    """The highest MeteoAlarm colour of the official warnings in force for
+    the forecast point: none, yellow, orange, red. The warnings themselves
+    (in force and announced) are attributes."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(WARNING_LEVELS)
+    _attr_translation_key = "warning_level"
+    _attr_icon = "mdi:alert-outline"
+    _attr_attribution = ATTRIBUTION_WARNINGS
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: WarningsCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "warning_level")
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.fresh
+
+    @property
+    def native_value(self) -> str | None:
+        return self.coordinator.data.level() if self.coordinator.data else None
+
+    @property
+    def icon(self) -> str:
+        level = self.native_value
+        return "mdi:alert-outline" if level in (None, "none") else "mdi:alert"
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data
+        if data is None:
+            return {}
+        active = data.active
+        upcoming = data.upcoming
+        return {
+            "count": len(active),
+            "upcoming": len(upcoming),
+            "highest_upcoming": max((w.level for w in upcoming), key=WARNING_LEVELS.index) if upcoming else "none",
+            "next_onset": min((w.onset for w in upcoming if w.onset), default=None).isoformat() if any(w.onset for w in upcoming) else None,
+            "warnings": [w.as_dict() for w in data.items],
+            "feed_alerts": data.total,
+            "fetched": data.fetched.isoformat(),
+        }
 
 
 class ForecastRunSensor(_Base):
