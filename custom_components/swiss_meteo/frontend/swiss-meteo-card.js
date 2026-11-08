@@ -980,12 +980,32 @@ class SwissMeteoMapCard extends HTMLElement {
       if (r && !date) date = new Date(r.datetime);
       const [x, y] = mapXY(Number(s.attributes.latitude), Number(s.attributes.longitude));
       const icon = r ? iconFor(r.symbol, r.condition, false, this._config.animated) : iconFor(s.attributes.symbol, s.state, false, this._config.animated);
-      const name = this._config.show_names ? esc(s.attributes.point_name || s.attributes.friendly_name) : "";
-      pills.push(`<div class="pill" style="left:${(x * 100).toFixed(2)}%;top:${(y * 100).toFixed(2)}%" data-e="${esc(e)}">
-        <img src="${icon}" alt="" />
-        <div class="body">${name ? `<div class="name">${name}</div>` : ""}<div class="t"><span>${fmt(r ? r.templow : null)}°</span><span>${fmt(r ? r.temperature : null)}°</span></div></div>
-      </div>`);
+      const rawName = this._config.show_names ? String(s.attributes.point_name || s.attributes.friendly_name || "") : "";
+      // size in map percent: icon 11 cqw, body padding, the name or the two boxes
+      const w = 11 + 6 + Math.max(12, rawName.length * 1.75);
+      pills.push({ e, x: x * 100, y: y * 100, x0: x * 100, y0: y * 100, w, h: 11 * (MAP.W / MAP.H), icon, name: esc(rawName), lo: fmt(r ? r.templow : null), hi: fmt(r ? r.temperature : null) });
     }
+    // pills that overlap are pushed down, one below the other
+    pills.sort((a, b) => a.y - b.y || a.x - b.x);
+    for (let pass = 0; pass < 4; pass++) {
+      for (let i = 0; i < pills.length; i++) {
+        for (let j = i + 1; j < pills.length; j++) {
+          const a = pills[i], b = pills[j];
+          const dx = Math.abs(a.x + 0.34 * a.w - (b.x + 0.34 * b.w));
+          const dy = Math.abs(a.y - b.y);
+          if (dx < (a.w + b.w) / 2 && dy < a.h) b.y = a.y + a.h + 1;
+        }
+      }
+    }
+    for (const p of pills) p.y = Math.max(p.h / 2 + 1, Math.min(100 - p.h / 2 - 1, p.y));
+    const leaders = pills
+      .filter((p) => Math.abs(p.y - p.y0) > 2 || Math.abs(p.x - p.x0) > 2)
+      .map((p) => `<line class="lead" x1="${((p.x0 / 100) * MAP.W).toFixed(1)}" y1="${((p.y0 / 100) * MAP.H).toFixed(1)}" x2="${((p.x / 100) * MAP.W).toFixed(1)}" y2="${((p.y / 100) * MAP.H).toFixed(1)}" /><circle class="anchor" cx="${((p.x0 / 100) * MAP.W).toFixed(1)}" cy="${((p.y0 / 100) * MAP.H).toFixed(1)}" r="5" />`)
+      .join("");
+    const pillHtml = pills.map((p) => `<div class="pill" style="left:${p.x.toFixed(2)}%;top:${p.y.toFixed(2)}%" data-e="${esc(p.e)}">
+        <img src="${p.icon}" alt="" />
+        <div class="body">${p.name ? `<div class="name">${p.name}</div>` : ""}<div class="t"><span>${p.lo}°</span><span>${p.hi}°</span></div></div>
+      </div>`);
     let title = this._config.title;
     if (!title) {
       const when = dayIdx === 0 ? LL(hass, "map_today") : dayIdx === 1 ? LL(hass, "map_tomorrow") : date ? date.toLocaleDateString(l, { weekday: "long" }) : "";
@@ -1001,9 +1021,10 @@ class SwissMeteoMapCard extends HTMLElement {
           <path class="land" d="${MAP.ch}" filter="url(#sh)" />
           <g clip-path="url(#ch)"><path class="lake" d="${MAP.lakes}" /></g>
           <path class="border" d="${MAP.ch}" />
+          ${leaders}
         </svg>
         <div class="title">${esc(title)}</div>
-        ${pills.join("")}
+        ${pillHtml.join("")}
         ${empty}
         <div class="info" title="${esc(LL(hass, "source"))}">i</div>
       </div>
@@ -1034,6 +1055,8 @@ class SwissMeteoMapCard extends HTMLElement {
       .land { fill: #86c3a1; }
       .lake { fill: #a9d9f3; }
       .border { fill: none; stroke: #d6efe0; stroke-width: 1.2; opacity: 0.6; }
+      .lead { stroke: #fff; stroke-width: 2; opacity: 0.8; }
+      .anchor { fill: #2f6cf0; stroke: #fff; stroke-width: 2; }
       .title { position: absolute; left: 4%; top: 4%; font-weight: 700; font-size: 4.2cqw; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
       .pill { position: absolute; transform: translate(-16%, -50%); display: flex; align-items: center; cursor: pointer; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.45)); }
       .pill img { width: 11cqw; height: 11cqw; margin-right: -3.5cqw; position: relative; z-index: 1; }
