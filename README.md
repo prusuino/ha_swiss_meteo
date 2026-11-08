@@ -119,9 +119,10 @@ days: 9          # 1–9 days in the strip
 show_current: true
 show_hourly: true
 show_daily: true
+show_pollen: true   # pollen chip from the entry's pollen-level sensor
 ```
 
-The main card uses the dark blue MeteoSwiss palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead. Three more cards come with the same file, in the look of the MeteoSwiss website:
+With a pollen station configured, the current values carry a **pollen chip**: the day's load class and the species behind it; a click opens the pollen-level sensor. `pollen_entity` names another pollen-level sensor, `show_pollen: false` drops the chip. The main card uses the dark blue MeteoSwiss palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead. Every card takes `animated: false` for still icons. Four more cards come with the same file, in the look of the MeteoSwiss website:
 
 **Swiss Meteo – forecast** (`custom:swiss-meteo-forecast-card`): the drop-in for Home Assistant's `weather-forecast` card with the same options — current conditions on top and a row of days (symbol, low and high, precipitation) or hours (symbol, temperature, precipitation or chance of rain).
 
@@ -132,9 +133,27 @@ forecast_type: daily   # or hourly
 show_current: true
 show_forecast: true
 columns: 0             # 0 = automatic (7 days / 8 hours)
+size: normal           # or large, xl — bigger icons and text
+animated: true         # false for still icons
 theme: meteo
 ```
 
+
+**Swiss Meteo – sky** (`custom:swiss-meteo-sky-card`): a glass panel on a sky with the mountain silhouette, in the MeteoSwiss palette (`theme: sky` for the blue of the Swiss Meteo banner): place and condition, the big temperature with the symbol, a row of details (humidity, wind, precipitation of the next day or hour) and a row of days (symbol, high, low) or hours (symbol, temperature, precipitation). `background: panel` draws the panel alone, for a dashboard with its own background.
+
+```yaml
+type: custom:swiss-meteo-sky-card
+entity: weather.swiss_meteo_ab12
+forecast_type: daily   # or hourly
+columns: 0             # 0 = automatic (5 days / 6 hours)
+show_current: true
+show_details: true
+show_forecast: true
+size: normal           # or large, xl
+animated: true
+background: sky        # or panel
+theme: meteo           # or sky (banner blue)
+```
 
 **Swiss Meteo – daily list** (`custom:swiss-meteo-daily-card`): the nine-day list — weekday, symbol, low and high in boxes, precipitation with its 10–90 % range — with the *Wind* and *Sunshine* toggles that add the day's wind, gusts and sunshine hours to each row. `theme: meteo` (default) uses the dark blue MeteoSwiss palette, `theme: ha` your Home Assistant theme.
 
