@@ -7,7 +7,8 @@
   "config_flow": true,
   "dependencies": [
     "http",
-    "recorder"
+    "recorder",
+    "websocket_api"
   ],
   "documentation": "https://github.com/prusuino/ha_swiss_meteo",
   "integration_type": "service",

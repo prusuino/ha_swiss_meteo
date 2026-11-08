@@ -68,6 +68,7 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 | `sensor.swiss_meteo_<id>_warning_level` | The highest colour of the **official warnings** in force for the forecast point — none, yellow, orange, red (MeteoAlarm's levels; MeteoSwiss publishes its warnings through MeteoAlarm, the EUMETNET warning service). Attributes: the warnings in force and the announced ones (event, level, type, headline, description, instruction, onset, expiry, area names), counts, the next onset. Switzerland's alerts carry the warned area as polygons, so the integration matches them to your point itself — no region to pick, no key, one 1–20 KB feed read every ten minutes. |
 | `binary_sensor.swiss_meteo_<id>_warning_active` | On while an official warning is in force for the point (device class *safety*), with the warnings as attributes. |
 | `sensor.swiss_meteo_<id>_radar_rain_rate` / `_radar_rain_distance` / `_radar_rain_eta` | **Radar nowcast** from the MeteoSwiss precipitation composite (PRECIP, 1 km, every 5 minutes, 29 KB per frame): the rain rate at your point right now (mm/h, the 3×3 km maximum), the distance to the nearest rain cell within 60 km, and the estimated minutes until rain reaches the point, derived from the motion of the rain field between the last frames (0 while it rains, unknown when nothing is heading your way within two hours). An estimate of the integration, not an official nowcast — the official INCA nowcast is not open data. Can be switched off in the options. |
+| `image.swiss_meteo_<id>_radar` | The newest radar frame around the point as a 200 × 200 km picture (1 km per pixel, rain-rate colours), for the picture cards. |
 | `binary_sensor.swiss_meteo_<id>_raining` / `_rain_approaching` | Radar: on while it rains at the point (0.1 mm/h or more), and on while it rains or rain is estimated within 30 minutes. |
 | `sensor.swiss_meteo_<id>_forecast_run` | When the forecast run in use was issued (diagnostic), with the parameters read and any that were missing. |
 | `sensor.swiss_meteo_<id>_station_time` | Time of the newest station row (diagnostic). |
@@ -201,7 +202,7 @@ size: normal        # or small, large, xl
 animated: true
 ```
 
-With a pollen station configured, the current values carry a **pollen chip**: the day's load class and the species behind it; a click opens the pollen-level sensor. `pollen_entity` names another pollen-level sensor, `show_pollen: false` drops the chip. With official warnings on, the main, forecast and sky cards show a **warning banner** per warning in force or announced (yellow, orange or red; a click opens the warning sensor); `show_warnings: false` drops it. The main card uses the dark blue Swiss Meteo palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead; every card takes `theme: ha` to follow your Home Assistant theme instead of the Swiss Meteo palette, `theme: glass` for the deep-blue glass look (glowing borders, values and days as tiles, blue temperature line), and `animated: false` for still icons. Four more cards come with the same file, in the look of the MeteoSwiss website:
+With a pollen station configured, the current values carry a **pollen chip**: the day's load class and the species behind it; a click opens the pollen-level sensor. `pollen_entity` names another pollen-level sensor, `show_pollen: false` drops the chip. With official warnings on, the main, forecast and sky cards show a **warning banner** per warning in force or announced (yellow, orange or red; a click opens the warning sensor); `show_warnings: false` drops it. The main card uses the dark blue Swiss Meteo palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead; every card takes `theme: ha` to follow your Home Assistant theme instead of the Swiss Meteo palette, `theme: glass` for the deep-blue glass look (glowing borders, values and days as tiles, blue temperature line), and `animated: false` for still icons. Five more cards come with the same file, in the look of the MeteoSwiss website:
 
 **Swiss Meteo – forecast** (`custom:swiss-meteo-forecast-card`): the drop-in for Home Assistant's `weather-forecast` card with the same options — current conditions on top and a row of days (symbol, low and high, precipitation) or hours (symbol, temperature, precipitation or chance of rain).
 
@@ -232,6 +233,20 @@ size: normal           # or small, large, xl
 animated: true
 background: sky        # or panel
 theme: meteo           # or ha (your Home Assistant theme), glass, sky (banner blue)
+```
+
+**Swiss Meteo – radar** (`custom:swiss-meteo-radar-card`): the precipitation radar around your place as a loop — the last two hours of MeteoSwiss frames (every five minutes) and up to an hour of frames extrapolated along the measured motion, marked as an estimate. Swiss border and lakes in the radar's projection, 25 and 50 km rings, your place as the marker, play/pause and a slider, the rain-rate legend. The frames come from the integration (small PNGs over the WebSocket), nothing is loaded from third parties.
+
+```yaml
+type: custom:swiss-meteo-radar-card
+entity: weather.swiss_meteo_ab12
+past_minutes: 120     # 30–120
+forecast_minutes: 60  # 0–60, estimate
+speed: 400            # ms per frame
+show_outline: true
+show_marker: true
+show_legend: true
+theme: meteo          # or ha, glass
 ```
 
 **Swiss Meteo – daily list** (`custom:swiss-meteo-daily-card`): the nine-day list — weekday, symbol, low and high in boxes, precipitation with its 10–90 % range — with the *Wind* and *Sunshine* toggles that add the day's wind, gusts and sunshine hours to each row. `size: small` tightens the rows for a wall tablet. `theme: meteo` (default) uses the dark blue Swiss Meteo palette, `theme: ha` your Home Assistant theme.

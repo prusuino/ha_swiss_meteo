@@ -5,10 +5,12 @@ from __future__ import annotations
 import logging
 
 import voluptuous as vol
+from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 
 from .const import CONF_POLLEN_STATION, CONF_RADAR, CONF_STATION, CONF_WARNINGS, DOMAIN, STATION_PARAMS
@@ -23,7 +25,7 @@ from .radar import RadarCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["weather", "sensor", "binary_sensor"]
+PLATFORMS = ["weather", "sensor", "binary_sensor", "image"]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 SERVICE_IMPORT_HISTORY = "import_history"
@@ -97,7 +99,22 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         return result or {"found": False, "criterion": call.data["criterion"]}
 
     hass.services.async_register(DOMAIN, SERVICE_BEST_WINDOW, _best_window, schema=WINDOW_SCHEMA, supports_response=SupportsResponse.ONLY)
+    websocket_api.async_register_command(hass, ws_radar_frames)
     return True
+
+
+@websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/radar_frames", vol.Required("entity_id"): cv.entity_id})
+@websocket_api.async_response
+async def ws_radar_frames(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
+    """The radar loop (past frames and extrapolated ones) of the entry an
+    entity belongs to, for the radar card."""
+    registry = er.async_get(hass)
+    ent = registry.async_get(msg["entity_id"])
+    data: EntryData | None = hass.data.get(DOMAIN, {}).get(ent.config_entry_id) if ent and ent.config_entry_id else None
+    if data is None or data.radar is None:
+        connection.send_error(msg["id"], "not_found", "No radar for this entity (radar off or entity not from Swiss Meteo)")
+        return
+    connection.send_result(msg["id"], await data.radar.async_frames_for_card())
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

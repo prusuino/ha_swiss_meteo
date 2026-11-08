@@ -42,6 +42,10 @@ const LABELS = {
   rain_in: { de: "Regen in ~{n} min", en: "Rain in ~{n} min", fr: "Pluie dans ~{n} min", it: "Pioggia tra ~{n} min" },
   dry_near: { de: "trocken, Regen in {km} km", en: "dry, rain {km} km away", fr: "sec, pluie à {km} km", it: "asciutto, pioggia a {km} km" },
   dry: { de: "trocken, kein Regen im Umkreis", en: "dry, no rain within 60 km", fr: "sec, pas de pluie à 60 km", it: "asciutto, nessuna pioggia entro 60 km" },
+  estimate: { de: "Schätzung", en: "estimate", fr: "estimation", it: "stima" },
+  radar_newest: { de: "Radarbild", en: "Radar image", fr: "Image radar", it: "Immagine radar" },
+  radar_off: { de: "Radar ist für diesen Eintrag ausgeschaltet", en: "Radar is switched off for this entry", fr: "Le radar est désactivé pour cette entrée", it: "Il radar è disattivato per questa voce" },
+  radar_source: { de: "Quelle: MeteoSchweiz Niederschlagsradar · Vorhersage = Schätzung aus der Zugrichtung", en: "Source: MeteoSwiss precipitation radar · forecast = estimate from the motion", fr: "Source : radar de précipitations MétéoSuisse · prévision = estimation d'après le déplacement", it: "Fonte: radar precipitazioni MeteoSvizzera · previsione = stima dal movimento" },
   from: { de: "ab", en: "from", fr: "dès", it: "da" },
   until: { de: "bis", en: "until", fr: "jusqu'à", it: "fino a" },
   level_none: { de: "keine", en: "none", fr: "aucun", it: "nessuno" },
@@ -667,6 +671,12 @@ const LIST_EDITOR_LABELS = {
   animated: EDITOR_LABELS.animated,
   show_warnings: EDITOR_LABELS.show_warnings,
   size: EDITOR_LABELS.size,
+  past_minutes: { de: "Rückblick", en: "Look back", fr: "Rétrospective", it: "Retrospettiva" },
+  forecast_minutes: { de: "Vorhersage (Schätzung)", en: "Forecast (estimate)", fr: "Prévision (estimation)", it: "Previsione (stima)" },
+  speed: { de: "Bildwechsel (ms)", en: "Frame interval (ms)", fr: "Intervalle (ms)", it: "Intervallo (ms)" },
+  show_outline: { de: "Landesgrenze und Seen", en: "Border and lakes", fr: "Frontière et lacs", it: "Confine e laghi" },
+  show_marker: { de: "Ortsmarker", en: "Place marker", fr: "Marqueur du lieu", it: "Marcatore della località" },
+  show_legend: { de: "Legende", en: "Legend", fr: "Légende", it: "Legenda" },
 };
 function LL(hass, key) {
   const l = lang(hass);
@@ -1591,6 +1601,271 @@ window.customCards.push({
   type: "swiss-meteo-sky-card",
   name: "Swiss Meteo – sky",
   description: "Glass panel on a sky with mountains: current conditions, details and a row of days or hours.",
+  preview: true,
+});
+
+
+/* ------------------------------------------------------------------------
+ * Radar card — the MeteoSwiss precipitation composite around the place
+ * as a loop: the last two hours of frames, then frames extrapolated along
+ * the measured motion (an estimate). Frames come from the integration
+ * over the WebSocket as small PNGs; the Swiss outline and lakes are drawn
+ * in the radar's projection (LV95).
+ * ---------------------------------------------------------------------- */
+
+const RADAR_OUTLINE = {"ch":[[[2829.8,1194.8],[2829.3,1190.2],[2827.3,1187.4],[2828.4,1182.6],[2826.3,1180.3],[2826.0,1176.4],[2824.2,1173.2],[2826.4,1169.6],[2829.6,1169.3],[2831.3,1168.0],[2832.0,1163.1],[2830.5,1158.5],[2819.0,1159.5],[2814.3,1162.0],[2814.1,1166.8],[2810.8,1167.7],[2802.9,1164.9],[2801.8,1160.4],[2799.0,1156.8],[2798.8,1151.3],[2800.1,1149.5],[2798.8,1147.2],[2800.1,1145.7],[2807.2,1143.9],[2807.8,1142.6],[2804.3,1135.3],[2805.4,1132.2],[2809.7,1127.1],[2806.7,1123.5],[2800.9,1122.1],[2799.9,1126.5],[2795.6,1130.6],[2794.3,1137.0],[2790.8,1138.5],[2785.9,1137.9],[2779.3,1134.6],[2775.6,1135.8],[2774.8,1131.5],[2772.3,1129.2],[2761.6,1129.6],[2758.9,1132.0],[2757.3,1136.0],[2754.3,1138.0],[2753.2,1151.6],[2749.5,1148.0],[2746.9,1150.0],[2746.8,1151.4],[2745.2,1151.8],[2741.5,1151.2],[2740.1,1149.8],[2738.3,1144.4],[2740.1,1142.2],[2741.4,1132.8],[2737.8,1121.5],[2734.5,1118.4],[2733.2,1114.9],[2727.6,1111.0],[2726.3,1108.8],[2725.4,1102.4],[2721.0,1099.8],[2722.2,1094.7],[2719.5,1091.5],[2722.0,1087.3],[2725.2,1086.2],[2726.1,1084.3],[2724.0,1078.6],[2721.5,1075.6],[2716.6,1077.0],[2713.6,1076.0],[2714.4,1082.4],[2711.1,1089.4],[2703.0,1093.3],[2708.0,1102.6],[2706.0,1105.2],[2701.2,1105.6],[2699.4,1107.3],[2695.8,1105.7],[2689.9,1108.6],[2682.7,1117.9],[2677.1,1120.9],[2675.9,1125.4],[2677.4,1140.6],[2676.0,1144.6],[2673.8,1145.0],[2667.5,1142.9],[2665.2,1139.7],[2666.1,1137.7],[2664.9,1135.8],[2661.8,1134.0],[2658.1,1128.9],[2650.0,1124.7],[2648.9,1122.7],[2653.3,1116.3],[2653.6,1112.2],[2651.9,1108.6],[2648.6,1105.6],[2645.4,1104.6],[2644.3,1097.7],[2642.4,1094.3],[2635.6,1092.4],[2633.7,1089.8],[2633.5,1087.7],[2631.9,1087.7],[2630.5,1084.8],[2619.8,1086.4],[2615.8,1090.6],[2607.9,1092.5],[2605.0,1089.5],[2594.0,1084.0],[2588.2,1084.7],[2577.9,1080.6],[2571.1,1082.1],[2567.2,1086.9],[2565.1,1093.6],[2559.5,1099.8],[2557.7,1100.6],[2555.9,1099.3],[2554.5,1100.0],[2554.4,1103.9],[2556.0,1106.9],[2548.7,1109.5],[2548.7,1115.2],[2552.9,1124.4],[2547.0,1132.9],[2549.5,1136.6],[2549.9,1140.5],[2548.0,1142.2],[2536.6,1145.3],[2526.6,1144.6],[2520.0,1140.2],[2512.5,1138.8],[2505.7,1130.1],[2507.4,1124.8],[2510.4,1124.2],[2510.7,1121.6],[2497.2,1110.6],[2494.6,1111.8],[2491.0,1111.7],[2485.6,1109.9],[2487.6,1114.3],[2485.5,1117.6],[2485.8,1118.9],[2492.3,1122.3],[2496.0,1122.6],[2496.9,1128.7],[2499.8,1135.1],[2497.7,1139.2],[2493.6,1141.8],[2494.6,1143.4],[2494.4,1147.6],[2500.8,1156.4],[2498.8,1160.0],[2510.3,1170.6],[2515.8,1173.5],[2522.9,1179.3],[2523.2,1182.1],[2522.0,1184.0],[2524.4,1190.1],[2523.0,1195.8],[2524.2,1199.7],[2536.1,1204.3],[2541.2,1208.1],[2543.0,1210.6],[2542.1,1212.7],[2543.1,1214.4],[2547.4,1217.2],[2547.3,1219.1],[2549.6,1219.9],[2558.3,1229.1],[2563.5,1232.8],[2563.7,1237.9],[2569.6,1242.2],[2570.2,1243.4],[2567.2,1246.5],[2556.8,1245.0],[2558.1,1248.1],[2561.2,1250.7],[2561.3,1252.8],[2564.5,1253.9],[2566.2,1255.8],[2564.9,1259.9],[2567.7,1261.0],[2580.6,1259.8],[2579.2,1256.6],[2579.6,1254.8],[2584.9,1251.8],[2590.2,1253.5],[2597.6,1254.2],[2599.3,1257.1],[2598.2,1259.9],[2602.2,1259.0],[2603.5,1260.2],[2602.9,1262.7],[2604.7,1263.0],[2605.0,1264.7],[2603.3,1265.7],[2608.4,1269.4],[2614.9,1271.6],[2616.6,1271.8],[2615.6,1269.0],[2612.9,1268.2],[2618.4,1266.0],[2624.7,1267.3],[2628.7,1271.7],[2634.6,1270.9],[2635.6,1267.9],[2645.4,1267.9],[2648.8,1268.7],[2655.7,1274.2],[2659.7,1274.9],[2663.9,1274.2],[2665.3,1271.6],[2668.9,1270.4],[2676.0,1270.9],[2676.9,1273.3],[2681.5,1275.1],[2684.4,1271.6],[2685.9,1272.8],[2685.8,1277.1],[2686.8,1277.5],[2687.4,1276.4],[2687.8,1279.1],[2684.9,1279.8],[2676.6,1277.1],[2671.6,1279.9],[2671.6,1283.6],[2675.0,1286.3],[2676.8,1290.9],[2683.4,1292.7],[2682.7,1294.4],[2683.9,1295.1],[2687.1,1294.4],[2688.4,1290.3],[2690.3,1294.1],[2693.2,1290.5],[2695.6,1290.4],[2696.1,1289.3],[2694.7,1286.6],[2696.0,1283.4],[2699.9,1283.6],[2699.9,1286.4],[2702.0,1286.4],[2706.4,1283.2],[2705.1,1282.1],[2708.4,1279.4],[2713.2,1279.3],[2718.5,1282.1],[2731.0,1281.4],[2732.1,1279.9],[2737.8,1279.3],[2758.8,1267.0],[2761.7,1261.1],[2766.8,1258.1],[2766.2,1251.6],[2763.3,1247.9],[2762.4,1244.1],[2756.4,1234.6],[2755.2,1230.8],[2755.1,1227.1],[2757.4,1219.5],[2754.8,1214.6],[2761.2,1213.4],[2769.4,1214.1],[2783.9,1210.0],[2784.9,1208.2],[2784.5,1201.6],[2785.5,1200.3],[2795.7,1196.5],[2798.7,1193.8],[2803.8,1191.9],[2810.6,1194.3],[2812.9,1200.7],[2817.6,1200.8],[2818.8,1205.5],[2820.6,1207.7],[2823.6,1209.1],[2829.9,1202.8],[2829.8,1194.8]]],"lakes":[[[2734.1,1220.6],[2728.9,1221.6],[2728.4,1222.5],[2729.8,1222.9],[2741.4,1221.6],[2739.7,1220.9],[2734.1,1220.6]],[[2681.1,1214.4],[2679.0,1216.4],[2677.4,1223.3],[2677.6,1226.7],[2679.9,1226.5],[2681.3,1223.9],[2680.5,1219.9],[2682.6,1215.9],[2682.4,1214.2],[2681.1,1214.4]],[[2573.6,1211.6],[2572.5,1212.2],[2584.4,1220.9],[2580.9,1214.1],[2578.3,1211.6],[2576.0,1210.7],[2573.6,1211.6]],[[2697.2,1233.6],[2703.5,1233.7],[2705.6,1231.7],[2713.5,1231.9],[2712.4,1230.7],[2705.7,1228.8],[2700.8,1230.2],[2697.9,1229.8],[2696.2,1230.4],[2692.9,1233.5],[2687.1,1236.8],[2683.0,1246.1],[2684.1,1246.3],[2687.7,1239.9],[2697.2,1233.6]],[[2557.9,1193.5],[2555.4,1190.6],[2547.4,1184.9],[2546.0,1185.1],[2540.5,1182.8],[2539.3,1183.7],[2539.6,1185.4],[2546.3,1190.6],[2553.1,1198.3],[2555.6,1199.9],[2557.5,1203.7],[2565.5,1207.7],[2569.9,1205.8],[2569.3,1203.3],[2557.9,1193.5]],[[2570.9,1195.8],[2569.7,1196.7],[2570.5,1198.9],[2575.5,1201.6],[2576.5,1200.8],[2574.9,1198.3],[2570.9,1195.8]],[[2669.5,1211.3],[2674.6,1214.2],[2675.3,1213.4],[2674.0,1211.4],[2674.9,1210.2],[2678.0,1209.3],[2681.3,1206.1],[2688.3,1206.8],[2689.5,1203.7],[2690.3,1197.4],[2689.8,1195.6],[2688.5,1195.0],[2687.5,1198.6],[2687.7,1205.5],[2680.3,1202.8],[2674.8,1204.8],[2676.1,1205.9],[2674.2,1207.0],[2670.1,1206.0],[2667.2,1202.6],[2665.1,1201.5],[2664.3,1201.9],[2666.7,1205.2],[2666.5,1207.8],[2668.2,1207.1],[2667.8,1212.3],[2669.5,1211.3]],[[2731.2,1082.6],[2732.2,1084.0],[2731.3,1088.3],[2732.8,1091.9],[2738.9,1095.3],[2739.8,1101.1],[2741.7,1104.1],[2742.7,1110.9],[2747.5,1115.2],[2749.1,1115.6],[2749.9,1114.1],[2749.4,1112.6],[2746.1,1111.0],[2745.2,1109.7],[2744.4,1105.7],[2745.0,1103.5],[2743.0,1098.8],[2746.0,1087.2],[2749.4,1084.3],[2753.0,1078.6],[2753.4,1076.1],[2752.5,1076.1],[2752.1,1078.4],[2748.9,1082.9],[2745.2,1085.5],[2741.5,1094.2],[2740.1,1094.2],[2738.3,1092.3],[2734.1,1090.1],[2733.1,1088.3],[2732.7,1081.3],[2729.5,1079.4],[2727.2,1075.9],[2726.6,1076.3],[2727.9,1079.4],[2731.2,1082.6]],[[2505.1,1073.0],[2503.8,1076.9],[2500.0,1079.4],[2499.2,1084.6],[2499.8,1085.5],[2506.2,1075.2],[2505.1,1073.0]],[[2718.4,1090.2],[2719.8,1086.7],[2719.4,1085.9],[2718.0,1088.6],[2713.5,1085.6],[2712.2,1092.5],[2713.5,1095.3],[2713.5,1089.8],[2714.0,1088.3],[2715.3,1088.3],[2717.3,1092.6],[2717.9,1096.8],[2720.1,1096.7],[2722.6,1098.1],[2730.3,1100.3],[2729.5,1098.6],[2724.0,1097.4],[2721.5,1095.9],[2718.8,1092.7],[2718.4,1090.2]],[[2635.6,1172.0],[2634.8,1172.9],[2641.7,1178.7],[2645.2,1179.5],[2646.6,1178.4],[2635.6,1172.0]],[[2622.6,1169.0],[2616.7,1173.3],[2614.9,1176.9],[2615.8,1177.9],[2623.0,1172.5],[2628.9,1170.7],[2629.4,1169.3],[2625.9,1168.2],[2622.6,1169.0]],[[2801.8,1060.5],[2797.3,1061.3],[2798.7,1062.5],[2803.4,1063.7],[2802.1,1072.2],[2805.3,1078.6],[2806.6,1077.6],[2806.5,1075.5],[2804.7,1073.7],[2808.0,1066.5],[2807.2,1064.2],[2804.8,1061.7],[2801.8,1060.5]],[[2477.7,1057.9],[2476.9,1060.0],[2477.0,1064.2],[2474.3,1073.6],[2474.6,1074.6],[2476.0,1074.6],[2477.4,1072.7],[2479.2,1067.2],[2478.7,1066.2],[2479.7,1059.7],[2479.0,1057.5],[2477.7,1057.9]],[[2556.4,1145.4],[2559.9,1143.5],[2561.3,1141.4],[2559.6,1139.3],[2556.1,1139.2],[2543.0,1141.6],[2527.8,1140.2],[2526.2,1138.0],[2520.7,1135.4],[2518.8,1133.5],[2516.7,1136.2],[2512.0,1136.5],[2503.1,1121.6],[2499.2,1117.9],[2500.8,1120.8],[2502.8,1128.4],[2515.2,1146.2],[2521.7,1147.4],[2528.8,1152.2],[2535.5,1152.7],[2556.4,1145.4]],[[2771.6,1268.7],[2773.7,1265.8],[2769.5,1265.7],[2768.6,1263.4],[2766.5,1263.3],[2765.4,1264.7],[2762.3,1263.2],[2759.2,1264.5],[2754.9,1261.7],[2747.5,1267.8],[2745.4,1271.8],[2732.8,1278.9],[2731.0,1281.5],[2732.8,1281.7],[2732.7,1282.7],[2730.9,1285.2],[2729.2,1289.9],[2726.9,1292.2],[2722.5,1294.3],[2719.3,1297.9],[2722.3,1297.5],[2730.2,1292.0],[2732.9,1291.4],[2734.1,1287.5],[2741.4,1282.9],[2747.5,1282.3],[2751.6,1280.4],[2754.0,1280.1],[2755.4,1278.9],[2757.8,1274.2],[2762.1,1273.1],[2768.4,1269.4],[2771.6,1268.7]],[[2722.1,1287.1],[2725.0,1284.7],[2726.8,1281.4],[2718.4,1282.1],[2713.1,1279.3],[2708.4,1279.4],[2710.9,1279.5],[2716.2,1282.9],[2717.5,1284.9],[2712.8,1288.1],[2713.3,1289.5],[2717.5,1288.0],[2715.8,1290.2],[2722.1,1287.1]],[[2708.7,1114.0],[2708.4,1112.4],[2701.1,1105.4],[2700.8,1102.2],[2701.8,1097.1],[2700.7,1094.5],[2693.8,1088.9],[2690.6,1084.5],[2691.9,1075.7],[2691.3,1074.3],[2688.4,1072.0],[2688.0,1070.3],[2692.0,1064.4],[2691.4,1064.1],[2688.7,1066.2],[2686.3,1071.7],[2687.7,1074.7],[2688.2,1078.5],[2687.6,1080.4],[2684.0,1083.5],[2681.8,1087.9],[2682.6,1088.5],[2687.0,1087.3],[2691.3,1090.0],[2698.7,1099.4],[2697.6,1104.1],[2698.3,1107.4],[2704.8,1113.4],[2708.7,1114.0]],[[2865.1,1088.4],[2866.2,1086.7],[2866.0,1082.0],[2855.7,1063.0],[2853.8,1054.8],[2853.8,1052.4],[2855.4,1053.0],[2857.3,1046.1],[2855.4,1038.9],[2855.2,1038.4],[2849.6,1040.1],[2848.1,1041.6],[2847.7,1044.2],[2847.4,1041.6],[2845.9,1040.5],[2844.0,1040.7],[2842.4,1041.7],[2843.0,1042.5],[2840.2,1043.2],[2840.2,1043.9],[2844.4,1048.1],[2844.8,1049.0],[2843.3,1052.5],[2844.7,1053.3],[2843.3,1055.3],[2840.8,1055.4],[2846.7,1059.5],[2856.1,1069.6],[2858.5,1076.1],[2862.9,1082.6],[2865.1,1088.4]]]};
+
+class SwissMeteoRadarCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._meta = null;
+    this._frames = [];
+    this._imgs = [];
+    this._idx = 0;
+    this._playing = true;
+    this._timer = null;
+    this._lastLoad = 0;
+    this._loading = false;
+    this._error = null;
+    this._built = false;
+  }
+  setConfig(config) {
+    if (!config || !config.entity) throw new Error("entity is required");
+    this._config = { past_minutes: 120, forecast_minutes: 60, speed: 400, show_outline: true, show_marker: true, show_legend: true, theme: "meteo", ...config };
+    this._built = false;
+    this._lastLoad = 0;
+    this._render();
+  }
+  static getConfigElement() {
+    return document.createElement("swiss-meteo-radar-card-editor");
+  }
+  static getStubConfig(hass, entities) {
+    return { entity: stubEntity(hass, entities) };
+  }
+  getCardSize() {
+    return 7;
+  }
+  set hass(hass) {
+    const first = !this._hass;
+    this._hass = hass;
+    if (first) this._render();
+    if (!this._loading && Date.now() - this._lastLoad > 4.5 * 60 * 1000) this._load();
+  }
+  connectedCallback() {
+    if (this._frames.length) this._startLoop();
+  }
+  disconnectedCallback() {
+    this._stopLoop();
+  }
+  async _load() {
+    if (!this._hass || !this._hass.callWS) return;
+    this._loading = true;
+    try {
+      const res = await this._hass.callWS({ type: "swiss_meteo/radar_frames", entity_id: this._config.entity });
+      this._meta = res;
+      const newest = res.newest ? new Date(res.newest).getTime() : 0;
+      const past = Number(this._config.past_minutes) || 120;
+      const fc = Number(this._config.forecast_minutes) || 0;
+      this._frames = (res.frames || []).filter((f) => (f.kind === "past" ? newest - new Date(f.ts).getTime() <= past * 60000 : f.offset_min <= fc));
+      this._imgs = this._frames.map((f) => {
+        const im = new Image();
+        im.src = "data:image/png;base64," + f.png;
+        return im;
+      });
+      const lastPast = this._frames.map((f) => f.kind).lastIndexOf("past");
+      this._idx = lastPast >= 0 ? lastPast : 0;
+      this._error = null;
+      this._lastLoad = Date.now();
+      this._render();
+      this._startLoop();
+    } catch (e) {
+      this._error = (e && (e.message || e.code)) || "error";
+      this._lastLoad = Date.now();
+      this._render();
+    } finally {
+      this._loading = false;
+    }
+  }
+  _startLoop() {
+    this._stopLoop();
+    if (!this._playing || this._frames.length < 2) return;
+    const speed = Math.max(100, Number(this._config.speed) || 400);
+    this._timer = setInterval(() => {
+      const last = this._frames.length - 1;
+      this._hold = this._idx === last ? (this._hold || 0) + 1 : 0;
+      if (this._idx === last && this._hold < 4) return;
+      this._idx = this._idx === last ? 0 : this._idx + 1;
+      this._draw();
+    }, speed);
+  }
+  _stopLoop() {
+    if (this._timer) clearInterval(this._timer);
+    this._timer = null;
+  }
+  _render() {
+    if (!this._hass || !this._config) return;
+    const hass = this._hass;
+    const state = hass.states[this._config.entity];
+    const a = state ? state.attributes : {};
+    const theme = this._config.theme === "ha" ? "" : this._config.theme === "glass" ? "meteo gl" : "meteo";
+    const title = this._config.title || `${a.point_name || a.friendly_name || this._config.entity} – ${L(hass, "radar")}`;
+    if (!this._built) {
+      this.shadowRoot.innerHTML = `${this._style()}<ha-card class="${theme}">
+        <div class="head"><div class="title">${esc(title)}</div><div class="stamp"></div></div>
+        <div class="stage"><canvas width="402" height="402"></canvas><svg class="ov" viewBox="0 0 402 402" preserveAspectRatio="none"></svg><div class="msg"></div></div>
+        <div class="ctl"><button class="pp" title="play/pause"></button><input class="pos" type="range" min="0" max="0" value="0" /><div class="lab"></div></div>
+        <div class="legend"></div>
+        <div class="foot">${esc(L(hass, "radar_source"))}</div>
+      </ha-card>`;
+      this._built = true;
+      const root = this.shadowRoot;
+      root.querySelector(".pp").addEventListener("click", () => {
+        this._playing = !this._playing;
+        if (this._playing) this._startLoop();
+        else this._stopLoop();
+        this._draw();
+      });
+      root.querySelector(".pos").addEventListener("input", (ev) => {
+        this._idx = Number(ev.target.value) || 0;
+        this._playing = false;
+        this._stopLoop();
+        this._draw();
+      });
+      root.querySelector(".head").addEventListener("click", () => {
+        const ev = new Event("hass-more-info", { bubbles: true, composed: true });
+        ev.detail = { entityId: this._config.entity };
+        this.dispatchEvent(ev);
+      });
+    }
+    this.shadowRoot.querySelector(".title").textContent = title;
+    this._drawOverlay();
+    this._drawLegend();
+    this._draw();
+  }
+  _geo() {
+    const m = this._meta;
+    if (!m) return null;
+    const s = 402 / m.size;
+    return { s, x: (e) => (e - m.origin.e_km) * s, y: (n) => (m.origin.n_km - n) * s, cx: (m.center.col + 0.5) * s, cy: (m.center.row + 0.5) * s };
+  }
+  _drawOverlay() {
+    const svg = this.shadowRoot.querySelector(".ov");
+    const g = this._geo();
+    if (!svg || !g) return;
+    const path = (rings) => rings.map((r) => "M" + r.map(([e, n]) => `${g.x(e).toFixed(1)},${g.y(n).toFixed(1)}`).join("L") + "Z").join("");
+    const parts = [];
+    if (this._config.show_outline !== false) {
+      parts.push(`<path class="land" d="${path(RADAR_OUTLINE.ch)}" />`);
+      parts.push(`<path class="lake" d="${path(RADAR_OUTLINE.lakes)}" />`);
+    }
+    for (const km of [25, 50]) {
+      parts.push(`<circle class="ring" cx="${g.cx}" cy="${g.cy}" r="${km * g.s}" /><text class="rl" x="${g.cx + km * g.s + 3}" y="${g.cy - 3}">${km} km</text>`);
+    }
+    if (this._config.show_marker !== false) {
+      parts.push(`<circle class="mark" cx="${g.cx}" cy="${g.cy}" r="5" /><circle class="mark2" cx="${g.cx}" cy="${g.cy}" r="9" />`);
+    }
+    svg.innerHTML = parts.join("");
+  }
+  _drawLegend() {
+    const el = this.shadowRoot.querySelector(".legend");
+    if (!el) return;
+    if (this._config.show_legend === false || !this._meta) {
+      el.innerHTML = "";
+      return;
+    }
+    const lv = this._meta.levels;
+    const pal = this._meta.palette;
+    el.innerHTML = lv.map((b, i) => `<span class="lg"><i style="background:rgb(${pal[i + 1].join(",")})"></i>${b < 1 ? b.toFixed(1) : b}</span>`).join("") + `<span class="lgu">mm/h</span>`;
+  }
+  _draw() {
+    const root = this.shadowRoot;
+    const canvas = root.querySelector("canvas");
+    const msg = root.querySelector(".msg");
+    const lab = root.querySelector(".lab");
+    const pos = root.querySelector(".pos");
+    const pp = root.querySelector(".pp");
+    const stamp = root.querySelector(".stamp");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, 402, 402);
+    if (this._error) {
+      msg.textContent = this._error === "not_found" ? L(this._hass, "radar_off") : this._error;
+      return;
+    }
+    if (!this._frames.length) {
+      msg.textContent = this._loading ? "…" : L(this._hass, "unavailable");
+      return;
+    }
+    msg.textContent = "";
+    const f = this._frames[this._idx];
+    const im = this._imgs[this._idx];
+    ctx.imageSmoothingEnabled = false;
+    if (im && im.complete) ctx.drawImage(im, 0, 0, 402, 402);
+    else im.onload = () => this._draw();
+    const l = lang(this._hass);
+    const when = new Date(f.ts).toLocaleTimeString(l, { hour: "2-digit", minute: "2-digit" });
+    lab.textContent = f.kind === "forecast" ? `${when} · +${f.offset_min} min · ${L(this._hass, "estimate")}` : when;
+    lab.classList.toggle("fc", f.kind === "forecast");
+    pos.max = String(this._frames.length - 1);
+    pos.value = String(this._idx);
+    pp.textContent = this._playing ? "❚❚" : "▶";
+    const newest = this._meta && this._meta.newest ? new Date(this._meta.newest).toLocaleTimeString(l, { hour: "2-digit", minute: "2-digit" }) : "";
+    stamp.textContent = newest ? `${L(this._hass, "radar_newest")} ${newest}` : "";
+  }
+  _style() {
+    return `<style>
+      :host { display: block; }
+      ha-card { padding: 14px 16px 10px; overflow: hidden; --sm-text: var(--primary-text-color); --sm-dim: var(--secondary-text-color); --sm-panel: var(--secondary-background-color, rgba(128,128,128,0.08)); --sm-line: var(--divider-color, rgba(128,128,128,0.3)); }
+      ha-card.meteo { background: #1c2733; color: #fff; --sm-text: #fff; --sm-dim: #c3ccd6; --sm-panel: #2b3a4b; --sm-line: #1c2733; }
+      ha-card.gl { background: linear-gradient(165deg, #152c56 0%, #0c1b38 55%, #0a152d 100%); border-radius: 20px; border: 1px solid rgba(120,175,255,0.45); box-shadow: 0 0 0 1px rgba(120,175,255,0.12), 0 0 26px rgba(80,140,255,0.22), 0 12px 36px rgba(0,0,0,0.5); --sm-panel: rgba(30,60,115,0.45); --sm-dim: #b9c8e4; --sm-line: rgba(120,175,255,0.28); }
+      .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; cursor: pointer; margin-bottom: 8px; }
+      .title { font-size: 1.25em; font-weight: 700; color: var(--sm-text); }
+      .stamp { font-size: 0.8em; color: var(--sm-dim); white-space: nowrap; }
+      .stage { position: relative; width: 100%; aspect-ratio: 1 / 1; background: var(--sm-panel); border-radius: 6px; overflow: hidden; }
+      ha-card.gl .stage { border: 1px solid var(--sm-line); border-radius: 14px; }
+      canvas, .ov { position: absolute; inset: 0; width: 100%; height: 100%; }
+      canvas { image-rendering: pixelated; }
+      .land { fill: none; stroke: var(--sm-text); stroke-width: 1.4; opacity: 0.85; }
+      .lake { fill: rgba(120,180,240,0.35); stroke: rgba(120,180,240,0.9); stroke-width: 0.8; }
+      .ring { fill: none; stroke: var(--sm-text); stroke-width: 0.8; stroke-dasharray: 4 4; opacity: 0.35; }
+      .rl { font-size: 10px; fill: var(--sm-text); opacity: 0.6; }
+      .mark { fill: #ff4d3d; stroke: #fff; stroke-width: 1.5; }
+      .mark2 { fill: none; stroke: #ff4d3d; stroke-width: 1.5; opacity: 0.7; }
+      .msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--sm-dim); font-size: 0.95em; text-align: center; padding: 20px; pointer-events: none; }
+      .ctl { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+      .pp { width: 36px; height: 30px; border-radius: 6px; border: 1px solid var(--sm-line); background: var(--sm-panel); color: var(--sm-text); cursor: pointer; font-size: 0.85em; }
+      .pos { flex: 1 1 auto; accent-color: #5fb0f0; }
+      .lab { font-size: 0.9em; color: var(--sm-text); white-space: nowrap; min-width: 3.2em; text-align: right; }
+      .lab.fc { color: #ffb347; }
+      .legend { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; font-size: 0.75em; color: var(--sm-dim); align-items: center; }
+      .lg { display: inline-flex; align-items: center; gap: 3px; }
+      .lg i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+      .foot { font-size: 0.72em; color: var(--sm-dim); margin-top: 6px; text-align: right; }
+    </style>`;
+  }
+}
+customElements.define("swiss-meteo-radar-card", SwissMeteoRadarCard);
+
+class SwissMeteoRadarCardEditor extends SwissMeteoBaseEditor {}
+SwissMeteoRadarCardEditor.defaults = { past_minutes: 120, forecast_minutes: 60, speed: 400, show_outline: true, show_marker: true, show_legend: true, theme: "meteo" };
+SwissMeteoRadarCardEditor.schema = [
+  { name: "entity", required: true, selector: { entity: { domain: "weather" } } },
+  { name: "title", selector: { text: {} } },
+  { name: "past_minutes", selector: { select: { mode: "dropdown", options: [30, 60, 90, 120].map((v) => ({ value: v, label: `${v} min` })) } } },
+  { name: "forecast_minutes", selector: { select: { mode: "dropdown", options: [0, 15, 30, 45, 60].map((v) => ({ value: v, label: `${v} min` })) } } },
+  { name: "speed", selector: { number: { min: 100, max: 1500, step: 50, mode: "box", unit_of_measurement: "ms" } } },
+  { name: "show_outline", selector: { boolean: {} } },
+  { name: "show_marker", selector: { boolean: {} } },
+  { name: "show_legend", selector: { boolean: {} } },
+  { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "ha", label: "Home Assistant" }, { value: "glass", label: "Glass" }] } } },
+];
+customElements.define("swiss-meteo-radar-card-editor", SwissMeteoRadarCardEditor);
+
+window.customCards.push({
+  type: "swiss-meteo-radar-card",
+  name: "Swiss Meteo – radar",
+  description: "The MeteoSwiss precipitation radar around your place as a loop: the last two hours and an hour of estimated movement.",
   preview: true,
 });
 

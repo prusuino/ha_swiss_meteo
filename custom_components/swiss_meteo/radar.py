@@ -5,9 +5,11 @@ around the forecast point.
 From the newest frames the integration derives what the forecast cannot
 say: is it raining here right now, how far away is the nearest rain, and
 how the rain field moves — so an estimate of when rain reaches the point
-can be given for the next hour or two. The official nowcast (INCA) is not
-open data; this is the integration's own extrapolation and is labelled
-as an estimate.
+can be given for the next hour or two. The last two hours of frames are
+kept (as 200 × 200 km crops around the point) for the radar card, which
+plays them as a loop and continues it with frames extrapolated along the
+measured motion. The official nowcast (INCA) is not open data; this is the
+integration's own extrapolation and is labelled as an estimate.
 
 The files are HDF5 (ODIM_H5) with one gzip-compressed chunk holding the
 640×710 field as big-endian doubles. That chunk is found by scanning for
@@ -15,6 +17,8 @@ the zlib stream and inflating it — no HDF5 library is needed, the result
 is identical to a library read (verified against h5py)."""
 from __future__ import annotations
 
+import asyncio
+import base64
 import logging
 import math
 import struct
@@ -49,12 +53,20 @@ X0, Y0 = 2_255_000, 1_480_000
 _PIXEL_M = 1000
 _FIELD_BYTES = COLS * ROWS * 8
 
+CROP_RADIUS = 100  # km kept around the point (crop is 201 × 201 px)
+CROP = 2 * CROP_RADIUS + 1
+HISTORY_MINUTES = 120  # frames kept for the loop
+FORECAST_MINUTES = 60  # extrapolated frames offered to the card
 RAIN_MIN = 0.1  # mm/h: "it rains" at the point
 RAIN_CELL = 0.5  # mm/h: a rain cell worth tracking
 SEARCH_KM = 60  # how far the nearest rain is looked for
 WINDOW_KM = 80  # motion is estimated from the rain within this window
 MAX_SHIFT = 12  # px per 5 min (144 km/h), search limit for the motion
 ETA_MAX_MIN = 120
+
+# rain-rate classes (mm/h, lower bounds) and their colours for the PNGs
+LEVELS = (0.1, 0.3, 1.0, 3.0, 10.0, 30.0, 100.0)
+PALETTE = ((0, 0, 0), (150, 205, 255), (80, 150, 255), (40, 200, 90), (255, 230, 60), (255, 150, 30), (235, 40, 40), (200, 40, 220))
 
 
 class RadarError(Exception):
@@ -103,15 +115,37 @@ def decode_field(raw: bytes) -> array:
             except zlib.error:
                 out = b""
             if len(out) == _FIELD_BYTES:
-                field = array("d", struct.unpack(f">{COLS * ROWS}d", out))
-                return field
+                return array("d", struct.unpack(f">{COLS * ROWS}d", out))
         i += 1
+
+
+def crop_field(field: array, r0: int, c0: int) -> array:
+    """The CROP × CROP window around (r0, c0) as 32-bit floats; outside the
+    composite, and where the composite has no data, the value is 0."""
+    out = array("f", bytes(4 * CROP * CROP))
+    for i in range(CROP):
+        r = r0 - CROP_RADIUS + i
+        if not 0 <= r < ROWS:
+            continue
+        base = r * COLS
+        row_out = i * CROP
+        for j in range(CROP):
+            c = c0 - CROP_RADIUS + j
+            if 0 <= c < COLS:
+                v = field[base + c]
+                if v == v and v > 0:
+                    out[row_out + j] = v
+    return out
+
+
+def decode_crop(raw: bytes, r0: int, c0: int) -> array:
+    return crop_field(decode_field(raw), r0, c0)
 
 
 @dataclass
 class Frame:
     ts: datetime  # end of the 5-minute interval, UTC
-    field: array
+    crop: array  # CROP × CROP rain rates around the point
 
 
 @dataclass
@@ -126,6 +160,8 @@ class RadarData:
     direction: float | None  # direction the rain moves towards, degrees
     eta_min: int | None  # minutes until rain reaches the point (0 if raining), None if not expected within ETA_MAX_MIN
     rain_pixels_window: int  # rain cells within the window
+    motion: tuple[float, float] | None  # (rows, cols) per minute of the field
+    frames: int  # frames held for the loop
     fetched: datetime
 
     @property
@@ -133,58 +169,54 @@ class RadarData:
         return self.raining or (self.eta_min is not None and self.eta_min <= 30)
 
 
-def _value(field: array, r: int, c: int) -> float:
-    if 0 <= r < ROWS and 0 <= c < COLS:
-        v = field[r * COLS + c]
-        return 0.0 if v != v else v  # NaN -> 0
+def _at(crop: array, r: int, c: int) -> float:
+    if 0 <= r < CROP and 0 <= c < CROP:
+        return crop[r * CROP + c]
     return 0.0
 
 
-def analyse(frames: list[Frame], r0: int, c0: int, now: datetime) -> RadarData:
-    """What the newest frame (and the one before) say about the point."""
+def analyse(frames: list[Frame], now: datetime) -> RadarData:
+    """What the newest frame (and the one before) say about the point at
+    the crop's centre."""
     cur = frames[-1]
-    f = cur.field
-    rate_point = _value(f, r0, c0)
-    rate = max(_value(f, r0 + dr, c0 + dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1))
+    f = cur.crop
+    m = CROP_RADIUS
+    rate_point = _at(f, m, m)
+    rate = max(_at(f, m + dr, m + dc) for dr in (-1, 0, 1) for dc in (-1, 0, 1))
     raining = rate >= RAIN_MIN
 
-    # rain cells within the window, as (dr, dc, rate)
-    cells: list[tuple[int, int, float]] = []
-    for dr in range(-WINDOW_KM, WINDOW_KM + 1):
-        r = r0 + dr
-        if not 0 <= r < ROWS:
-            continue
-        base = r * COLS
-        for dc in range(-WINDOW_KM, WINDOW_KM + 1):
-            c = c0 + dc
-            if 0 <= c < COLS:
-                v = f[base + c]
-                if v == v and v >= RAIN_CELL:
-                    cells.append((dr, dc, v))
+    cells: list[tuple[int, int, float]] = []  # (dr, dc, rate) within the window
+    for i in range(m - WINDOW_KM, m + WINDOW_KM + 1):
+        base = i * CROP
+        for j in range(m - WINDOW_KM, m + WINDOW_KM + 1):
+            v = f[base + j]
+            if v >= RAIN_CELL:
+                cells.append((i - m, j - m, v))
 
     nearest_km = nearest_bearing = None
     for dr, dc, _v in cells:
         d = math.hypot(dr, dc)
         if d <= SEARCH_KM and (nearest_km is None or d < nearest_km):
             nearest_km = d
-            nearest_bearing = (math.degrees(math.atan2(dc, -dr)) + 360) % 360  # dc east, -dr north
+            nearest_bearing = (math.degrees(math.atan2(dc, -dr)) + 360) % 360
 
     speed = direction = None
+    motion = None
     eta = 0 if raining else None
-    if len(frames) >= 2 and cells:
-        shift = _motion(frames[-2].field, f, r0, c0)
+    prev = next((fr for fr in reversed(frames[:-1]) if (cur.ts - fr.ts) <= timedelta(minutes=10)), None)
+    if prev is not None and cells:
+        shift = _motion(prev.crop, f)
         if shift is not None:
-            dy, dx = shift  # px per 5 min the field moved (new = old shifted by dy, dx)
-            dt_min = max(1.0, (cur.ts - frames[-2].ts).total_seconds() / 60)
+            dy, dx = shift
+            dt_min = max(1.0, (cur.ts - prev.ts).total_seconds() / 60)
             vy, vx = dy / dt_min, dx / dt_min  # px per minute
+            motion = (vy, vx)
             v = math.hypot(vy, vx)
             speed = round(v * 60, 1)
             direction = (math.degrees(math.atan2(vx, -vy)) + 360) % 360 if v > 0.02 else None
             if not raining and v > 0.02:
                 best = None
                 for dr, dc, _v in cells:
-                    # time until the cell's centre passes within 1.5 km of the point
-                    # solve |(dr, dc) + t (vy, vx)| minimal
                     t = -(dr * vy + dc * vx) / (v * v)
                     if t <= 0:
                         continue
@@ -204,24 +236,26 @@ def analyse(frames: list[Frame], r0: int, c0: int, now: datetime) -> RadarData:
         direction=round(direction) if direction is not None else None,
         eta_min=eta,
         rain_pixels_window=len(cells),
+        motion=motion,
+        frames=len(frames),
         fetched=now,
     )
 
 
-def _motion(prev: array, cur: array, r0: int, c0: int) -> tuple[int, int] | None:
-    """The shift (dy, dx) in pixels that best maps the previous frame's rain
-    near the point onto the current one; None without enough rain."""
+def _motion(prev: array, cur: array) -> tuple[int, int] | None:
+    """The shift (dy, dx) in pixels that best maps the previous crop's rain
+    near the centre onto the current one; None without enough rain."""
+    m = CROP_RADIUS
     pts: list[tuple[int, int, float]] = []
-    step = 1
-    for r in range(max(0, r0 - WINDOW_KM), min(ROWS, r0 + WINDOW_KM + 1), step):
-        base = r * COLS
-        for c in range(max(0, c0 - WINDOW_KM), min(COLS, c0 + WINDOW_KM + 1), step):
+    for r in range(m - WINDOW_KM, m + WINDOW_KM + 1):
+        base = r * CROP
+        for c in range(m - WINDOW_KM, m + WINDOW_KM + 1):
             v = prev[base + c]
-            if v == v and v >= 0.3:
+            if v >= 0.3:
                 pts.append((r, c, v))
     if len(pts) < 20:
         return None
-    if len(pts) > 2500:  # thin out evenly, keeps the work bounded
+    if len(pts) > 2500:
         k = len(pts) / 2500
         pts = [pts[int(i * k)] for i in range(2500)]
     best: tuple[float, int, int] | None = None
@@ -231,18 +265,75 @@ def _motion(prev: array, cur: array, r0: int, c0: int) -> tuple[int, int] | None
             n = 0
             for r, c, v in pts:
                 rr, cc = r + dy, c + dx
-                if 0 <= rr < ROWS and 0 <= cc < COLS:
-                    w = cur[rr * COLS + cc]
-                    d = v - (0.0 if w != w else w)
+                if 0 <= rr < CROP and 0 <= cc < CROP:
+                    d = v - cur[rr * CROP + cc]
                     s += d * d
                     n += 1
             if n >= 20:
                 score = s / n
                 if best is None or score < best[0]:
                     best = (score, dy, dx)
-    if best is None:
-        return None
-    return best[1], best[2]
+    return (best[1], best[2]) if best else None
+
+
+# --- PNG rendering ---------------------------------------------------------------
+
+
+def _level(v: float) -> int:
+    n = 0
+    for bound in LEVELS:
+        if v >= bound:
+            n += 1
+    return n
+
+
+def _png(width: int, height: int, pixels: bytes) -> bytes:
+    """An 8-bit indexed PNG with PALETTE (index 0 transparent)."""
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        c = struct.pack(">I", len(data)) + kind + data
+        return c + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    raw = b"".join(b"\x00" + pixels[y * width:(y + 1) * width] for y in range(height))
+    plte = b"".join(bytes(c) for c in PALETTE)
+    trns = bytes([0] + [255] * (len(PALETTE) - 1))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 3, 0, 0, 0))
+            + chunk(b"PLTE", plte) + chunk(b"tRNS", trns) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
+
+def render_png(crop: array, shift: tuple[int, int] = (0, 0)) -> bytes:
+    """The crop as a PNG, optionally shifted by (rows, cols) pixels (the
+    extrapolated frames); pixels shifted in from outside are empty."""
+    dy, dx = shift
+    pixels = bytearray(CROP * CROP)
+    for r in range(CROP):
+        sr = r - dy
+        if not 0 <= sr < CROP:
+            continue
+        base = sr * CROP
+        row = r * CROP
+        for c in range(CROP):
+            sc = c - dx
+            if 0 <= sc < CROP:
+                v = crop[base + sc]
+                if v >= LEVELS[0]:
+                    pixels[row + c] = _level(v)
+    return _png(CROP, CROP, bytes(pixels))
+
+
+def render_frames(frames: list[Frame], motion: tuple[float, float] | None, forecast_minutes: int = FORECAST_MINUTES) -> list[dict]:
+    """The loop for the card: the kept frames, then frames extrapolated
+    along the motion every five minutes. Runs in the executor."""
+    out: list[dict] = []
+    for fr in frames:
+        out.append({"ts": fr.ts.isoformat(), "kind": "past", "offset_min": 0, "png": base64.b64encode(render_png(fr.crop)).decode()})
+    if frames and motion is not None and (abs(motion[0]) + abs(motion[1])) > 0.02:
+        last = frames[-1]
+        for minutes in range(5, forecast_minutes + 1, 5):
+            shift = (int(round(motion[0] * minutes)), int(round(motion[1] * minutes)))
+            out.append({"ts": (last.ts + timedelta(minutes=minutes)).isoformat(), "kind": "forecast", "offset_min": minutes, "png": base64.b64encode(render_png(last.crop, shift)).decode()})
+    return out
+
+
+# --- coordinator ---------------------------------------------------------------
 
 
 class RadarCoordinator(DataUpdateCoordinator[RadarData]):
@@ -251,12 +342,25 @@ class RadarCoordinator(DataUpdateCoordinator[RadarData]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, account=None) -> None:
         super().__init__(hass, _LOGGER, name=f"{DOMAIN} radar", update_interval=UPDATE_INTERVAL, config_entry=entry)
         self.entry = entry
-        self.row, self.col = pixel_of(float(entry.data[CONF_POINT_LAT]), float(entry.data[CONF_POINT_LON]))
-        self._frames: deque[Frame] = deque(maxlen=3)
+        self.lat = float(entry.data[CONF_POINT_LAT])
+        self.lon = float(entry.data[CONF_POINT_LON])
+        self.row, self.col = pixel_of(self.lat, self.lon)
+        self._frames: deque[Frame] = deque(maxlen=HISTORY_MINUTES // 5 + 1)
         self._account = account
         self._warned = False
+        self._missing: set[datetime] = set()  # slots that were 404 (not published)
+        self._backfill: asyncio.Task | None = None
         if not (0 <= self.row < ROWS and 0 <= self.col < COLS):
             raise ValueError("point outside the radar composite")
+
+    # geometry of the crop for the card: left edge and top edge in LV95 km
+    @property
+    def origin_km(self) -> tuple[float, float]:
+        return ((X0 + (self.col - CROP_RADIUS) * _PIXEL_M) / 1000, (Y0 - (self.row - CROP_RADIUS) * _PIXEL_M) / 1000)
+
+    @property
+    def frames(self) -> list[Frame]:
+        return list(self._frames)
 
     async def _fetch(self, session: aiohttp.ClientSession, ts: datetime) -> bytes | None:
         async with session.get(frame_url(ts), headers={"User-Agent": USER_AGENT}, timeout=_TIMEOUT) as resp:
@@ -266,42 +370,39 @@ class RadarCoordinator(DataUpdateCoordinator[RadarData]):
                 raise RadarError(f"radar answered {resp.status}")
             return await resp.read()
 
+    def _add(self, frame: Frame) -> None:
+        frames = [fr for fr in self._frames if fr.ts != frame.ts] + [frame]
+        frames.sort(key=lambda fr: fr.ts)
+        self._frames = deque(frames[-self._frames.maxlen:], maxlen=self._frames.maxlen)
+
+    async def _load(self, session: aiohttp.ClientSession, ts: datetime) -> bool:
+        """Fetch and keep one slot; False if it is not published."""
+        if ts in self._missing or any(fr.ts == ts for fr in self._frames):
+            return any(fr.ts == ts for fr in self._frames)
+        raw = await self._fetch(session, ts)
+        if self._account is not None:
+            self._account(1, len(raw) if raw else 0)
+        if raw is None:
+            self._missing.add(ts)
+            return False
+        crop = await self.hass.async_add_executor_job(decode_crop, raw, self.row, self.col)
+        self._add(Frame(ts=ts, crop=crop))
+        return True
+
     async def _async_update_data(self) -> RadarData:
         now = dt_util.utcnow()
         session = async_get_clientsession(self.hass)
         want = slot(now)
-        have = {fr.ts for fr in self._frames}
-        requests = 0
-        nbytes = 0
         try:
-            # the newest slot, else the one before (publication lag); also fill the previous slot for the motion
+            got = False
             for ts in (want, want - timedelta(minutes=5), want - timedelta(minutes=10)):
-                if ts in have:
-                    continue
-                if self._frames and ts < self._frames[-1].ts:
-                    continue
-                raw = await self._fetch(session, ts)
-                requests += 1
-                if raw is None:
-                    continue
-                nbytes += len(raw)
-                field = await self.hass.async_add_executor_job(decode_field, raw)
-                self._frames.append(Frame(ts=ts, field=field))
-                self._frames = deque(sorted(self._frames, key=lambda fr: fr.ts), maxlen=3)
-                break
-            else:
-                if not self._frames:
-                    raise RadarError("no radar frame for the last 15 minutes")
-            # make sure the frame before the newest is there for the motion estimate
+                if await self._load(session, ts):
+                    got = True
+                    break
+            if not got and not self._frames:
+                raise RadarError("no radar frame for the last 15 minutes")
             newest = self._frames[-1].ts
-            prev_ts = newest - timedelta(minutes=5)
-            if len(self._frames) < 2 or self._frames[-2].ts != prev_ts:
-                raw = await self._fetch(session, prev_ts)
-                requests += 1
-                if raw is not None:
-                    nbytes += len(raw)
-                    field = await self.hass.async_add_executor_job(decode_field, raw)
-                    self._frames = deque(sorted([*self._frames, Frame(ts=prev_ts, field=field)], key=lambda fr: fr.ts), maxlen=3)
+            await self._load(session, newest - timedelta(minutes=5))  # for the motion estimate
         except (aiohttp.ClientError, TimeoutError, RadarError) as err:
             if self._frames and now - self._frames[-1].ts <= _MAX_AGE:
                 if not self._warned:
@@ -309,13 +410,56 @@ class RadarCoordinator(DataUpdateCoordinator[RadarData]):
                     _LOGGER.warning("Radar frame not read, keeping the last one: %s", err)
             else:
                 raise UpdateFailed(str(err)) from err
-        finally:
-            if self._account is not None and requests:
-                self._account(requests, nbytes)
-        self._warned = False
+        else:
+            self._warned = False
         if now - self._frames[-1].ts > _MAX_AGE:
             raise UpdateFailed(f"newest radar frame is from {self._frames[-1].ts:%H:%M} UTC")
-        return await self.hass.async_add_executor_job(analyse, list(self._frames), self.row, self.col, now)
+        if self._backfill is None or self._backfill.done():
+            self._backfill = self.hass.async_create_background_task(self._fill_history(), f"{DOMAIN} radar history")
+        # forget 404 slots older than the history window
+        cutoff = now - timedelta(minutes=HISTORY_MINUTES + 10)
+        self._missing = {ts for ts in self._missing if ts >= cutoff}
+        return await self.hass.async_add_executor_job(analyse, list(self._frames), now)
+
+    async def _fill_history(self) -> None:
+        """Fetch the frames of the last two hours that are not held yet, one
+        every few seconds, so the loop fills up after a start."""
+        session = async_get_clientsession(self.hass)
+        newest = self._frames[-1].ts if self._frames else slot(dt_util.utcnow())
+        for n in range(2, HISTORY_MINUTES // 5 + 1):
+            ts = newest - timedelta(minutes=5 * n)
+            if any(fr.ts == ts for fr in self._frames) or ts in self._missing:
+                continue
+            try:
+                await self._load(session, ts)
+            except (aiohttp.ClientError, TimeoutError, RadarError) as err:
+                _LOGGER.debug("Radar history frame %s not read: %s", ts, err)
+                return
+            await asyncio.sleep(2)
+        self.async_update_listeners()
+
+    async def async_frames_for_card(self) -> dict:
+        """Everything the radar card needs: geometry, loop frames as PNGs."""
+        data = self.data
+        frames = list(self._frames)
+        rendered = await self.hass.async_add_executor_job(render_frames, frames, data.motion if data else None)
+        e_km, n_km = self.origin_km
+        return {
+            "size": CROP,
+            "km_per_px": 1,
+            "origin": {"e_km": e_km, "n_km": n_km},
+            "center": {"row": CROP_RADIUS, "col": CROP_RADIUS},
+            "levels": list(LEVELS),
+            "palette": [list(c) for c in PALETTE],
+            "newest": frames[-1].ts.isoformat() if frames else None,
+            "motion_kmh": data.speed_kmh if data else None,
+            "direction": data.direction if data else None,
+            "estimate": "forecast frames are the newest frame moved along the measured motion, not an official nowcast",
+            "frames": rendered,
+        }
+
+    def latest_png(self) -> bytes | None:
+        return render_png(self._frames[-1].crop) if self._frames else None
 
     @property
     def fresh(self) -> bool:
