@@ -14,6 +14,7 @@ DATA_BASE = "https://data.geo.admin.ch"
 STAC_BASE = f"{DATA_BASE}/api/stac/v1/collections"
 COLLECTION_FORECAST = "ch.meteoschweiz.ogd-local-forecasting"
 COLLECTION_STATIONS = "ch.meteoschweiz.ogd-smn"
+COLLECTION_POLLEN = "ch.meteoschweiz.ogd-pollen"
 
 FORECAST_META_POINTS_URL = f"{DATA_BASE}/{COLLECTION_FORECAST}/ogd-local-forecasting_meta_point.csv"
 STATIONS_META_URL = f"{DATA_BASE}/{COLLECTION_STATIONS}/ogd-smn_meta_stations.csv"
@@ -27,6 +28,8 @@ CONF_POINT_LON = "point_lon"
 CONF_POINT_HEIGHT = "point_height"
 CONF_STATION = "station"  # SwissMetNet abbreviation, "" for none
 CONF_STATION_NAME = "station_name"
+CONF_POLLEN_STATION = "pollen_station"  # pollen station abbreviation, "" for none
+CONF_POLLEN_STATION_NAME = "pollen_station_name"
 CONF_HOURLY = "hourly"  # hourly forecast on/off (the expensive part)
 CONF_EXTENDED = "extended"  # uncertainty quantiles, cloud layers, zero-degree level
 

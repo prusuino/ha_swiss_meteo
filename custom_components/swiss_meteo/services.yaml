@@ -1,0 +1,43 @@
+import_history:
+  fields:
+    entry:
+      required: true
+      selector:
+        config_entry:
+          integration: swiss_meteo
+    years:
+      required: true
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 60
+          mode: box
+          unit_of_measurement: years
+    resolution:
+      required: true
+      default: hourly
+      selector:
+        select:
+          translation_key: resolution
+          options:
+            - hourly
+            - daily
+    values:
+      required: false
+      selector:
+        select:
+          multiple: true
+          translation_key: values
+          options:
+            - temperature
+            - humidity
+            - pressure
+            - wind
+            - radiation
+            - snow
+            - soil
+            - precipitation
+            - sunshine
+            - evaporation
+            - heating_degree_days

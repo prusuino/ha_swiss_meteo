@@ -12,10 +12,11 @@
       },
       "place": {
         "title": "Prognosepunkt und Wetterstation",
-        "description": "Die dem Standort nächsten Prognosepunkte und SwissMetNet-Stationen, nächste zuerst. Wähle den Punkt, der zu deinem Ort passt (PLZ-Zentrum, Bergpunkt oder Station), und die Station, deren Messwerte am besten passen – Höhe und Lage zählen mehr als die Distanz. Ohne Station kommen die aktuellen Werte aus der Prognose.",
+        "description": "Die dem Standort nächsten Prognosepunkte und SwissMetNet-Stationen, nächste zuerst. Wähle den Punkt, der zu deinem Ort passt (PLZ-Zentrum, Bergpunkt oder Station), und die Station, deren Messwerte am besten passen – Höhe und Lage zählen mehr als die Distanz. Ohne Station kommen die aktuellen Werte aus der Prognose. Die Pollenstation (die drei nächsten der 15 MeteoSchweiz-Stationen) liefert die stündlichen Konzentrationen von Birke, Gräsern, Erle, Hasel, Buche, Esche und Eiche und die Belastungsklasse von MeteoSchweiz.",
         "data": {
           "point": "Prognosepunkt",
-          "station": "Wetterstation (Messwerte)"
+          "station": "Wetterstation (Messwerte)",
+          "pollen_station": "Pollenstation"
         }
       }
     },
@@ -34,7 +35,8 @@
         "data": {
           "hourly": "Stundenprognose",
           "extended": "Erweiterte Stundenwerte (Unsicherheitsbereich, Wolkenschichten, Nullgradgrenze)",
-          "station": "Wetterstation (Messwerte)"
+          "station": "Wetterstation (Messwerte)",
+          "pollen_station": "Pollenstation"
         }
       }
     },
@@ -126,6 +128,74 @@
         },
         "for": {
           "name": "Für mindestens"
+        }
+      }
+    }
+  },
+  "services": {
+    "import_history": {
+      "name": "Stationshistorie importieren",
+      "description": "Liest das Messarchiv der Station von MeteoSchweiz (Stundenwerte seit 1980, Tageswerte seit Messbeginn) und schreibt es in die Langzeitstatistik von Home Assistant: Mittel, Minimum und Maximum der Stationssensoren sowie Niederschlag, Sonnenschein, Verdunstung und Heizgradtage als eigene Statistiken (swiss_meteo:…). Einmal ausführen; ein erneuter Lauf ersetzt denselben Zeitraum.",
+      "fields": {
+        "entry": {
+          "name": "Swiss-Meteo-Eintrag",
+          "description": "Der Eintrag, dessen Station importiert wird."
+        },
+        "years": {
+          "name": "Jahre",
+          "description": "Wie viele Jahre zurück, gerechnet ab dem 1. Januar dieses Jahres."
+        },
+        "resolution": {
+          "name": "Auflösung",
+          "description": "Stundenwerte (etwa 7 MB je Jahrzehnt-Datei) oder Tageswerte (eine Datei für die ganze Historie, etwa 2.5 MB)."
+        },
+        "values": {
+          "name": "Werte",
+          "description": "Welche Gruppen importiert werden; leer heisst alle."
+        }
+      }
+    }
+  },
+  "selector": {
+    "resolution": {
+      "options": {
+        "hourly": "Stündlich",
+        "daily": "Täglich"
+      }
+    },
+    "values": {
+      "options": {
+        "temperature": "Temperatur",
+        "humidity": "Feuchte und Dampfdruck",
+        "pressure": "Luftdruck",
+        "wind": "Wind",
+        "radiation": "Strahlung",
+        "snow": "Schneehöhe",
+        "soil": "Bodentemperaturen",
+        "precipitation": "Niederschlag",
+        "sunshine": "Sonnenschein",
+        "evaporation": "Verdunstung",
+        "heating_degree_days": "Heizgradtage"
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_loaded": {
+      "message": "Der Swiss-Meteo-Eintrag ist nicht geladen."
+    },
+    "no_station": {
+      "message": "Der Eintrag hat keine Wetterstation; der Historie-Import braucht eine (Dialog «Konfigurieren»)."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "pollen_level": {
+        "state": {
+          "none": "Keine",
+          "low": "Schwach",
+          "moderate": "Mässig",
+          "high": "Stark",
+          "very_high": "Sehr stark"
         }
       }
     }

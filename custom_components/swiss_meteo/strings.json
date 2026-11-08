@@ -12,10 +12,11 @@
       },
       "place": {
         "title": "Forecast point and weather station",
-        "description": "The forecast points and SwissMetNet stations nearest to the location, nearest first. Pick the point that matches your place (a postal code centre, a mountain spot or a station) and the station whose live values suit you best — altitude and exposure matter more than distance. Without a station, the current values come from the forecast.",
+        "description": "The forecast points and SwissMetNet stations nearest to the location, nearest first. Pick the point that matches your place (a postal code centre, a mountain spot or a station) and the station whose live values suit you best — altitude and exposure matter more than distance. Without a station, the current values come from the forecast. The pollen station (the three nearest of the 15 MeteoSwiss stations) adds the hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak and the MeteoSwiss load class.",
         "data": {
           "point": "Forecast point",
-          "station": "Weather station (live values)"
+          "station": "Weather station (live values)",
+          "pollen_station": "Pollen station"
         }
       }
     },
@@ -34,7 +35,8 @@
         "data": {
           "hourly": "Hourly forecast",
           "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)",
-          "station": "Weather station (live values)"
+          "station": "Weather station (live values)",
+          "pollen_station": "Pollen station"
         }
       }
     },
@@ -126,6 +128,74 @@
         },
         "for": {
           "name": "For at least"
+        }
+      }
+    }
+  },
+  "services": {
+    "import_history": {
+      "name": "Import station history",
+      "description": "Reads the station's measurement archive from MeteoSwiss (hourly values since 1980, daily values since the station's start) and writes it into Home Assistant's long-term statistics: mean, minimum and maximum of the station sensors, plus precipitation, sunshine, evaporation and heating degree days as separate statistics (swiss_meteo:…). Run it once; running it again replaces the same period.",
+      "fields": {
+        "entry": {
+          "name": "Swiss Meteo entry",
+          "description": "The entry whose station is imported."
+        },
+        "years": {
+          "name": "Years",
+          "description": "How many years back, counted from the first of January of this year."
+        },
+        "resolution": {
+          "name": "Resolution",
+          "description": "Hourly values (about 7 MB per decade file) or daily values (one file for the whole history, about 2.5 MB)."
+        },
+        "values": {
+          "name": "Values",
+          "description": "Which groups to import; empty means all."
+        }
+      }
+    }
+  },
+  "selector": {
+    "resolution": {
+      "options": {
+        "hourly": "Hourly",
+        "daily": "Daily"
+      }
+    },
+    "values": {
+      "options": {
+        "temperature": "Temperature",
+        "humidity": "Humidity and vapour pressure",
+        "pressure": "Pressure",
+        "wind": "Wind",
+        "radiation": "Radiation",
+        "snow": "Snow depth",
+        "soil": "Soil temperatures",
+        "precipitation": "Precipitation",
+        "sunshine": "Sunshine",
+        "evaporation": "Evaporation",
+        "heating_degree_days": "Heating degree days"
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_loaded": {
+      "message": "The Swiss Meteo entry is not loaded."
+    },
+    "no_station": {
+      "message": "The entry has no weather station; the history import needs one (Configure dialog)."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "pollen_level": {
+        "state": {
+          "none": "None",
+          "low": "Low",
+          "moderate": "Moderate",
+          "high": "High",
+          "very_high": "Very high"
         }
       }
     }

@@ -14,5 +14,7 @@ First release.
 - The weather entity carries the point's name, coordinates and elevation as attributes; the daily forecast carries the sunshine hours.
 - Derived sensors: daily mean temperature, heating degree days (SIA 381/3, 12/20), global radiation and sunshine sums for today and tomorrow, precipitation of the next 24 hours, next rain. Binary sensors "Rain expected" (next six hours) and "Frost tonight".
 - Automation editor entries: triggers "Rain expected", "Rain no longer expected", "Frost expected tonight", "New forecast run" (Home Assistant 2026.10+), conditions "Rain is expected", "No rain is expected", "Frost is expected tonight" (2026.11+). Blueprints "Rain is coming" and "Frost tonight".
+- Action `swiss_meteo.import_history`: the station's archive (hourly since 1980, daily since the station's start) into the long-term statistics — mean/min/max of the station sensors, totals of precipitation, sunshine, evaporation and heating degree days as separate statistics.
+- Pollen: the hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak from the chosen MeteoSwiss pollen station, with the day's mean and the MeteoSwiss load classes; an overall load-class sensor.
 - Brand icon and logo.
 - German, English, French and Italian.

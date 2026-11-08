@@ -23,6 +23,8 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 | `sensor.swiss_meteo_<id>_next_rain` | The first coming hour with rain (0.1 mm or more), as a timestamp, with the amount and the hours until then as attributes. |
 | `binary_sensor.swiss_meteo_<id>_rain_expected` | On when rain is forecast for one of the next six hours. Attributes: next rain, amount in 6 and 24 hours. |
 | `binary_sensor.swiss_meteo_<id>_frost_tonight` | On when the forecast drops to 0 °C or below before 09:00 the next morning, with the minimum and its hour. |
+| `sensor.swiss_meteo_<id>_pollen_birch` / `_grasses` / `_alder` / `_hazel` / `_beech` / `_ash` / `_oak` | Hourly pollen concentration (pollen/m³) of the chosen MeteoSwiss pollen station, with the day's mean and the MeteoSwiss load class (`level`) as attributes. |
+| `sensor.swiss_meteo_<id>_pollen_level` | The highest load class of the day over the seven species: none, low, moderate, high, very high (MeteoSwiss classes, from the mean daily concentration), with the class per species as attributes. |
 | `sensor.swiss_meteo_<id>_forecast_run` | When the forecast run in use was issued (diagnostic), with the parameters read and any that were missing. |
 | `sensor.swiss_meteo_<id>_station_time` | Time of the newest station row (diagnostic). |
 | `sensor.swiss_meteo_<id>_traffic_today` | Megabytes read from MeteoSwiss since midnight (diagnostic), with the request count. |
@@ -74,6 +76,23 @@ Two blueprints with an import button:
 ### Energy
 
 The heating degree days and the mean temperature feed heating and heat-pump automations (lower the flow temperature on a mild day, pre-heat before a cold one); tomorrow's global radiation and sunshine hours tell a PV household what to expect, hour by hour via the hourly forecast's `global_radiation` (W/m²) and `sunshine_minutes`.
+
+## Station history
+
+MeteoSwiss publishes every station's archive next to its live file: hourly values in ten-year files since 1980 and daily values since the station's start. The action **Swiss Meteo: Import station history** (`swiss_meteo.import_history`) reads it and writes it into Home Assistant's long-term statistics, so a statistics graph of the temperature sensor shows decades, not days:
+
+```yaml
+action: swiss_meteo.import_history
+data:
+  entry: <config entry id>      # the entry picker in the UI
+  years: 3
+  resolution: hourly            # or daily
+  values: [temperature, precipitation, sunshine]   # empty = all
+```
+
+- The station sensors (temperature, humidity, pressure, wind, radiation, snow depth, soil temperatures) get mean, minimum and maximum per hour or per day, under their own entity ids.
+- Totals that the 10-minute sensors cannot carry come as separate statistics: `swiss_meteo:<id>_precipitation` (mm), `_sunshine` (min), `_evaporation` (FAO reference evaporation, mm) and, with daily values, `_heating_degree_days` (12/20). Pick them in a statistics graph card.
+- Hourly values cost about 7 MB per ten-year file plus 1 MB for the current year; daily values about 2.5 MB for the whole history. The traffic sensor counts them. Run it once; a second run over the same period replaces the rows.
 
 ## Dashboard card
 
@@ -152,8 +171,8 @@ Copy `custom_components/swiss_meteo` into your `custom_components` directory and
 
 1. **Settings → Devices & Services → Add Integration → Swiss Meteo.**
 2. Confirm or move the **location** (your Home Assistant location is pre-filled), and choose whether you want the **hourly forecast** (about 2 MB per model run, every hour) and the **extended hourly values** (temperature and precipitation uncertainty range, cloud layers, zero-degree level — about twice that).
-3. Pick the **forecast point** — the five nearest are listed with their distance: postal-code centres, weather stations and mountain points (summits, passes, resorts) — and the **weather station** for the live values among the four nearest. Altitude and exposure matter more than distance: a station on a nearby hill is not your valley. Without a station the current values come from the forecast.
-4. Done. The **Configure** dialog switches the hourly forecast and the extended values on or off and lets you pick another station (the eight nearest are listed); a change reloads the entry, entity ids and history are kept.
+3. Pick the **forecast point** — the five nearest are listed with their distance: postal-code centres, weather stations and mountain points (summits, passes, resorts) — the **weather station** for the live values among the four nearest, and the **pollen station** among the three nearest of the 15 MeteoSwiss pollen stations (hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak with the MeteoSwiss load classes; the pollen file is read every 30 minutes, 1 KB). Altitude and exposure matter more than distance: a station on a nearby hill is not your valley. Without a station the current values come from the forecast.
+4. Done. The **Configure** dialog switches the hourly forecast and the extended values on or off and lets you pick another weather station (the eight nearest are listed) or pollen station; a change reloads the entry, entity ids and history are kept.
 
 Each entry is one place; add the integration again for another postal code or a summit.
 

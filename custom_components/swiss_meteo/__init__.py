@@ -4,16 +4,72 @@ from __future__ import annotations
 
 import logging
 
+import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_STATION, DOMAIN
+from .const import CONF_POLLEN_STATION, CONF_STATION, DOMAIN, STATION_PARAMS
 from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
+from .device import entry_suffix
 from .frontend import async_serve_frontend
+from .history import GROUPS, HistoryError, async_import_history
+from .pollen import PollenCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["weather", "sensor", "binary_sensor"]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+SERVICE_IMPORT_HISTORY = "import_history"
+IMPORT_SCHEMA = vol.Schema(
+    {
+        vol.Required("entry"): cv.string,
+        vol.Required("years", default=3): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
+        vol.Required("resolution", default="hourly"): vol.In(("hourly", "daily")),
+        vol.Optional("values"): vol.All(cv.ensure_list, [vol.In(GROUPS)]),
+    }
+)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register the domain-level actions."""
+
+    async def _import_history(call: ServiceCall) -> ServiceResponse:
+        entry = hass.config_entries.async_get_entry(call.data["entry"])
+        data: EntryData | None = hass.data.get(DOMAIN, {}).get(call.data["entry"])
+        if entry is None or data is None:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="entry_not_loaded")
+        if data.station is None:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_station")
+        groups = set(call.data.get("values") or GROUPS)
+        units = {key: (unit or None) for _col, (key, unit) in STATION_PARAMS.items()}
+        forecast = data.forecast
+
+        def account(requests: int, nbytes: int) -> None:
+            if forecast.data is not None:
+                forecast._account(forecast.data, requests, nbytes)
+                forecast.async_update_listeners()
+
+        try:
+            return await async_import_history(
+                hass,
+                station=data.station.station,
+                entity_prefix=f"{DOMAIN}_{entry_suffix(entry)}",
+                statistic_prefix=entry_suffix(entry),
+                units=units,
+                years=call.data["years"],
+                resolution=call.data["resolution"],
+                groups=groups,
+                account=account,
+            )
+        except HistoryError as err:
+            raise HomeAssistantError(str(err)) from err
+
+    hass.services.async_register(DOMAIN, SERVICE_IMPORT_HISTORY, _import_history, schema=IMPORT_SCHEMA, supports_response=SupportsResponse.OPTIONAL)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -28,7 +84,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not station.last_update_success:
             _LOGGER.warning("%s: station %s not readable yet, its sensors start unavailable", entry.title, station.station)
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = EntryData(forecast=forecast, station=station)
+    pollen: PollenCoordinator | None = None
+    if entry.options.get(CONF_POLLEN_STATION, entry.data.get(CONF_POLLEN_STATION)):
+        pollen = PollenCoordinator(hass, entry)
+        await pollen.async_refresh()
+        if not pollen.last_update_success:
+            _LOGGER.warning("%s: pollen station %s not readable yet, its sensors start unavailable", entry.title, pollen.station)
+
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = EntryData(forecast=forecast, station=station, pollen=pollen)
     await async_serve_frontend(hass)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

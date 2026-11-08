@@ -92,6 +92,16 @@ STRINGS: dict[str, dict[str, str]] = {
     "next_rain": {"de": "Nächster Regen", "en": "Next Rain", "fr": "Prochaine pluie", "it": "Prossima pioggia"},
     "rain_expected": {"de": "Regen erwartet", "en": "Rain Expected", "fr": "Pluie attendue", "it": "Pioggia prevista"},
     "frost_tonight": {"de": "Frost heute Nacht", "en": "Frost Tonight", "fr": "Gel cette nuit", "it": "Gelo stanotte"},
+    # pollen
+    "pollen_birch": {"de": "Pollen Birke", "en": "Pollen Birch", "fr": "Pollen bouleau", "it": "Polline betulla"},
+    "pollen_grasses": {"de": "Pollen Gräser", "en": "Pollen Grasses", "fr": "Pollen graminées", "it": "Polline graminacee"},
+    "pollen_alder": {"de": "Pollen Erle", "en": "Pollen Alder", "fr": "Pollen aulne", "it": "Polline ontano"},
+    "pollen_hazel": {"de": "Pollen Hasel", "en": "Pollen Hazel", "fr": "Pollen noisetier", "it": "Polline nocciolo"},
+    "pollen_beech": {"de": "Pollen Buche", "en": "Pollen Beech", "fr": "Pollen hêtre", "it": "Polline faggio"},
+    "pollen_ash": {"de": "Pollen Esche", "en": "Pollen Ash", "fr": "Pollen frêne", "it": "Polline frassino"},
+    "pollen_oak": {"de": "Pollen Eiche", "en": "Pollen Oak", "fr": "Pollen chêne", "it": "Polline quercia"},
+    "pollen_level": {"de": "Pollenbelastung", "en": "Pollen Load", "fr": "Charge pollinique", "it": "Carico pollinico"},
+    "model_pollen": {"de": "{station}, Pollen {pollen}", "en": "{station}, pollen {pollen}", "fr": "{station}, pollen {pollen}", "it": "{station}, pollini {pollen}"},
 }
 
 

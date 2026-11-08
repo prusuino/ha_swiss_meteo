@@ -8,6 +8,8 @@ the hourly values with every new run; what a read cost is kept for the
 diagnostics entities, so the traffic stays visible."""
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -39,6 +41,9 @@ from .ogd import (
     async_fetch_station_reading,
     async_find_latest_run,
 )
+
+if TYPE_CHECKING:
+    from .pollen import PollenCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -175,3 +180,4 @@ class StationCoordinator(DataUpdateCoordinator[StationReading]):
 class EntryData:
     forecast: ForecastCoordinator
     station: StationCoordinator | None
+    pollen: "PollenCoordinator | None" = None

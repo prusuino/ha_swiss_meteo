@@ -22,6 +22,8 @@ from .const import (
     CONF_POINT_LON,
     CONF_POINT_NAME,
     CONF_POINT_TYPE,
+    CONF_POLLEN_STATION,
+    CONF_POLLEN_STATION_NAME,
     CONF_STATION,
     CONF_STATION_NAME,
     DOMAIN,
@@ -30,6 +32,7 @@ from .const import (
     POINT_TYPE_STATION,
 )
 from .ogd import OgdError, Point, Station, async_fetch_points, async_fetch_stations, nearest
+from .pollen import PollenStation, async_fetch_pollen_stations
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,6 +41,7 @@ CONF_POINT = "point"
 NO_STATION = "none"
 _NEAREST_POINTS = 5
 _NEAREST_STATIONS = 4
+_NEAREST_POLLEN = 3
 
 
 def _point_label(distance: float, point: Point) -> str:
@@ -49,6 +53,11 @@ def _point_label(distance: float, point: Point) -> str:
 
 
 def _station_label(distance: float, station: Station) -> str:
+    height = f", {station.height:.0f} m" if station.height is not None else ""
+    return f"{station.name} {station.canton} ({station.abbr}{height}) – {distance:.1f} km"
+
+
+def _pollen_label(distance: float, station: PollenStation) -> str:
     height = f", {station.height:.0f} m" if station.height is not None else ""
     return f"{station.name} {station.canton} ({station.abbr}{height}) – {distance:.1f} km"
 
@@ -65,6 +74,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
         self._lon: float | None = None
         self._points: list[tuple[float, Point]] = []
         self._stations: list[tuple[float, Station]] = []
+        self._pollen: list[tuple[float, PollenStation]] = []
         self._hourly = True
         self._extended = False
 
@@ -79,12 +89,14 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             try:
                 points = await async_fetch_points(session)
                 stations = await async_fetch_stations(session)
+                pollen = await async_fetch_pollen_stations(session)
             except OgdError as err:
                 _LOGGER.debug("Point lists not readable: %s", err)
                 errors["base"] = "cannot_connect"
             else:
                 self._points = nearest(points, self._lat, self._lon, _NEAREST_POINTS)
                 self._stations = nearest(stations, self._lat, self._lon, _NEAREST_STATIONS)
+                self._pollen = nearest(pollen, self._lat, self._lon, _NEAREST_POLLEN)
                 return await self.async_step_place()
         schema = vol.Schema(
             {
@@ -104,6 +116,8 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             point = next(p for _d, p in self._points if _point_value(p) == chosen)
             station_abbr = user_input.get(CONF_STATION, NO_STATION)
             station = next((s for _d, s in self._stations if s.abbr == station_abbr), None)
+            pollen_abbr = user_input.get(CONF_POLLEN_STATION, NO_STATION)
+            pollen = next((p for _d, p in self._pollen if p.abbr == pollen_abbr), None)
             await self.async_set_unique_id(f"{point.point_type}-{point.point_id}")
             self._abort_if_unique_id_configured()
             title = f"{point.postal_code} {point.name}".strip() if point.postal_code else point.name
@@ -118,6 +132,8 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_POINT_HEIGHT: point.height,
                     CONF_STATION: station.abbr if station else "",
                     CONF_STATION_NAME: station.name if station else "",
+                    CONF_POLLEN_STATION: pollen.abbr if pollen else "",
+                    CONF_POLLEN_STATION_NAME: pollen.name if pollen else "",
                     CONF_HOURLY: self._hourly,
                     CONF_EXTENDED: self._extended,
                 },
@@ -129,6 +145,10 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             selector.SelectOptionDict(value=s.abbr, label=_station_label(d, s)) for d, s in self._stations
         ]
         station_options.append(selector.SelectOptionDict(value=NO_STATION, label="–"))
+        pollen_options = [
+            selector.SelectOptionDict(value=p.abbr, label=_pollen_label(d, p)) for d, p in self._pollen
+        ]
+        pollen_options.append(selector.SelectOptionDict(value=NO_STATION, label="–"))
         schema = vol.Schema(
             {
                 vol.Required(CONF_POINT, default=point_options[0]["value"]): selector.SelectSelector(
@@ -136,6 +156,9 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
                 vol.Required(CONF_STATION, default=station_options[0]["value"]): selector.SelectSelector(
                     selector.SelectSelectorConfig(options=station_options, mode=selector.SelectSelectorMode.LIST)
+                ),
+                vol.Required(CONF_POLLEN_STATION, default=pollen_options[0]["value"]): selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=pollen_options, mode=selector.SelectSelectorMode.LIST)
                 ),
             }
         )
@@ -162,35 +185,55 @@ class SwissMeteoOptionsFlow(OptionsFlow):
                     station_name = next((s.name for s in stations if s.abbr == station_abbr), station_abbr)
                 except OgdError:
                     station_name = station_abbr
+            pollen_abbr = user_input.get(CONF_POLLEN_STATION, NO_STATION)
+            pollen_name = ""
+            if pollen_abbr != NO_STATION:
+                try:
+                    pollen_stations = await async_fetch_pollen_stations(async_get_clientsession(self.hass))
+                    pollen_name = next((p.name for p in pollen_stations if p.abbr == pollen_abbr), pollen_abbr)
+                except OgdError:
+                    pollen_name = pollen_abbr
             options = {
                 CONF_HOURLY: bool(user_input.get(CONF_HOURLY, True)),
                 CONF_EXTENDED: bool(user_input.get(CONF_EXTENDED, False)),
                 CONF_STATION: "" if station_abbr == NO_STATION else station_abbr,
                 CONF_STATION_NAME: station_name,
+                CONF_POLLEN_STATION: "" if pollen_abbr == NO_STATION else pollen_abbr,
+                CONF_POLLEN_STATION_NAME: pollen_name,
             }
             return self.async_create_entry(title="", data=options)
 
         current_station = entry.options.get(CONF_STATION, entry.data.get(CONF_STATION, "")) or NO_STATION
+        current_pollen = entry.options.get(CONF_POLLEN_STATION, entry.data.get(CONF_POLLEN_STATION, "")) or NO_STATION
         station_options = [selector.SelectOptionDict(value=NO_STATION, label="–")]
+        pollen_options = [selector.SelectOptionDict(value=NO_STATION, label="–")]
+        lat = float(entry.data.get(CONF_POINT_LAT, self.hass.config.latitude))
+        lon = float(entry.data.get(CONF_POINT_LON, self.hass.config.longitude))
         try:
-            stations = await async_fetch_stations(async_get_clientsession(self.hass))
-            lat = float(entry.data.get(CONF_POINT_LAT, self.hass.config.latitude))
-            lon = float(entry.data.get(CONF_POINT_LON, self.hass.config.longitude))
+            session = async_get_clientsession(self.hass)
+            stations = await async_fetch_stations(session)
             station_options = [
                 selector.SelectOptionDict(value=s.abbr, label=_station_label(d, s)) for d, s in nearest(stations, lat, lon, 8)
             ] + station_options
-            if current_station != NO_STATION and all(o["value"] != current_station for o in station_options):
-                station_options.insert(0, selector.SelectOptionDict(value=current_station, label=current_station))
+            pollen_stations = await async_fetch_pollen_stations(session)
+            pollen_options = [
+                selector.SelectOptionDict(value=p.abbr, label=_pollen_label(d, p)) for d, p in nearest(pollen_stations, lat, lon, len(pollen_stations))
+            ] + pollen_options
         except OgdError:
             errors["base"] = "cannot_connect"
-            if current_station != NO_STATION:
-                station_options.insert(0, selector.SelectOptionDict(value=current_station, label=current_station))
+        if current_station != NO_STATION and all(o["value"] != current_station for o in station_options):
+            station_options.insert(0, selector.SelectOptionDict(value=current_station, label=current_station))
+        if current_pollen != NO_STATION and all(o["value"] != current_pollen for o in pollen_options):
+            pollen_options.insert(0, selector.SelectOptionDict(value=current_pollen, label=current_pollen))
         schema = vol.Schema(
             {
                 vol.Required(CONF_HOURLY, default=entry.options.get(CONF_HOURLY, entry.data.get(CONF_HOURLY, True))): selector.BooleanSelector(),
                 vol.Required(CONF_EXTENDED, default=entry.options.get(CONF_EXTENDED, entry.data.get(CONF_EXTENDED, False))): selector.BooleanSelector(),
                 vol.Required(CONF_STATION, default=current_station): selector.SelectSelector(
                     selector.SelectSelectorConfig(options=station_options, mode=selector.SelectSelectorMode.DROPDOWN)
+                ),
+                vol.Required(CONF_POLLEN_STATION, default=current_pollen): selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=pollen_options, mode=selector.SelectSelectorMode.DROPDOWN)
                 ),
             }
         )

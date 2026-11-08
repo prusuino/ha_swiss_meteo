@@ -43,6 +43,7 @@ from .derived import (
 )
 from .forecast import daily_values
 from .localization import t
+from .pollen import LEVELS, SPECIES, PollenCoordinator
 
 # key -> (device class, unit, state class, enabled by default, icon)
 _STATION_META: dict[str, tuple] = {
@@ -91,6 +92,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         if not data.forecast.hourly_enabled and key not in _DAILY_ONLY_KEYS:
             continue
         entities.append(DerivedSensor(hass, entry, data.forecast, key))
+    if data.pollen is not None:
+        for species in SPECIES:
+            entities.append(PollenSensor(hass, entry, data.pollen, species))
+        entities.append(PollenLevelSensor(hass, entry, data.pollen))
     entities.append(ForecastRunSensor(hass, entry, data.forecast))
     entities.append(TrafficSensor(hass, entry, data.forecast))
     async_add_entities(entities)
@@ -257,6 +262,73 @@ class DerivedSensor(_Base):
                 return {}
             return {"precipitation_mm": hit[1], "hours_until": max(0, round((hit[0] - dt_util.utcnow()).total_seconds() / 3600))}
         return {}
+
+
+class PollenSensor(_Base):
+    """The newest hourly concentration of one species, with the day's mean
+    and the MeteoSwiss load class as attributes."""
+
+    _attr_native_unit_of_measurement = "pollen/m³"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:flower-pollen"
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: PollenCoordinator, species: str) -> None:
+        super().__init__(hass, entry, coordinator, f"pollen_{species}")
+        self._species = species
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.fresh
+
+    @property
+    def native_value(self) -> float | None:
+        return self.coordinator.data.current.get(self._species) if self.coordinator.data else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data
+        if data is None:
+            return {}
+        return {
+            "station": data.abbr,
+            "measured": data.timestamp.isoformat(),
+            "daily_mean": data.daily_mean.get(self._species),
+            "hours_today": data.hours,
+            "level": self.coordinator.level(self._species),
+        }
+
+
+class PollenLevelSensor(_Base):
+    """The highest MeteoSwiss load class over the seven species, from the
+    day's mean concentrations."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(LEVELS)
+    _attr_translation_key = "pollen_level"
+    _attr_icon = "mdi:flower-pollen-outline"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: PollenCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "pollen_level")
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.fresh
+
+    @property
+    def native_value(self) -> str | None:
+        return self.coordinator.overall_level()
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data
+        if data is None:
+            return {}
+        attrs: dict = {"station": data.abbr, "measured": data.timestamp.isoformat()}
+        for species in SPECIES:
+            attrs[species] = self.coordinator.level(species)
+        attrs["highest"] = [s for s in SPECIES if self.coordinator.level(s) == self.coordinator.overall_level()]
+        return attrs
 
 
 class ForecastRunSensor(_Base):

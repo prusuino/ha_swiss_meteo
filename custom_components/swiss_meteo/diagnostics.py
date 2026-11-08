@@ -28,7 +28,15 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     data: EntryData | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
     snap = data.forecast.data if data and data.forecast.data else None
     station = data.station if data else None
+    pollen = data.pollen if data else None
     return {
+        "pollen": {
+            "configured": pollen.station if pollen else None,
+            "last_update_success": pollen.last_update_success if pollen else None,
+            "timestamp": pollen.data.timestamp.isoformat() if pollen and pollen.data else None,
+            "current": pollen.data.current if pollen and pollen.data else None,
+            "daily_mean": pollen.data.daily_mean if pollen and pollen.data else None,
+        },
         "integration": USER_AGENT,
         "entry": {
             "title": "**REDACTED**",

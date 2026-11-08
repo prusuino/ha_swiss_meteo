@@ -12,10 +12,11 @@
       },
       "place": {
         "title": "Point de prévision et station météo",
-        "description": "Les points de prévision et les stations SwissMetNet les plus proches du lieu, le plus proche en premier. Choisissez le point qui correspond à votre lieu (centre de code postal, point de montagne ou station) et la station dont les mesures conviennent le mieux – l'altitude et l'exposition comptent plus que la distance. Sans station, les valeurs actuelles proviennent de la prévision.",
+        "description": "Les points de prévision et les stations SwissMetNet les plus proches du lieu, le plus proche en premier. Choisissez le point qui correspond à votre lieu (centre de code postal, point de montagne ou station) et la station dont les mesures conviennent le mieux – l'altitude et l'exposition comptent plus que la distance. Sans station, les valeurs actuelles proviennent de la prévision. La station pollinique (les trois plus proches des 15 stations de MétéoSuisse) ajoute les concentrations horaires de bouleau, graminées, aulne, noisetier, hêtre, frêne et chêne ainsi que la classe de charge de MétéoSuisse.",
         "data": {
           "point": "Point de prévision",
-          "station": "Station météo (mesures)"
+          "station": "Station météo (mesures)",
+          "pollen_station": "Station pollinique"
         }
       }
     },
@@ -34,7 +35,8 @@
         "data": {
           "hourly": "Prévision horaire",
           "extended": "Valeurs horaires étendues (incertitude, couches nuageuses, isotherme 0 °C)",
-          "station": "Station météo (mesures)"
+          "station": "Station météo (mesures)",
+          "pollen_station": "Station pollinique"
         }
       }
     },
@@ -126,6 +128,74 @@
         },
         "for": {
           "name": "Pendant au moins"
+        }
+      }
+    }
+  },
+  "services": {
+    "import_history": {
+      "name": "Importer l'historique de la station",
+      "description": "Lit les archives de mesure de la station chez MétéoSuisse (valeurs horaires depuis 1980, valeurs journalières depuis le début des mesures) et les écrit dans les statistiques à long terme de Home Assistant : moyenne, minimum et maximum des capteurs de la station, ainsi que précipitations, ensoleillement, évaporation et degrés-jours de chauffage comme statistiques séparées (swiss_meteo:…). À exécuter une fois ; une nouvelle exécution remplace la même période.",
+      "fields": {
+        "entry": {
+          "name": "Entrée Swiss Meteo",
+          "description": "L'entrée dont la station est importée."
+        },
+        "years": {
+          "name": "Années",
+          "description": "Nombre d'années en arrière, à partir du 1er janvier de cette année."
+        },
+        "resolution": {
+          "name": "Résolution",
+          "description": "Valeurs horaires (environ 7 Mo par fichier décennal) ou journalières (un fichier pour tout l'historique, environ 2,5 Mo)."
+        },
+        "values": {
+          "name": "Valeurs",
+          "description": "Groupes à importer ; vide signifie tous."
+        }
+      }
+    }
+  },
+  "selector": {
+    "resolution": {
+      "options": {
+        "hourly": "Horaire",
+        "daily": "Journalier"
+      }
+    },
+    "values": {
+      "options": {
+        "temperature": "Température",
+        "humidity": "Humidité et pression de vapeur",
+        "pressure": "Pression",
+        "wind": "Vent",
+        "radiation": "Rayonnement",
+        "snow": "Hauteur de neige",
+        "soil": "Températures du sol",
+        "precipitation": "Précipitations",
+        "sunshine": "Ensoleillement",
+        "evaporation": "Évaporation",
+        "heating_degree_days": "Degrés-jours de chauffage"
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_loaded": {
+      "message": "L'entrée Swiss Meteo n'est pas chargée."
+    },
+    "no_station": {
+      "message": "L'entrée n'a pas de station météo ; l'import de l'historique en a besoin (dialogue « Configurer »)."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "pollen_level": {
+        "state": {
+          "none": "Nulle",
+          "low": "Faible",
+          "moderate": "Modérée",
+          "high": "Forte",
+          "very_high": "Très forte"
         }
       }
     }

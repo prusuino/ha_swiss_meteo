@@ -12,10 +12,11 @@
       },
       "place": {
         "title": "Punto di previsione e stazione meteo",
-        "description": "I punti di previsione e le stazioni SwissMetNet più vicini alla posizione, il più vicino per primo. Scegli il punto che corrisponde al tuo luogo (centro del codice postale, punto di montagna o stazione) e la stazione le cui misure si adattano meglio – altitudine ed esposizione contano più della distanza. Senza stazione, i valori attuali provengono dalla previsione.",
+        "description": "I punti di previsione e le stazioni SwissMetNet più vicini alla posizione, il più vicino per primo. Scegli il punto che corrisponde al tuo luogo (centro del codice postale, punto di montagna o stazione) e la stazione le cui misure si adattano meglio – altitudine ed esposizione contano più della distanza. Senza stazione, i valori attuali provengono dalla previsione. La stazione pollinica (le tre più vicine delle 15 stazioni di MeteoSvizzera) aggiunge le concentrazioni orarie di betulla, graminacee, ontano, nocciolo, faggio, frassino e quercia e la classe di carico di MeteoSvizzera.",
         "data": {
           "point": "Punto di previsione",
-          "station": "Stazione meteo (misure)"
+          "station": "Stazione meteo (misure)",
+          "pollen_station": "Stazione pollinica"
         }
       }
     },
@@ -34,7 +35,8 @@
         "data": {
           "hourly": "Previsione oraria",
           "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)",
-          "station": "Stazione meteo (misure)"
+          "station": "Stazione meteo (misure)",
+          "pollen_station": "Stazione pollinica"
         }
       }
     },
@@ -126,6 +128,74 @@
         },
         "for": {
           "name": "Per almeno"
+        }
+      }
+    }
+  },
+  "services": {
+    "import_history": {
+      "name": "Importa storico della stazione",
+      "description": "Legge l'archivio delle misure della stazione da MeteoSvizzera (valori orari dal 1980, valori giornalieri dall'inizio delle misure) e lo scrive nelle statistiche a lungo termine di Home Assistant: media, minimo e massimo dei sensori della stazione, più precipitazioni, soleggiamento, evaporazione e gradi giorno come statistiche separate (swiss_meteo:…). Da eseguire una volta; una nuova esecuzione sostituisce lo stesso periodo.",
+      "fields": {
+        "entry": {
+          "name": "Voce Swiss Meteo",
+          "description": "La voce la cui stazione viene importata."
+        },
+        "years": {
+          "name": "Anni",
+          "description": "Quanti anni indietro, contati dal 1° gennaio di quest'anno."
+        },
+        "resolution": {
+          "name": "Risoluzione",
+          "description": "Valori orari (circa 7 MB per file decennale) o giornalieri (un file per tutto lo storico, circa 2,5 MB)."
+        },
+        "values": {
+          "name": "Valori",
+          "description": "Quali gruppi importare; vuoto significa tutti."
+        }
+      }
+    }
+  },
+  "selector": {
+    "resolution": {
+      "options": {
+        "hourly": "Orario",
+        "daily": "Giornaliero"
+      }
+    },
+    "values": {
+      "options": {
+        "temperature": "Temperatura",
+        "humidity": "Umidità e pressione di vapore",
+        "pressure": "Pressione",
+        "wind": "Vento",
+        "radiation": "Radiazione",
+        "snow": "Altezza della neve",
+        "soil": "Temperature del suolo",
+        "precipitation": "Precipitazioni",
+        "sunshine": "Soleggiamento",
+        "evaporation": "Evaporazione",
+        "heating_degree_days": "Gradi giorno"
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_loaded": {
+      "message": "La voce Swiss Meteo non è caricata."
+    },
+    "no_station": {
+      "message": "La voce non ha una stazione meteo; l'importazione dello storico ne richiede una (finestra «Configura»)."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "pollen_level": {
+        "state": {
+          "none": "Nullo",
+          "low": "Debole",
+          "moderate": "Moderato",
+          "high": "Forte",
+          "very_high": "Molto forte"
         }
       }
     }
