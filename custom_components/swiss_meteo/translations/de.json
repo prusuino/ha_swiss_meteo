@@ -28,10 +28,35 @@
         "data": {
           "point": "Ort"
         }
+      },
+      "reconfigure": {
+        "title": "Ort ändern",
+        "description": "Marker verschieben oder einen anderen Ort bzw. eine PLZ suchen; Prognosepunkt, Wetterstation und Pollenstation werden im nächsten Schritt rund um den neuen Ort gewählt. Der Eintrag behält seine Entitäten, deren IDs und Verlauf; der Titel folgt dem neuen Punkt. Stundenprognose, erweiterte Werte, Warnungen und Radar bleiben wie unter Konfigurieren eingestellt.",
+        "data": {
+          "location": "Standort",
+          "search": "Ort oder PLZ (optional; die Suche ersetzt die Kartenposition)"
+        }
+      },
+      "reconfigure_search": {
+        "title": "Ort wählen",
+        "description": "Die Prognosepunkte, die zur Suche passen. Die nächsten Stationen werden danach rund um den gewählten Ort angeboten.",
+        "data": {
+          "point": "Ort"
+        }
+      },
+      "reconfigure_place": {
+        "title": "Prognosepunkt und Wetterstation",
+        "description": "Die dem Standort nächsten Prognosepunkte und SwissMetNet-Stationen, nächste zuerst. Wähle den Punkt, der zu deinem Ort passt (PLZ-Zentrum, Bergpunkt oder Station), und die Station, deren Messwerte am besten passen – Höhe und Lage zählen mehr als die Distanz. Ohne Station kommen die aktuellen Werte aus der Prognose. Die Pollenstation (die drei nächsten der 15 MeteoSchweiz-Stationen) liefert die stündlichen Konzentrationen von Birke, Gräsern, Erle, Hasel, Buche, Esche und Eiche und die Belastungsklasse von MeteoSchweiz.",
+        "data": {
+          "point": "Prognosepunkt",
+          "station": "Wetterstation (Messwerte)",
+          "pollen_station": "Pollenstation"
+        }
       }
     },
     "abort": {
-      "already_configured": "Dieser Prognosepunkt ist bereits eingerichtet."
+      "already_configured": "Dieser Prognosepunkt ist bereits eingerichtet.",
+      "reconfigure_successful": "Der Eintrag wurde aktualisiert und die Integration neu geladen."
     },
     "error": {
       "cannot_connect": "Die Open Data von MeteoSchweiz konnten nicht gelesen werden. Verbindung prüfen und erneut versuchen.",

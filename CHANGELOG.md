@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0 — 2026-11-08
+
+- **New: reconfigure an entry in place.** The entry's menu under **Settings → Devices & services** now offers *Reconfigure*: move the marker or search for another place or postal code, then pick the forecast point, the weather station and the pollen station around it, as in the setup. The entry keeps its entities, their ids and history; the title follows the new point. The hourly forecast, extended values, warnings and radar switches stay as set in *Configure*. A change to a point another entry already uses is refused.
+
 ## 1.4.0 — 2026-11-08
 
 - Radar nowcast from the MeteoSwiss precipitation composite (PRECIP, every 5 minutes, 29 KB per frame, read without an HDF5 library): rain rate at the point, distance to the nearest rain, estimated minutes until rain arrives from the motion of the rain field; binary sensors "Raining" and "Rain approaching"; triggers "Rain approaching", "Rain started", "Rain stopped"; conditions "It is raining", "It is not raining", "Rain is approaching"; radar chip on the main card; option to switch the radar off.

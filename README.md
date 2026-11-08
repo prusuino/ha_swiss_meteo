@@ -291,6 +291,7 @@ Copy `custom_components/swiss_meteo` into your `custom_components` directory and
    Or type a **place name or postal code** instead of moving the marker: the matching forecast points are listed, and the stations are then offered around the one you choose.
 3. Pick the **forecast point** — the five nearest are listed with their distance: postal-code centres, weather stations and mountain points (summits, passes, resorts) — the **weather station** for the live values among the four nearest, and the **pollen station** among the three nearest of the 15 MeteoSwiss pollen stations (hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak with the MeteoSwiss load classes; the pollen file is read every 30 minutes, 1 KB). Altitude and exposure matter more than distance: a station on a nearby hill is not your valley. Without a station the current values come from the forecast.
 4. Done. The **Configure** dialog switches the hourly forecast, the extended values and the official warnings on or off and lets you pick another weather station (the eight nearest are listed) or pollen station; a change reloads the entry, entity ids and history are kept.
+   **Reconfigure** (the entry's ⋮ menu) moves the entry to another place: move the marker or search for a place or postal code, then pick the forecast point and stations around it as in the setup. Entities, ids and history are kept; the entry title follows the new point.
 
 Each entry is one place; add the integration again for another postal code or a summit.
 

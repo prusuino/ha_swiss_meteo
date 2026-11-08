@@ -28,10 +28,35 @@
         "data": {
           "point": "Localité"
         }
+      },
+      "reconfigure": {
+        "title": "Changer de lieu",
+        "description": "Déplace le marqueur ou cherche un autre lieu ou code postal ; le point de prévision, la station météo et la station pollinique sont ensuite choisis autour du nouveau lieu à l'étape suivante. L'entrée conserve ses entités, leurs identifiants et leur historique ; son titre suit le nouveau point. Prévision horaire, valeurs étendues, alertes et radar restent tels que réglés dans Configurer.",
+        "data": {
+          "location": "Lieu",
+          "search": "Localité ou NPA (facultatif ; la recherche remplace la position sur la carte)"
+        }
+      },
+      "reconfigure_search": {
+        "title": "Choisir la localité",
+        "description": "Les points de prévision correspondant à la recherche. Les stations les plus proches sont ensuite proposées autour de la localité choisie.",
+        "data": {
+          "point": "Localité"
+        }
+      },
+      "reconfigure_place": {
+        "title": "Point de prévision et station météo",
+        "description": "Les points de prévision et les stations SwissMetNet les plus proches du lieu, le plus proche en premier. Choisissez le point qui correspond à votre lieu (centre de code postal, point de montagne ou station) et la station dont les mesures conviennent le mieux – l'altitude et l'exposition comptent plus que la distance. Sans station, les valeurs actuelles proviennent de la prévision. La station pollinique (les trois plus proches des 15 stations de MétéoSuisse) ajoute les concentrations horaires de bouleau, graminées, aulne, noisetier, hêtre, frêne et chêne ainsi que la classe de charge de MétéoSuisse.",
+        "data": {
+          "point": "Point de prévision",
+          "station": "Station météo (mesures)",
+          "pollen_station": "Station pollinique"
+        }
       }
     },
     "abort": {
-      "already_configured": "Ce point de prévision est déjà configuré."
+      "already_configured": "Ce point de prévision est déjà configuré.",
+      "reconfigure_successful": "L'entrée a été mise à jour et l'intégration rechargée."
     },
     "error": {
       "cannot_connect": "Les données ouvertes de MétéoSuisse n'ont pas pu être lues. Vérifiez la connexion et réessayez.",

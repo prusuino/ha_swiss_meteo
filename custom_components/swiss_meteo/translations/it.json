@@ -28,10 +28,35 @@
         "data": {
           "point": "Località"
         }
+      },
+      "reconfigure": {
+        "title": "Cambiare località",
+        "description": "Sposta il marcatore o cerca un'altra località o un CAP; il punto di previsione, la stazione meteo e la stazione pollinica vengono poi scelti intorno alla nuova località nel passo successivo. La voce mantiene le sue entità, i loro ID e la cronologia; il titolo segue il nuovo punto. Previsione oraria, valori estesi, allerte e radar restano come impostati in Configura.",
+        "data": {
+          "location": "Posizione",
+          "search": "Località o NPA (facoltativo; la ricerca sostituisce la posizione sulla mappa)"
+        }
+      },
+      "reconfigure_search": {
+        "title": "Scegli la località",
+        "description": "I punti di previsione che corrispondono alla ricerca. Le stazioni più vicine vengono poi proposte attorno alla località scelta.",
+        "data": {
+          "point": "Località"
+        }
+      },
+      "reconfigure_place": {
+        "title": "Punto di previsione e stazione meteo",
+        "description": "I punti di previsione e le stazioni SwissMetNet più vicini alla posizione, il più vicino per primo. Scegli il punto che corrisponde al tuo luogo (centro del codice postale, punto di montagna o stazione) e la stazione le cui misure si adattano meglio – altitudine ed esposizione contano più della distanza. Senza stazione, i valori attuali provengono dalla previsione. La stazione pollinica (le tre più vicine delle 15 stazioni di MeteoSvizzera) aggiunge le concentrazioni orarie di betulla, graminacee, ontano, nocciolo, faggio, frassino e quercia e la classe di carico di MeteoSvizzera.",
+        "data": {
+          "point": "Punto di previsione",
+          "station": "Stazione meteo (misure)",
+          "pollen_station": "Stazione pollinica"
+        }
       }
     },
     "abort": {
-      "already_configured": "Questo punto di previsione è già configurato."
+      "already_configured": "Questo punto di previsione è già configurato.",
+      "reconfigure_successful": "La voce è stata aggiornata e l'integrazione ricaricata."
     },
     "error": {
       "cannot_connect": "I dati aperti di MeteoSvizzera non sono stati letti. Controlla la connessione e riprova.",

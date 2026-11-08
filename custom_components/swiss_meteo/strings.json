@@ -28,10 +28,35 @@
         "data": {
           "point": "Place"
         }
+      },
+      "reconfigure": {
+        "title": "Change the place",
+        "description": "Move the marker or search for another place or postal code; the forecast point, the weather station and the pollen station are then picked around it in the next step. The entry keeps its entities, their ids and history; its title follows the new point. Hourly forecast, extended values, warnings and radar stay as set in Configure.",
+        "data": {
+          "location": "Location",
+          "search": "Place or postal code (optional; searching replaces the map location)"
+        }
+      },
+      "reconfigure_search": {
+        "title": "Choose the place",
+        "description": "The forecast points matching your search. The nearest stations are then offered around the chosen place.",
+        "data": {
+          "point": "Place"
+        }
+      },
+      "reconfigure_place": {
+        "title": "Forecast point and weather station",
+        "description": "The forecast points and SwissMetNet stations nearest to the location, nearest first. Pick the point that matches your place (a postal code centre, a mountain spot or a station) and the station whose live values suit you best — altitude and exposure matter more than distance. Without a station, the current values come from the forecast. The pollen station (the three nearest of the 15 MeteoSwiss stations) adds the hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak and the MeteoSwiss load class.",
+        "data": {
+          "point": "Forecast point",
+          "station": "Weather station (live values)",
+          "pollen_station": "Pollen station"
+        }
       }
     },
     "abort": {
-      "already_configured": "This forecast point is already set up."
+      "already_configured": "This forecast point is already set up.",
+      "reconfigure_successful": "The entry was updated and the integration reloaded."
     },
     "error": {
       "cannot_connect": "The MeteoSwiss open data could not be read. Check the connection and try again.",
