@@ -1,0 +1,86 @@
+rules:
+  # Bronze
+  action-setup:
+    status: done
+    comment: The actions are registered in async_setup, not per entry.
+  appropriate-polling:
+    status: done
+    comment: A HEAD request every 15 minutes finds a new model run; daily values are read at most every three hours, station values every 10 minutes.
+  brands: done
+  common-modules:
+    status: done
+    comment: coordinator.py and device.py hold the shared pieces.
+  config-flow: done
+  config-flow-test-coverage: done
+  dependency-transparency:
+    status: done
+    comment: No requirements beyond Home Assistant's own aiohttp.
+  docs-actions: done
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: todo
+  entity-event-setup:
+    status: done
+    comment: Entities subscribe to their coordinators in async_added_to_hass.
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data:
+    status: todo
+    comment: Coordinators live in hass.data[DOMAIN][entry_id] (EntryData), not yet in entry.runtime_data.
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates: todo
+  reauthentication-flow:
+    status: exempt
+    comment: The open data needs no credentials.
+  test-coverage: todo
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: A web service, nothing on the network to discover.
+  discovery-update-info:
+    status: exempt
+    comment: No discovery.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices:
+    status: exempt
+    comment: No devices; the data covers Switzerland.
+  docs-supported-functions: done
+  docs-troubleshooting: todo
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: One device per entry.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default: todo
+  entity-translations:
+    status: todo
+    comment: Entity names come from the integration's own localization helper, not from translation keys.
+  exception-translations: todo
+  icon-translations: todo
+  reconfiguration-flow: done
+  repair-issues: done
+  stale-devices:
+    status: exempt
+    comment: One device per entry.
+
+  # Platinum
+  async-dependency: done
+  inject-websession: done
+  strict-typing: todo
