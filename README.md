@@ -125,7 +125,7 @@ show_hourly: true
 show_daily: true
 show_pollen: true   # pollen chip from the entry's pollen-level sensor
 show_warnings: true # banner for official warnings (main, forecast and sky cards)
-size: normal        # or large, xl
+size: normal        # or small, large, xl
 animated: true
 ```
 
@@ -140,7 +140,7 @@ forecast_type: daily   # or hourly
 show_current: true
 show_forecast: true
 columns: 0             # 0 = automatic (7 days / 8 hours)
-size: normal           # or large, xl — bigger icons and text
+size: normal           # or small, large, xl — icon and text size
 animated: true         # false for still icons
 theme: meteo
 ```
@@ -156,13 +156,13 @@ columns: 0             # 0 = automatic (5 days / 6 hours)
 show_current: true
 show_details: true
 show_forecast: true
-size: normal           # or large, xl
+size: normal           # or small, large, xl
 animated: true
 background: sky        # or panel
 theme: meteo           # or ha (your Home Assistant theme), glass, sky (banner blue)
 ```
 
-**Swiss Meteo – daily list** (`custom:swiss-meteo-daily-card`): the nine-day list — weekday, symbol, low and high in boxes, precipitation with its 10–90 % range — with the *Wind* and *Sunshine* toggles that add the day's wind, gusts and sunshine hours to each row. `theme: meteo` (default) uses the dark blue Swiss Meteo palette, `theme: ha` your Home Assistant theme.
+**Swiss Meteo – daily list** (`custom:swiss-meteo-daily-card`): the nine-day list — weekday, symbol, low and high in boxes, precipitation with its 10–90 % range — with the *Wind* and *Sunshine* toggles that add the day's wind, gusts and sunshine hours to each row. `size: small` tightens the rows for a wall tablet. `theme: meteo` (default) uses the dark blue Swiss Meteo palette, `theme: ha` your Home Assistant theme.
 
 ```yaml
 type: custom:swiss-meteo-daily-card
