@@ -93,7 +93,15 @@ def search_points(points: list[Point], text: str) -> list[Point]:
             tiers[1].append(p)
         elif q in name:
             tiers[2].append(p)
-    out = tiers[0] + tiers[1] + tiers[2]
+    # places (postal-code centres) before stations and mountain points within each tier
+    out = [p for tier in tiers for p in sorted(tier, key=lambda p: (p.point_type != POINT_TYPE_POSTAL, str(p.postal_code or ""), p.name or ""))]
+    if plz and not out and len(plz) >= 3:
+        # no such postal code in the list (3000 Bern has only its delivery
+        # districts 3004…): offer the numerically nearest codes of the area
+        target = int(plz.ljust(4, "0")[:4])
+        near = [p for p in points if str(p.postal_code or "").isdigit() and str(p.postal_code)[:2] == plz[:2] and (not name_q or name_q in (p.name or "").lower())]
+        near.sort(key=lambda p: (abs(int(p.postal_code) - target), p.name or ""))
+        out = near
     return out[:_MAX_MATCHES]
 
 
