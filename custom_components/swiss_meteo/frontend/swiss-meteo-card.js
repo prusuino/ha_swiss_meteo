@@ -304,10 +304,10 @@ class SwissMeteoCard extends HTMLElement {
     return `<div class="current">
       <img class="big" src="${icon}" alt="${esc(state.state)}" />
       <div class="now">
-        <div class="temp">${fmt(a.temperature, 1)}<span class="unit">${esc(a.temperature_unit || "°C")}</span></div>
         <div class="cond">${esc(conditionText)}</div>
         ${station}
       </div>
+      <div class="temp">${fmt(a.temperature, 1)}<span class="unit">${esc(a.temperature_unit || "°C")}</span></div>
       <div class="chips">${chips.map(([k, v, ic, id]) => `<div class="chip${id ? " link" : ""}"${id ? ` data-entity="${esc(id)}"` : ""}><img src="${iconUrl(ic, this._config.animated)}" alt="" /><div><div class="k">${esc(k)}</div><div class="v">${v}</div></div></div>`).join("")}</div>
     </div>`;
   }
@@ -401,14 +401,14 @@ class SwissMeteoCard extends HTMLElement {
       ha-card { display: block; container-type: inline-size; --ico-big: 148px; --fs: 1; }
       ha-card.large { --ico-big: 172px; --fs: 1.18; }
       ha-card.xl { --ico-big: 200px; --fs: 1.36; }
-      @container (max-width: 300px) { .current { --ico-big: 104px; } }
-      .current { display: grid; grid-template-columns: var(--ico-big) minmax(0, 1fr); grid-template-areas: "icon now" "chips chips"; gap: 4px 8px; align-items: center; margin-top: 4px; }
+      @container (max-width: 300px) { .current { --ico-big: 104px; grid-template-columns: var(--ico-big) minmax(0, 1fr); grid-template-areas: "icon now" "temp temp" "chips chips"; } .current .temp { justify-self: end; } }
+      .current { display: grid; grid-template-columns: var(--ico-big) minmax(0, 1fr) auto; grid-template-areas: "icon now temp" "chips chips chips"; gap: 4px 8px; align-items: center; margin-top: 4px; }
       .current .big { grid-area: icon; width: var(--ico-big); height: var(--ico-big); margin: calc(var(--ico-big) * -0.1) 0 calc(var(--ico-big) * -0.1) calc(var(--ico-big) * -0.08); }
-      .current .now { grid-area: now; }
-      .temp { font-size: calc(3em * var(--fs)); font-weight: 300; line-height: 1; }
+      .current .now { grid-area: now; min-width: 0; }
+      .temp { grid-area: temp; font-size: calc(3em * var(--fs)); font-weight: 300; line-height: 1; white-space: nowrap; padding-right: 4px; }
       .temp .unit { font-size: 0.4em; margin-left: 2px; vertical-align: top; }
-      .cond { font-size: calc(1.1em * var(--fs)); margin-top: 4px; text-transform: capitalize; }
-      .station { font-size: calc(0.9em * var(--fs)); color: var(--sm-dim); margin-top: 2px; }
+      .cond { font-size: calc(1.5em * var(--fs)); font-weight: 500; line-height: 1.15; text-transform: capitalize; }
+      .station { font-size: calc(0.95em * var(--fs)); color: var(--sm-dim); margin-top: 4px; }
       .chips { grid-area: chips; display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; }
       ha-card.meteo .chips { background: var(--sm-panel); border-radius: 4px; padding: 10px 14px; margin-top: 10px; gap: 10px 14px; }
       .chip { display: flex; align-items: center; gap: 6px; flex: 1 1 calc(150px * var(--fs)); min-width: calc(140px * var(--fs)); }
