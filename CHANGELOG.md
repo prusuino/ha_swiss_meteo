@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1 — 2026-11-08
+
+- README: screenshots of every card (main card in the three colour schemes, forecast, daily list, map, sky, compact sizes).
+- Place search: when the typed postal code has no forecast point (3000 Bern, 8000 Zürich), the nearest postal codes of the area are offered; places are listed before stations.
+
 ## 1.3.0 — 2026-11-08
 
 First public release.
