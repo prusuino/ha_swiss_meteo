@@ -435,7 +435,8 @@ class SwissMeteoCard extends HTMLElement {
       .plabel { font-size: calc(24px * var(--fs)); fill: var(--sm-rain); }
       .daily { display: flex; gap: 2px; margin-top: 10px; overflow-x: auto; scrollbar-width: thin; }
       ha-card.meteo .daily { background: var(--sm-panel); border-radius: 4px; padding: 8px 4px; gap: 4px; }
-      .daily .day { flex: 1 1 0; min-width: 44px; text-align: center; padding: 4px 0; border-radius: 8px; }
+      .daily .day { flex: 1 1 0; min-width: 40px; text-align: center; padding: 4px 0; border-radius: 8px; }
+      @container (max-width: 460px) { .daily .rain, .daily .prob, .daily .range, .daily .wd { font-size: calc(0.72em * var(--fs)); } .daily img { width: calc(40px * var(--fs)); height: calc(40px * var(--fs)); } ha-card.meteo .daily .hi, ha-card.meteo .daily .lo { font-size: calc(0.85em * var(--fs)); min-width: 2em; } }
       .daily .day:first-child { background: var(--sm-panel); }
       ha-card.meteo .daily .day:first-child { background: rgba(255,255,255,0.06); }
       .daily img { width: calc(48px * var(--fs)); height: calc(48px * var(--fs)); }
@@ -459,8 +460,8 @@ class SwissMeteoCard extends HTMLElement {
       ha-card.gl .chips { background: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(150px * var(--fs)), 1fr)); gap: 8px; }
       ha-card.gl .chip { background: var(--gl-panel); border: 1px solid var(--gl-tile); border-radius: 12px; padding: 8px 10px; min-width: 0; }
       ha-card.gl .hourly { background: var(--gl-panel); border: 1px solid var(--gl-tile); border-radius: 14px; padding: 8px 6px 4px; }
-      ha-card.gl .daily { background: none; padding: 0; gap: 4px; }
-      ha-card.gl .daily .day { background: var(--gl-panel); border: 1px solid var(--gl-tile); border-radius: 12px; padding: 6px 0; min-width: 40px; }
+      ha-card.gl .daily { background: none; padding: 0; gap: 3px; }
+      ha-card.gl .daily .day { background: var(--gl-panel); border: 1px solid var(--gl-tile); border-radius: 10px; padding: 6px 0; min-width: 36px; }
       ha-card.gl .daily .day:first-child { background: var(--gl-today); border-color: rgba(120,175,255,0.6); }
       ha-card.gl .daily .tt { flex-direction: column; gap: 0; margin: 4px 0; }
       ha-card.gl .daily .hi, ha-card.gl .daily .lo { background: none; padding: 0; min-width: 0; font-size: calc(1em * var(--fs)); line-height: 1.25; }
@@ -588,6 +589,31 @@ function subscribeForecast(hass, entity, type, cb) {
   }
 }
 
+/** The size option as a factor. */
+function fsOf(config) {
+  return config.size === "xl" ? 1.45 : config.size === "large" ? 1.22 : 1;
+}
+
+/** How many columns fit: the card's width over the width one column needs, between 3 and `max`. */
+function autoColumns(el, max, per) {
+  const w = el._w || el.getBoundingClientRect().width;
+  if (!w) return max;
+  return Math.max(3, Math.min(max, Math.floor((w - 40) / per)));
+}
+
+/** Re-renders a card when its width changes by more than a few pixels. */
+function observeWidth(el) {
+  if (el._ro || typeof ResizeObserver === "undefined") return;
+  el._ro = new ResizeObserver(() => {
+    const w = el.getBoundingClientRect().width;
+    if (Math.abs(w - (el._w || 0)) > 24) {
+      el._w = w;
+      el._render();
+    }
+  });
+  el._ro.observe(el);
+}
+
 /** Shared editor: an ha-form with the given schema and labels. */
 class SwissMeteoBaseEditor extends HTMLElement {
   setConfig(config) {
@@ -662,6 +688,7 @@ class SwissMeteoDailyCard extends HTMLElement {
   }
   connectedCallback() {
     if (this._hass && !this._subscribed) this._subscribe();
+    observeWidth(this);
   }
   disconnectedCallback() {
     if (this._unsub) Promise.resolve(this._unsub).then((u) => typeof u === "function" && u()).catch(() => {});
@@ -1053,6 +1080,7 @@ class SwissMeteoForecastCard extends HTMLElement {
   }
   connectedCallback() {
     if (this._hass && !this._subscribed) this._subscribe();
+    observeWidth(this);
   }
   disconnectedCallback() {
     if (this._unsub) Promise.resolve(this._unsub).then((u) => typeof u === "function" && u()).catch(() => {});
@@ -1107,7 +1135,7 @@ class SwissMeteoForecastCard extends HTMLElement {
       parts.push(`<div class="title small">${esc(title)}</div>`);
     }
     if (this._config.show_forecast && this._forecast && this._forecast.length) {
-      const wanted = Number(this._config.columns) || (hourly ? 8 : 7);
+      const wanted = Number(this._config.columns) || autoColumns(this, hourly ? 8 : 7, (hourly ? 50 : 62) * fsOf(this._config) + (this._config.theme === "glass" ? 8 : 0));
       const rows = this._forecast.slice(0, Math.max(3, Math.min(hourly ? 24 : 9, wanted)));
       const cells = rows.map((r, i) => {
         const d = new Date(r.datetime);
@@ -1176,7 +1204,7 @@ class SwissMeteoForecastCard extends HTMLElement {
         background: var(--gl-bg); color: #fff; border-radius: 20px; border: 1px solid var(--gl-border); box-shadow: var(--gl-shadow); }
       ha-card.gl { --sm-panel: var(--gl-panel); --sm-box: var(--gl-box); --sm-dim: #b9c8e4; --sm-rain: #7dc4ff; }
       ha-card.gl .row { background: none; padding: 0; gap: 6px; }
-      ha-card.gl .col { background: var(--gl-panel); border: 1px solid var(--gl-tile); border-radius: 12px; padding: 8px 2px; }
+      ha-card.gl .col { background: var(--gl-panel); border: 1px solid var(--gl-tile); border-radius: 12px; padding: 6px 0; }
       ha-card.gl .col:first-child { background: var(--gl-today); border-color: rgba(120,175,255,0.6); }
       ha-card.gl .col.daybreak { border-left: 1px solid var(--gl-tile); }
       ha-card.gl .t span { background: var(--gl-box); }
@@ -1253,6 +1281,7 @@ class SwissMeteoSkyCard extends HTMLElement {
   }
   connectedCallback() {
     if (this._hass && !this._subscribed) this._subscribe();
+    observeWidth(this);
   }
   disconnectedCallback() {
     if (this._unsub) Promise.resolve(this._unsub).then((u) => typeof u === "function" && u()).catch(() => {});
@@ -1303,7 +1332,7 @@ class SwissMeteoSkyCard extends HTMLElement {
       if (det.length) parts.push(`<div class="det">${det.map(([ic, v]) => `<span><img src="${iconUrl(ic, this._config.animated)}" alt="" />${v}</span>`).join("")}</div>`);
     }
     if (this._config.show_forecast && this._forecast && this._forecast.length) {
-      const wanted = Number(this._config.columns) || (hourly ? 6 : 5);
+      const wanted = Number(this._config.columns) || autoColumns(this, hourly ? 6 : 5, (hourly ? 50 : 56) * fsOf(this._config) + (this._config.theme === "glass" ? 6 : 0));
       const rows = this._forecast.slice(0, Math.max(3, Math.min(hourly ? 24 : 9, wanted)));
       const cells = rows.map((r, i) => {
         const d = new Date(r.datetime);
