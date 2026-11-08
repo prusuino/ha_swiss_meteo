@@ -313,14 +313,16 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         if unique_id != self._entry.unique_id:
             self._abort_if_unique_id_configured()
-        return self.async_update_reload_and_abort(
+        # Update only: the entry's update listener reloads it on a change
+        # (Home Assistant asks integrations with a listener to do it that way).
+        self.hass.config_entries.async_update_entry(
             self._entry,
             unique_id=unique_id,
             title=_point_title(point),
             data={**self._entry.data, **place},
             options={k: v for k, v in self._entry.options.items() if k not in _STATION_KEYS},
-            reason="reconfigure_successful",
         )
+        return self.async_abort(reason="reconfigure_successful")
 
     # ------------------------------------------------------------- setup
 
