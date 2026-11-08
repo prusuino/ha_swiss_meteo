@@ -26,6 +26,12 @@
     },
     "rain_stopped": {
       "trigger": "mdi:weather-cloudy"
+    },
+    "strong_wind_expected": {
+      "trigger": "mdi:weather-windy"
+    },
+    "strong_wind_cleared": {
+      "trigger": "mdi:weather-windy-variant"
     }
   },
   "conditions": {
@@ -49,6 +55,9 @@
     },
     "is_rain_approaching": {
       "condition": "mdi:weather-pouring"
+    },
+    "is_strong_wind_expected": {
+      "condition": "mdi:weather-windy"
     }
   }
 }

@@ -88,13 +88,25 @@ else:
         """An official warning comes into force: the warning sensor turns on."""
 
         def entity_filter(self, entities: set[str]) -> set[str]:
-            return _own_entities(self._hass, super().entity_filter(entities))
+            return _own_entities(self._hass, super().entity_filter(entities), "_warning_active")
 
     class _WarningCleared(make_entity_target_state_trigger(WARN_SPECS, STATE_OFF)):
         """No official warning in force any more."""
 
         def entity_filter(self, entities: set[str]) -> set[str]:
-            return _own_entities(self._hass, super().entity_filter(entities))
+            return _own_entities(self._hass, super().entity_filter(entities), "_warning_active")
+
+    class _StrongWindExpected(make_entity_target_state_trigger(WARN_SPECS, STATE_ON)):
+        """Gusts above the threshold are forecast for the next hours."""
+
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities), "_strong_wind_expected")
+
+    class _StrongWindCleared(make_entity_target_state_trigger(WARN_SPECS, STATE_OFF)):
+        """No strong wind expected any more."""
+
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities), "_strong_wind_expected")
 
     class _NewForecast(EntityTriggerBase):
         """A new forecast run has been read (the run sensor changes)."""
@@ -114,6 +126,8 @@ else:
         "rain_starting": _RainStarting,
         "rain_started": _RainStarted,
         "rain_stopped": _RainStopped,
+        "strong_wind_expected": _StrongWindExpected,
+        "strong_wind_cleared": _StrongWindCleared,
     }
 
 

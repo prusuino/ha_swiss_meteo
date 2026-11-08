@@ -1,0 +1,95 @@
+blueprint:
+  name: Swiss Meteo – strong wind: raise the blinds
+  description: >-
+    Raises the selected covers when the MeteoSwiss forecast expects gusts
+    above your threshold within the next six hours, and runs your own
+    actions (a notification, pausing other blind automations). A second set
+    of actions runs once no strong wind is expected any more – lower the
+    blinds again there if you want that automated.
+
+
+    The "Strong wind expected" sensor of the integration is the trigger; the
+    gust threshold is set in the integration's Configure dialog (60 km/h by
+    default).
+  domain: automation
+  source_url: https://github.com/prusuino/ha_swiss_meteo/blob/main/blueprints/automation/strong_wind_blinds.yaml
+  author: prusuino
+  homeassistant:
+    min_version: 2025.4.0
+  input:
+    wind_sensor:
+      name: Strong wind expected sensor
+      description: The "Strong wind expected" sensor of a Swiss Meteo entry.
+      selector:
+        entity:
+          filter:
+            - integration: swiss_meteo
+              domain: binary_sensor
+              device_class: safety
+    covers:
+      name: Covers to raise
+      selector:
+        target:
+          entity:
+            domain: cover
+    notify_service:
+      name: Notification action
+      description: For example notify.mobile_app_your_phone. Leave empty for no notification.
+      default: ""
+      selector:
+        text:
+    wind_actions:
+      name: Additional actions when strong wind is expected
+      default: []
+      selector:
+        action:
+    calm_actions:
+      name: Actions when no strong wind is expected any more
+      description: Lower the blinds again here if you want that automated.
+      default: []
+      selector:
+        action:
+
+mode: queued
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input wind_sensor
+    to: "on"
+    id: wind
+  - trigger: state
+    entity_id: !input wind_sensor
+    from: "on"
+    to: "off"
+    id: calm
+
+variables:
+  notify_service: !input notify_service
+  sensor: !input wind_sensor
+  gust: "{{ state_attr(sensor, 'max_gust') }}"
+  gust_at: "{{ state_attr(sensor, 'max_gust_at') }}"
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: wind
+        sequence:
+          - action: cover.open_cover
+            target: !input covers
+          - if:
+              - "{{ notify_service != '' }}"
+            then:
+              - action: "{{ notify_service }}"
+                data:
+                  title: "Strong wind expected"
+                  message: >-
+                    Gusts up to {{ gust }} km/h expected
+                    {% if gust_at %}around {{ as_timestamp(gust_at) | timestamp_custom('%H:%M') }}{% endif %} – the blinds are being raised.
+          - sequence: !input wind_actions
+      - conditions:
+          - condition: trigger
+            id: calm
+        sequence:
+          - sequence: !input calm_actions

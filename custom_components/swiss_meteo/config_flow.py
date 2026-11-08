@@ -16,6 +16,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_EXTENDED,
+    CONF_GUST_THRESHOLD,
     CONF_HOURLY,
     CONF_POINT_HEIGHT,
     CONF_POINT_ID,
@@ -29,6 +30,7 @@ from .const import (
     CONF_STATION,
     CONF_STATION_NAME,
     CONF_WARNINGS,
+    DEFAULT_GUST_THRESHOLD,
     DOMAIN,
     POINT_TYPE_MOUNTAIN,
     POINT_TYPE_POSTAL,
@@ -284,6 +286,7 @@ class SwissMeteoOptionsFlow(OptionsFlow):
                 CONF_EXTENDED: bool(user_input.get(CONF_EXTENDED, False)),
                 CONF_WARNINGS: bool(user_input.get(CONF_WARNINGS, True)),
                 CONF_RADAR: bool(user_input.get(CONF_RADAR, True)),
+                CONF_GUST_THRESHOLD: float(user_input.get(CONF_GUST_THRESHOLD, DEFAULT_GUST_THRESHOLD)),
                 CONF_STATION: "" if station_abbr == NO_STATION else station_abbr,
                 CONF_STATION_NAME: station_name,
                 CONF_POLLEN_STATION: "" if pollen_abbr == NO_STATION else pollen_abbr,
@@ -319,6 +322,9 @@ class SwissMeteoOptionsFlow(OptionsFlow):
                 vol.Required(CONF_EXTENDED, default=entry.options.get(CONF_EXTENDED, entry.data.get(CONF_EXTENDED, False))): selector.BooleanSelector(),
                 vol.Required(CONF_WARNINGS, default=entry.options.get(CONF_WARNINGS, entry.data.get(CONF_WARNINGS, True))): selector.BooleanSelector(),
                 vol.Required(CONF_RADAR, default=entry.options.get(CONF_RADAR, entry.data.get(CONF_RADAR, True))): selector.BooleanSelector(),
+                vol.Required(CONF_GUST_THRESHOLD, default=float(entry.options.get(CONF_GUST_THRESHOLD, entry.data.get(CONF_GUST_THRESHOLD, DEFAULT_GUST_THRESHOLD)))): selector.NumberSelector(
+                    selector.NumberSelectorConfig(min=30, max=150, step=5, unit_of_measurement="km/h", mode=selector.NumberSelectorMode.BOX)
+                ),
                 vol.Required(CONF_STATION, default=current_station): selector.SelectSelector(
                     selector.SelectSelectorConfig(options=station_options, mode=selector.SelectSelectorMode.DROPDOWN)
                 ),

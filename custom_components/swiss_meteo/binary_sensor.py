@@ -16,9 +16,9 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTRIBUTION, ATTRIBUTION_WARNINGS, DOMAIN
+from .const import ATTRIBUTION, ATTRIBUTION_WARNINGS, CONF_GUST_THRESHOLD, DEFAULT_GUST_THRESHOLD, DOMAIN
 from .coordinator import EntryData, ForecastCoordinator
-from .derived import RAIN_THRESHOLD_MM, next_rain, night_minimum, window_sum
+from .derived import RAIN_THRESHOLD_MM, WIND_WINDOW_HOURS, max_gust, next_rain, night_minimum, window_sum
 from .device import device_info, entry_suffix
 from .localization import t
 from .meteoalarm import WarningsCoordinator
@@ -32,7 +32,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     data: EntryData = hass.data[DOMAIN][entry.entry_id]
     entities: list[BinarySensorEntity] = []
     if data.forecast.hourly_enabled:
-        entities += [RainExpectedSensor(hass, entry, data.forecast), FrostTonightSensor(hass, entry, data.forecast)]
+        entities += [RainExpectedSensor(hass, entry, data.forecast), FrostTonightSensor(hass, entry, data.forecast), StrongWindExpectedSensor(hass, entry, data.forecast)]
     if data.warnings is not None:
         entities.append(WarningActiveSensor(hass, entry, data.warnings))
     if data.radar is not None:
@@ -135,6 +135,37 @@ class FrostTonightSensor(_Base):
             "threshold": FROST_THRESHOLD,
             "night_minimum": low[1],
             "night_minimum_at": dt_util.as_local(low[0]).isoformat(),
+        }
+
+
+class StrongWindExpectedSensor(_Base):
+    """On when the hourly forecast has a gust peak at or above the configured
+    threshold (60 km/h by default) within the next six hours."""
+
+    _attr_device_class = BinarySensorDeviceClass.SAFETY
+    _attr_icon = "mdi:weather-windy"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "strong_wind_expected")
+        self._threshold = float(entry.options.get(CONF_GUST_THRESHOLD, entry.data.get(CONF_GUST_THRESHOLD, DEFAULT_GUST_THRESHOLD)))
+
+    @property
+    def is_on(self) -> bool | None:
+        if not self.coordinator.data or not self.coordinator.data.hourly:
+            return None
+        peak = max_gust(self.coordinator.data)
+        return bool(peak and peak[1] >= self._threshold)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        if not self.coordinator.data:
+            return {}
+        peak = max_gust(self.coordinator.data)
+        return {
+            "threshold_kmh": self._threshold,
+            "window_hours": WIND_WINDOW_HOURS,
+            "max_gust": peak[1] if peak else None,
+            "max_gust_at": peak[0].isoformat() if peak else None,
         }
 
 

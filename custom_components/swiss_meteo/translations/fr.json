@@ -49,7 +49,8 @@
           "station": "Station météo (mesures)",
           "pollen_station": "Station pollinique",
           "warnings": "Alertes officielles (MétéoSuisse via MeteoAlarm)",
-          "radar": "Prévision immédiate radar (pluie maintenant, pluie la plus proche, pluie dans N minutes ; environ 8 Mo par jour)"
+          "radar": "Prévision immédiate radar (pluie maintenant, pluie la plus proche, pluie dans N minutes ; environ 8 Mo par jour)",
+          "gust_threshold": "Seuil de rafales pour « vent fort attendu » (km/h)"
         }
       }
     },
@@ -165,6 +166,30 @@
           "name": "Pendant au moins"
         }
       }
+    },
+    "strong_wind_expected": {
+      "name": "Vent fort attendu",
+      "description": "Se déclenche lorsque la prévision contient des rafales au moins égales au seuil configuré dans les six prochaines heures.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    },
+    "strong_wind_cleared": {
+      "name": "Plus de vent fort attendu",
+      "description": "Se déclenche lorsque plus aucune rafale au-dessus du seuil n'est prévue pour les six prochaines heures.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
     }
   },
   "conditions": {
@@ -251,6 +276,18 @@
           "name": "Pendant au moins"
         }
       }
+    },
+    "is_strong_wind_expected": {
+      "name": "Du vent fort est attendu",
+      "description": "Est vraie tant que des rafales au moins égales au seuil configuré sont prévues pour les six prochaines heures.",
+      "fields": {
+        "behavior": {
+          "name": "Condition remplie si"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
     }
   },
   "services": {
@@ -273,6 +310,28 @@
         "values": {
           "name": "Valeurs",
           "description": "Groupes à importer ; vide signifie tous."
+        }
+      }
+    },
+    "best_window": {
+      "name": "Meilleure fenêtre",
+      "description": "Cherche la meilleure fenêtre de la durée voulue dans les prochaines heures : la plus sèche, la plus ensoleillée ou la plus calme. Renvoie début, fin, précipitations, ensoleillement, rafale maximale et température moyenne de la fenêtre (found: false si la prévision ne couvre aucune fenêtre complète).",
+      "fields": {
+        "entry": {
+          "name": "Entrée Swiss Meteo",
+          "description": "L'entrée dont la prévision est utilisée."
+        },
+        "hours": {
+          "name": "Durée de la fenêtre",
+          "description": "Durée de la fenêtre en heures."
+        },
+        "within": {
+          "name": "Horizon",
+          "description": "Combien d'heures à l'avance la fenêtre peut commencer."
+        },
+        "criterion": {
+          "name": "Critère",
+          "description": "Sec : le moins de précipitations. Ensoleillé : le plus d'ensoleillement. Calme : les rafales les plus faibles."
         }
       }
     }
@@ -298,6 +357,13 @@
         "evaporation": "Évaporation",
         "heating_degree_days": "Degrés-jours de chauffage"
       }
+    },
+    "criterion": {
+      "options": {
+        "dry": "Sec",
+        "sunny": "Ensoleillé",
+        "calm": "Calme"
+      }
     }
   },
   "exceptions": {
@@ -309,6 +375,9 @@
     },
     "hourly_years": {
       "message": "Les valeurs horaires sont limitées à 20 ans par importation ; relancez l'action pour les années antérieures ou choisissez les valeurs journalières."
+    },
+    "no_hourly": {
+      "message": "L'entrée n'a pas encore de prévision horaire ; activez-la dans le dialogue Configurer ou attendez le prochain cycle."
     }
   },
   "entity": {

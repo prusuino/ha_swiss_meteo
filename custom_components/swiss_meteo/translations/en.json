@@ -49,7 +49,8 @@
           "station": "Weather station (live values)",
           "pollen_station": "Pollen station",
           "warnings": "Official warnings (MeteoSwiss via MeteoAlarm)",
-          "radar": "Radar nowcast (rain now, nearest rain, rain in N minutes; about 8 MB a day)"
+          "radar": "Radar nowcast (rain now, nearest rain, rain in N minutes; about 8 MB a day)",
+          "gust_threshold": "Gust threshold for \"strong wind expected\" (km/h)"
         }
       }
     },
@@ -165,6 +166,30 @@
           "name": "For at least"
         }
       }
+    },
+    "strong_wind_expected": {
+      "name": "Strong wind expected",
+      "description": "Triggers when the forecast has gusts at or above the configured threshold within the next six hours.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    },
+    "strong_wind_cleared": {
+      "name": "Strong wind no longer expected",
+      "description": "Triggers when no gusts above the threshold are forecast for the next six hours any more.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
     }
   },
   "conditions": {
@@ -251,6 +276,18 @@
           "name": "For at least"
         }
       }
+    },
+    "is_strong_wind_expected": {
+      "name": "Strong wind is expected",
+      "description": "Passes while gusts at or above the configured threshold are forecast for the next six hours.",
+      "fields": {
+        "behavior": {
+          "name": "Condition passes if"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
     }
   },
   "services": {
@@ -273,6 +310,28 @@
         "values": {
           "name": "Values",
           "description": "Which groups to import; empty means all."
+        }
+      }
+    },
+    "best_window": {
+      "name": "Best window",
+      "description": "Finds the best window of the given length within the coming hours: the driest, the sunniest or the calmest. Returns start, end, precipitation, sunshine, strongest gust and mean temperature of that window (found: false when the forecast covers no full window).",
+      "fields": {
+        "entry": {
+          "name": "Swiss Meteo entry",
+          "description": "The entry whose forecast is used."
+        },
+        "hours": {
+          "name": "Window length",
+          "description": "Length of the window in hours."
+        },
+        "within": {
+          "name": "Look ahead",
+          "description": "How many hours ahead the window may start."
+        },
+        "criterion": {
+          "name": "What counts",
+          "description": "Dry: least precipitation. Sunny: most sunshine. Calm: lowest gusts."
         }
       }
     }
@@ -298,6 +357,13 @@
         "evaporation": "Evaporation",
         "heating_degree_days": "Heating degree days"
       }
+    },
+    "criterion": {
+      "options": {
+        "dry": "Dry",
+        "sunny": "Sunny",
+        "calm": "Calm"
+      }
     }
   },
   "exceptions": {
@@ -309,6 +375,9 @@
     },
     "hourly_years": {
       "message": "Hourly values are limited to 20 years per import; run the action again for earlier years, or choose daily values."
+    },
+    "no_hourly": {
+      "message": "The entry has no hourly forecast yet; switch it on in the Configure dialog or wait for the next run."
     }
   },
   "entity": {

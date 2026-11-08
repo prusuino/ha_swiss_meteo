@@ -66,3 +66,11 @@ rain_started:
 rain_stopped:
   fields: *trigger_common_fields
   target: *rain_target
+
+strong_wind_expected:
+  fields: *trigger_common_fields
+  target: *warning_target
+
+strong_wind_cleared:
+  fields: *trigger_common_fields
+  target: *warning_target

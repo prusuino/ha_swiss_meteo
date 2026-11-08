@@ -1,0 +1,101 @@
+blueprint:
+  name: Swiss Meteo – pause the irrigation when rain is coming
+  description: >-
+    Switches your irrigation off while the MeteoSwiss forecast expects rain
+    within the next six hours, or when the precipitation of the next 24 hours
+    reaches your threshold, and switches it on again when the forecast is
+    dry. Works with a switch, an input boolean or the irrigation automation
+    itself.
+  domain: automation
+  source_url: https://github.com/prusuino/ha_swiss_meteo/blob/main/blueprints/automation/irrigation_pause.yaml
+  author: prusuino
+  homeassistant:
+    min_version: 2025.4.0
+  input:
+    rain_sensor:
+      name: Rain expected sensor
+      description: The "Rain expected" sensor of a Swiss Meteo entry.
+      selector:
+        entity:
+          filter:
+            - integration: swiss_meteo
+              domain: binary_sensor
+              device_class: moisture
+    precipitation_sensor:
+      name: Precipitation next 24 h sensor
+      description: The "Precipitation next 24 h" sensor of the same entry.
+      selector:
+        entity:
+          filter:
+            - integration: swiss_meteo
+              domain: sensor
+              device_class: precipitation
+    threshold_mm:
+      name: Precipitation threshold (mm in 24 h)
+      description: Pause when at least this much rain is forecast for the next 24 hours.
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 50
+          step: 0.5
+          mode: box
+          unit_of_measurement: mm
+    irrigation:
+      name: Irrigation switch, input boolean or automation
+      selector:
+        target:
+          entity:
+            domain:
+              - switch
+              - input_boolean
+              - automation
+    resume:
+      name: Switch on again when the forecast is dry
+      default: true
+      selector:
+        boolean:
+
+mode: queued
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input rain_sensor
+    to: "on"
+    id: rain
+  - trigger: numeric_state
+    entity_id: !input precipitation_sensor
+    above: !input threshold_mm
+    id: rain
+  - trigger: state
+    entity_id: !input rain_sensor
+    to: "off"
+    id: dry
+  - trigger: numeric_state
+    entity_id: !input precipitation_sensor
+    below: !input threshold_mm
+    id: dry
+
+variables:
+  resume: !input resume
+  rain_sensor: !input rain_sensor
+  precipitation_sensor: !input precipitation_sensor
+  threshold_mm: !input threshold_mm
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: rain
+        sequence:
+          - action: homeassistant.turn_off
+            target: !input irrigation
+      - conditions:
+          - condition: trigger
+            id: dry
+          - "{{ resume }}"
+          - "{{ is_state(rain_sensor, 'off') and (states(precipitation_sensor) | float(0)) < threshold_mm }}"
+        sequence:
+          - action: homeassistant.turn_on
+            target: !input irrigation

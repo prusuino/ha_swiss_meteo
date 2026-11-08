@@ -1,0 +1,92 @@
+blueprint:
+  name: Swiss Meteo – laundry window
+  description: >-
+    Every morning, asks the integration for the best dry window of the day
+    (the "best window" action) and tells you when to hang the laundry out –
+    or that there is none. Works just as well for any outdoor job: pick the
+    window length you need.
+  domain: automation
+  source_url: https://github.com/prusuino/ha_swiss_meteo/blob/main/blueprints/automation/laundry_window.yaml
+  author: prusuino
+  homeassistant:
+    min_version: 2025.4.0
+  input:
+    entry:
+      name: Swiss Meteo entry
+      selector:
+        config_entry:
+          integration: swiss_meteo
+    check_time:
+      name: Time of the daily check
+      default: "07:00:00"
+      selector:
+        time:
+    hours:
+      name: Window length (hours)
+      default: 4
+      selector:
+        number:
+          min: 1
+          max: 12
+          mode: box
+          unit_of_measurement: h
+    within:
+      name: Look ahead (hours)
+      description: How far ahead the window may start.
+      default: 14
+      selector:
+        number:
+          min: 3
+          max: 48
+          mode: box
+          unit_of_measurement: h
+    criterion:
+      name: What counts
+      default: dry
+      selector:
+        select:
+          options:
+            - label: Dry (least precipitation)
+              value: dry
+            - label: Sunny (most sunshine)
+              value: sunny
+            - label: Calm (lowest gusts)
+              value: calm
+    notify_service:
+      name: Notification action
+      description: For example notify.mobile_app_your_phone.
+      selector:
+        text:
+
+mode: single
+
+triggers:
+  - trigger: time
+    at: !input check_time
+
+variables:
+  notify_service: !input notify_service
+  hours: !input hours
+
+actions:
+  - action: swiss_meteo.best_window
+    data:
+      entry: !input entry
+      hours: !input hours
+      within: !input within
+      criterion: !input criterion
+    response_variable: window
+  - if:
+      - "{{ window.found }}"
+    then:
+      - action: "{{ notify_service }}"
+        data:
+          title: "Best window today"
+          message: >-
+            {{ as_timestamp(window.start) | timestamp_custom('%H:%M') }}–{{ as_timestamp(window.end) | timestamp_custom('%H:%M') }}:
+            {{ window.precipitation_mm }} mm rain, {{ window.sunshine_h }} h sunshine, gusts up to {{ window.max_gust_kmh }} km/h.
+    else:
+      - action: "{{ notify_service }}"
+        data:
+          title: "No suitable window"
+          message: "The forecast has no {{ hours }}-hour window that fits in the period."

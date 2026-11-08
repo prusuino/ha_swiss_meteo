@@ -64,7 +64,11 @@ else:
 
     class _IsWarningActive(make_entity_state_condition(WARN_SPECS, STATE_ON)):
         def entity_filter(self, entities: set[str]) -> set[str]:
-            return _own_entities(self._hass, super().entity_filter(entities))
+            return _own_entities(self._hass, super().entity_filter(entities), "_warning_active")
+
+    class _IsStrongWindExpected(make_entity_state_condition(WARN_SPECS, STATE_ON)):
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            return _own_entities(self._hass, super().entity_filter(entities), "_strong_wind_expected")
 
     CONDITIONS: dict[str, type[Condition]] = {
         "is_rain_expected": _IsRainExpected,
@@ -74,6 +78,7 @@ else:
         "is_raining": _IsRaining,
         "is_not_raining": _IsNotRaining,
         "is_rain_approaching": _IsRainApproaching,
+        "is_strong_wind_expected": _IsStrongWindExpected,
     }
 
 

@@ -49,7 +49,8 @@
           "station": "Stazione meteo (misure)",
           "pollen_station": "Stazione pollinica",
           "warnings": "Allerte ufficiali (MeteoSvizzera via MeteoAlarm)",
-          "radar": "Nowcast radar (pioggia ora, pioggia più vicina, pioggia tra N minuti; circa 8 MB al giorno)"
+          "radar": "Nowcast radar (pioggia ora, pioggia più vicina, pioggia tra N minuti; circa 8 MB al giorno)",
+          "gust_threshold": "Soglia di raffica per «vento forte previsto» (km/h)"
         }
       }
     },
@@ -165,6 +166,30 @@
           "name": "Per almeno"
         }
       }
+    },
+    "strong_wind_expected": {
+      "name": "Vento forte previsto",
+      "description": "Si attiva quando la previsione contiene raffiche pari o superiori alla soglia impostata nelle prossime sei ore.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    },
+    "strong_wind_cleared": {
+      "name": "Vento forte non più previsto",
+      "description": "Si attiva quando per le prossime sei ore non sono più previste raffiche oltre la soglia.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
     }
   },
   "conditions": {
@@ -251,6 +276,18 @@
           "name": "Per almeno"
         }
       }
+    },
+    "is_strong_wind_expected": {
+      "name": "È previsto vento forte",
+      "description": "È vera finché nelle prossime sei ore sono previste raffiche pari o superiori alla soglia impostata.",
+      "fields": {
+        "behavior": {
+          "name": "Condizione soddisfatta se"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
     }
   },
   "services": {
@@ -273,6 +310,28 @@
         "values": {
           "name": "Valori",
           "description": "Quali gruppi importare; vuoto significa tutti."
+        }
+      }
+    },
+    "best_window": {
+      "name": "Finestra migliore",
+      "description": "Cerca la finestra migliore della durata desiderata nelle prossime ore: la più asciutta, la più soleggiata o la più calma. Restituisce inizio, fine, precipitazioni, soleggiamento, raffica massima e temperatura media della finestra (found: false se la previsione non copre una finestra intera).",
+      "fields": {
+        "entry": {
+          "name": "Voce Swiss Meteo",
+          "description": "La voce la cui previsione viene usata."
+        },
+        "hours": {
+          "name": "Durata della finestra",
+          "description": "Durata della finestra in ore."
+        },
+        "within": {
+          "name": "Orizzonte",
+          "description": "Quante ore in anticipo può iniziare la finestra."
+        },
+        "criterion": {
+          "name": "Criterio",
+          "description": "Asciutto: meno precipitazioni. Soleggiato: più soleggiamento. Calmo: raffiche più deboli."
         }
       }
     }
@@ -298,6 +357,13 @@
         "evaporation": "Evaporazione",
         "heating_degree_days": "Gradi giorno"
       }
+    },
+    "criterion": {
+      "options": {
+        "dry": "Asciutto",
+        "sunny": "Soleggiato",
+        "calm": "Calmo"
+      }
     }
   },
   "exceptions": {
@@ -309,6 +375,9 @@
     },
     "hourly_years": {
       "message": "I valori orari sono limitati a 20 anni per importazione; eseguire di nuovo l'azione per gli anni precedenti o scegliere i valori giornalieri."
+    },
+    "no_hourly": {
+      "message": "La voce non ha ancora una previsione oraria; attivarla nel dialogo Configura o attendere il prossimo ciclo."
     }
   },
   "entity": {

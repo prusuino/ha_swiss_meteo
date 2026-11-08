@@ -52,3 +52,11 @@ is_not_raining:
 is_rain_approaching:
   fields: *condition_common_fields
   target: *rain_target
+
+is_strong_wind_expected:
+  fields: *condition_common_fields
+  target:
+    entity:
+      - integration: swiss_meteo
+        domain: binary_sensor
+        device_class: safety

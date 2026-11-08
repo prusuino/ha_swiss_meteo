@@ -41,3 +41,39 @@ import_history:
             - sunshine
             - evaporation
             - heating_degree_days
+
+best_window:
+  fields:
+    entry:
+      required: true
+      selector:
+        config_entry:
+          integration: swiss_meteo
+    hours:
+      required: true
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 12
+          mode: box
+          unit_of_measurement: h
+    within:
+      required: true
+      default: 24
+      selector:
+        number:
+          min: 3
+          max: 48
+          mode: box
+          unit_of_measurement: h
+    criterion:
+      required: true
+      default: dry
+      selector:
+        select:
+          translation_key: criterion
+          options:
+            - dry
+            - sunny
+            - calm

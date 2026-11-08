@@ -107,6 +107,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "radar_rain_distance": {"de": "Radar nächster Regen", "en": "Radar Nearest Rain", "fr": "Radar pluie la plus proche", "it": "Radar pioggia più vicina"},
     "radar_rain_eta": {"de": "Radar Regen in", "en": "Radar Rain In", "fr": "Radar pluie dans", "it": "Radar pioggia tra"},
     "raining": {"de": "Es regnet", "en": "Raining", "fr": "Il pleut", "it": "Piove"},
+    "strong_wind_expected": {"de": "Starkwind erwartet", "en": "Strong Wind Expected", "fr": "Vent fort attendu", "it": "Vento forte previsto"},
     "rain_approaching": {"de": "Regen zieht auf", "en": "Rain Approaching", "fr": "Pluie en approche", "it": "Pioggia in arrivo"},
     "model_pollen": {"de": "{station}, Pollen {pollen}", "en": "{station}, pollen {pollen}", "fr": "{station}, pollen {pollen}", "it": "{station}, pollini {pollen}"},
 }

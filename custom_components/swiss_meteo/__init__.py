@@ -15,6 +15,7 @@ from .const import CONF_POLLEN_STATION, CONF_RADAR, CONF_STATION, CONF_WARNINGS,
 from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
 from .device import entry_suffix
 from .frontend import async_serve_frontend
+from .derived import best_window
 from .history import GROUPS, HistoryError, async_import_history
 from .pollen import PollenCoordinator
 from .meteoalarm import WarningsCoordinator
@@ -33,6 +34,16 @@ IMPORT_SCHEMA = vol.Schema(
         vol.Required("years", default=3): vol.All(vol.Coerce(int), vol.Range(min=1, max=60)),
         vol.Required("resolution", default="hourly"): vol.In(("hourly", "daily")),
         vol.Optional("values"): vol.All(cv.ensure_list, [vol.In(GROUPS)]),
+    }
+)
+
+SERVICE_BEST_WINDOW = "best_window"
+WINDOW_SCHEMA = vol.Schema(
+    {
+        vol.Required("entry"): cv.string,
+        vol.Required("hours", default=3): vol.All(vol.Coerce(int), vol.Range(min=1, max=12)),
+        vol.Required("within", default=24): vol.All(vol.Coerce(int), vol.Range(min=3, max=48)),
+        vol.Required("criterion", default="dry"): vol.In(("dry", "sunny", "calm")),
     }
 )
 
@@ -74,6 +85,18 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             raise HomeAssistantError(str(err)) from err
 
     hass.services.async_register(DOMAIN, SERVICE_IMPORT_HISTORY, _import_history, schema=IMPORT_SCHEMA, supports_response=SupportsResponse.OPTIONAL)
+
+    async def _best_window(call: ServiceCall) -> ServiceResponse:
+        data: EntryData | None = hass.data.get(DOMAIN, {}).get(call.data["entry"])
+        if data is None:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="entry_not_loaded")
+        snap = data.forecast.data
+        if snap is None or not snap.hourly:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_hourly")
+        result = best_window(snap, call.data["hours"], call.data["within"], call.data["criterion"])
+        return result or {"found": False, "criterion": call.data["criterion"]}
+
+    hass.services.async_register(DOMAIN, SERVICE_BEST_WINDOW, _best_window, schema=WINDOW_SCHEMA, supports_response=SupportsResponse.ONLY)
     return True
 
 

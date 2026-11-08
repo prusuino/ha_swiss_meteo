@@ -61,6 +61,7 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 | `sensor.swiss_meteo_<id>_precipitation_next_24h` | Precipitation of the coming 24 hours. |
 | `sensor.swiss_meteo_<id>_next_rain` | The first coming hour with rain (0.1 mm or more), as a timestamp, with the amount and the hours until then as attributes. |
 | `binary_sensor.swiss_meteo_<id>_rain_expected` | On when rain is forecast for one of the next six hours. Attributes: next rain, amount in 6 and 24 hours. |
+| `binary_sensor.swiss_meteo_<id>_strong_wind_expected` | On when the hourly forecast has gusts at or above your threshold (60 km/h by default, set in the Configure dialog) within the next six hours; the peak and its hour as attributes. For blinds and awnings. |
 | `binary_sensor.swiss_meteo_<id>_frost_tonight` | On when the forecast drops to 0 °C or below before 09:00 the next morning, with the minimum and its hour. |
 | `sensor.swiss_meteo_<id>_pollen_birch` / `_grasses` / `_alder` / `_hazel` / `_beech` / `_ash` / `_oak` | Hourly pollen concentration (pollen/m³) of the chosen MeteoSwiss pollen station, with the day's mean and the MeteoSwiss load class (`level`) as attributes. |
 | `sensor.swiss_meteo_<id>_pollen_level` | The highest load class of the day over the seven species: none, low, moderate, high, very high (MeteoSwiss classes, from the mean daily concentration), with the class per species as attributes. |
@@ -94,8 +95,9 @@ On Home Assistant 2026.10 or newer the integration adds its own entries to the a
 | **Warning cleared** | no official warning is in force any more |
 | **Rain approaching** | the radar shows rain reaching the point within about 30 minutes, or rain has started |
 | **Rain started** / **Rain stopped** | the radar shows rain at the point / no longer |
+| **Strong wind expected** / **no longer expected** | gusts at or above your threshold are forecast for the next six hours / not any more |
 
-On 2026.11 or newer there are also the conditions **Rain is expected**, **No rain is expected**, **Frost is expected tonight**, **A warning is in force**, **It is raining**, **It is not raining** and **Rain is approaching**. Each trigger and condition targets the integration's own entities (pick an entity, a device or an area); the usual *for* duration and *trigger when* / *condition passes if* options apply.
+On 2026.11 or newer there are also the conditions **Rain is expected**, **No rain is expected**, **Frost is expected tonight**, **A warning is in force**, **It is raining**, **It is not raining**, **Rain is approaching** and **Strong wind is expected**. Each trigger and condition targets the integration's own entities (pick an entity, a device or an area); the usual *for* duration and *trigger when* / *condition passes if* options apply.
 
 ```yaml
 triggers:
@@ -121,6 +123,32 @@ Two blueprints with an import button:
 **Frost tonight** — an evening notification when frost is expected before the morning (the minimum and its hour), plus your own actions.
 
 [![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fprusuino%2Fha_swiss_meteo%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Ffrost_tonight_notification.yaml)
+
+**Strong wind: raise the blinds** – raises the selected covers when gusts above your threshold are expected within six hours, with your own actions for both directions.
+
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fprusuino%2Fha_swiss_meteo%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fstrong_wind_blinds.yaml)
+
+**Laundry window** – every morning, asks the best-window action for the best dry (or sunny, or calm) window of the day and sends it to you.
+
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fprusuino%2Fha_swiss_meteo%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Flaundry_window.yaml)
+
+**Pause the irrigation when rain is coming** – switches a switch, input boolean or automation off while rain is expected or the next 24 hours bring more than your threshold, and on again when the forecast is dry.
+
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fprusuino%2Fha_swiss_meteo%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Firrigation_pause.yaml)
+
+### Action: best window
+
+`swiss_meteo.best_window` finds the best window of a given length within the coming hours — the driest, the sunniest or the calmest — and returns its start and end, precipitation, sunshine hours, strongest gust and mean temperature (`found: false` when the forecast covers no full window). For "when do I hang the laundry out", "when do I mow", "when do I varnish the fence":
+
+```yaml
+action: swiss_meteo.best_window
+data:
+  entry: <config entry id>
+  hours: 4
+  within: 14
+  criterion: dry   # dry | sunny | calm
+response_variable: window
+```
 
 ### Energy
 

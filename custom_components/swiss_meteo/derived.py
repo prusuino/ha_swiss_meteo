@@ -93,3 +93,61 @@ def night_minimum(snap: ForecastSnapshot) -> tuple[datetime, float] | None:
         if best is None or v < best[1]:
             best = (ts, v)
     return best
+
+
+WIND_WINDOW_HOURS = 6
+
+
+def max_gust(snap: ForecastSnapshot, hours: int = WIND_WINDOW_HOURS) -> tuple[datetime, float] | None:
+    """The strongest hourly gust peak (km/h) within the coming `hours` hours:
+    (hour start, km/h)."""
+    series = snap.hourly.get("fu3010h1")
+    if not series:
+        return None
+    start = hour_floor(dt_util.utcnow())
+    end = start + timedelta(hours=hours)
+    best: tuple[datetime, float] | None = None
+    for ts, v in series:
+        if v is not None and start <= ts < end and (best is None or v > best[1]):
+            best = (ts, v)
+    return best
+
+
+def best_window(snap: ForecastSnapshot, hours: int, within: int, criterion: str) -> dict | None:
+    """The best `hours`-hour window starting within the coming `within`
+    hours: least precipitation (dry), most sunshine (sunny) or lowest gusts
+    (calm); ties go to the earlier window. None when the run does not cover
+    a full window."""
+    rain = dict(snap.hourly.get("rre150h0") or [])
+    sun = dict(snap.hourly.get("sre000h0") or [])
+    gust = dict(snap.hourly.get("fu3010h1") or [])
+    temp = dict(snap.hourly.get("tre200h0") or [])
+    first = hour_floor(dt_util.utcnow())
+    best: tuple[float, dict] | None = None
+    for offset in range(0, max(1, within)):
+        start = first + timedelta(hours=offset)
+        hours_in = [start + timedelta(hours=h) for h in range(hours)]
+        if any(h not in rain for h in hours_in):
+            continue
+        p = sum(rain.get(h) or 0.0 for h in hours_in)
+        sh = sum(sun.get(h) or 0.0 for h in hours_in) / 60.0
+        g = max((gust.get(h) or 0.0) for h in hours_in)
+        temps = [temp[h] for h in hours_in if temp.get(h) is not None]
+        if criterion == "sunny":
+            score = -sh + p * 0.01
+        elif criterion == "calm":
+            score = g + p * 0.01
+        else:
+            score = p + g * 0.001
+        if best is None or score < best[0]:
+            best = (score, {
+                "found": True,
+                "start": start.isoformat(),
+                "end": (start + timedelta(hours=hours)).isoformat(),
+                "precipitation_mm": round(p, 1),
+                "sunshine_h": round(sh, 1),
+                "max_gust_kmh": round(g),
+                "mean_temperature": round(sum(temps) / len(temps), 1) if temps else None,
+                "criterion": criterion,
+            })
+    return best[1] if best else None

@@ -49,7 +49,8 @@
           "station": "Wetterstation (Messwerte)",
           "pollen_station": "Pollenstation",
           "warnings": "Amtliche Warnungen (MeteoSchweiz via MeteoAlarm)",
-          "radar": "Radar-Nowcast (Regen jetzt, nächster Regen, Regen in N Minuten; rund 8 MB pro Tag)"
+          "radar": "Radar-Nowcast (Regen jetzt, nächster Regen, Regen in N Minuten; rund 8 MB pro Tag)",
+          "gust_threshold": "Böenschwelle für «Starkwind erwartet» (km/h)"
         }
       }
     },
@@ -165,6 +166,30 @@
           "name": "Für mindestens"
         }
       }
+    },
+    "strong_wind_expected": {
+      "name": "Starkwind erwartet",
+      "description": "Löst aus, wenn die Prognose in den nächsten sechs Stunden Böen ab der eingestellten Schwelle enthält.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
+    },
+    "strong_wind_cleared": {
+      "name": "Kein Starkwind mehr erwartet",
+      "description": "Löst aus, wenn für die nächsten sechs Stunden keine Böen über der Schwelle mehr vorhergesagt sind.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
     }
   },
   "conditions": {
@@ -251,6 +276,18 @@
           "name": "Für mindestens"
         }
       }
+    },
+    "is_strong_wind_expected": {
+      "name": "Starkwind wird erwartet",
+      "description": "Trifft zu, solange in den nächsten sechs Stunden Böen ab der eingestellten Schwelle vorhergesagt sind.",
+      "fields": {
+        "behavior": {
+          "name": "Bedingung erfüllt wenn"
+        },
+        "for": {
+          "name": "Für mindestens"
+        }
+      }
     }
   },
   "services": {
@@ -273,6 +310,28 @@
         "values": {
           "name": "Werte",
           "description": "Welche Gruppen importiert werden; leer heisst alle."
+        }
+      }
+    },
+    "best_window": {
+      "name": "Bestes Zeitfenster",
+      "description": "Sucht das beste Zeitfenster der gewünschten Länge in den kommenden Stunden: das trockenste, sonnigste oder windärmste. Liefert Beginn, Ende, Niederschlag, Sonnenschein, stärkste Böe und Mitteltemperatur des Fensters (found: false, wenn die Prognose kein ganzes Fenster abdeckt).",
+      "fields": {
+        "entry": {
+          "name": "Swiss-Meteo-Eintrag",
+          "description": "Der Eintrag, dessen Prognose verwendet wird."
+        },
+        "hours": {
+          "name": "Fensterlänge",
+          "description": "Länge des Fensters in Stunden."
+        },
+        "within": {
+          "name": "Vorausschau",
+          "description": "Wie viele Stunden voraus das Fenster beginnen darf."
+        },
+        "criterion": {
+          "name": "Kriterium",
+          "description": "Trocken: wenigster Niederschlag. Sonnig: meister Sonnenschein. Windarm: schwächste Böen."
         }
       }
     }
@@ -298,6 +357,13 @@
         "evaporation": "Verdunstung",
         "heating_degree_days": "Heizgradtage"
       }
+    },
+    "criterion": {
+      "options": {
+        "dry": "Trocken",
+        "sunny": "Sonnig",
+        "calm": "Windarm"
+      }
     }
   },
   "exceptions": {
@@ -309,6 +375,9 @@
     },
     "hourly_years": {
       "message": "Stundenwerte sind auf 20 Jahre pro Import begrenzt; für frühere Jahre die Aktion nochmals ausführen oder Tageswerte wählen."
+    },
+    "no_hourly": {
+      "message": "Der Eintrag hat noch keine Stundenprognose; im Configure-Dialog einschalten oder den nächsten Lauf abwarten."
     }
   },
   "entity": {
