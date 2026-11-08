@@ -1,7 +1,8 @@
-"""Config flow: a location (the instance's by default), then the forecast
-point and the weather station nearest to it, pre-selected. The same two
-options (hourly forecast, extended values) and the station can be changed
-later in the Configure dialog."""
+"""Config flow: a location (the instance's by default) or a place / postal
+code search, then the forecast point, the weather station and the pollen
+station nearest to it, pre-selected. The options (hourly forecast,
+extended values, official warnings) and the stations can be changed later
+in the Configure dialog."""
 from __future__ import annotations
 
 import logging
@@ -109,6 +110,8 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
         self._extended = False
         self._warnings = True
         self._all_points: list[Point] = []
+        self._all_stations: list[Station] = []
+        self._all_pollen: list[PollenStation] = []
         self._matches: list[Point] = []
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

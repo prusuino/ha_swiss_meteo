@@ -17,7 +17,7 @@ from .device import entry_suffix
 from .frontend import async_serve_frontend
 from .history import GROUPS, HistoryError, async_import_history
 from .pollen import PollenCoordinator
-from .warnings import WarningsCoordinator
+from .meteoalarm import WarningsCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 

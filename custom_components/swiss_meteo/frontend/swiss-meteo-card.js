@@ -151,7 +151,8 @@ function warningRows(hass, config) {
     if (w.upcoming && w.onset) return `${L(hass, "from")} ${f(w.onset)}`;
     return w.expires ? `${L(hass, "until")} ${f(w.expires)}` : "";
   };
-  return `<div class="warns" data-entity="${esc(id)}">${items.map((w) => `<div class="warn ${esc(w.level)}${w.upcoming ? " soon" : ""}"><span class="wl">${esc(L(hass, "warning"))}</span><span class="we">${esc(w.event)}</span><span class="wt">${esc(when(w))}</span></div>`).join("")}</div>`;
+  const lvl = (w) => (["yellow", "orange", "red"].includes(w.level) ? w.level : "none");
+  return `<div class="warns" data-entity="${esc(id)}">${items.map((w) => `<div class="warn ${lvl(w)}${w.upcoming ? " soon" : ""}"><span class="wl">${esc(L(hass, "warning"))}</span><span class="we">${esc(w.event)}</span><span class="wt">${esc(when(w))}</span></div>`).join("")}</div>`;
 }
 const WARN_CSS = `
       .warns { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 6px; cursor: pointer; }

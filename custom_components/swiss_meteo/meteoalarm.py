@@ -75,22 +75,28 @@ class Warning:
     sender: str
     web: str
     language: str
-    upcoming: bool  # onset still ahead
+    upcoming: bool  # onset still ahead at parse time (see is_upcoming)
 
-    def as_dict(self) -> dict[str, Any]:
-        return {
+    def is_upcoming(self, now: datetime) -> bool:
+        return bool(self.onset and self.onset > now)
+
+    def as_dict(self, now: datetime | None = None, brief: bool = False) -> dict[str, Any]:
+        upcoming = self.is_upcoming(now) if now else self.upcoming
+        out = {
             "event": self.event,
             "level": self.level,
             "type": self.type_key,
             "headline": self.headline,
-            "description": self.description,
-            "instruction": self.instruction,
             "onset": self.onset.isoformat() if self.onset else None,
             "expires": self.expires.isoformat() if self.expires else None,
-            "areas": self.areas,
-            "upcoming": self.upcoming,
+            "areas": self.areas[:10],
+            "upcoming": upcoming,
             "web": self.web,
         }
+        if not brief:
+            out["description"] = self.description
+            out["instruction"] = self.instruction
+        return out
 
 
 @dataclass
@@ -102,16 +108,24 @@ class WarningsData:
 
     @property
     def active(self) -> list[Warning]:
-        return [w for w in self.items if not w.upcoming]
+        now = dt_util.utcnow()
+        return [w for w in self.items if not w.is_upcoming(now)]
 
     @property
     def upcoming(self) -> list[Warning]:
-        return [w for w in self.items if w.upcoming]
+        now = dt_util.utcnow()
+        return [w for w in self.items if w.is_upcoming(now)]
 
     def level(self) -> str:
         """The highest colour of the warnings in force now."""
         active = self.active
         return max((w.level for w in active), key=LEVELS.index) if active else "none"
+
+    def as_list(self, brief: bool = False) -> list[dict[str, Any]]:
+        """The matching warnings as attributes, in force first, at most ten."""
+        now = dt_util.utcnow()
+        items = sorted(self.items, key=lambda w: (w.is_upcoming(now), -LEVELS.index(w.level), w.onset or now))
+        return [w.as_dict(now, brief) for w in items[:10]]
 
 
 # --- parsing ------------------------------------------------------------------
@@ -159,7 +173,7 @@ def point_in_ring(lat: float, lon: float, ring: list[tuple[float, float]]) -> bo
 
 def _param(info: dict, name: str) -> str | None:
     for p in info.get("parameter") or []:
-        if p.get("valueName") == name:
+        if isinstance(p, dict) and p.get("valueName") == name:
             return str(p.get("value"))
     return None
 
@@ -188,6 +202,8 @@ def _pick_info(infos: list[dict], language: str) -> dict:
 def _polygons(info: dict) -> list[list[tuple[float, float]]]:
     rings: list[list[tuple[float, float]]] = []
     for area in info.get("area") or []:
+        if not isinstance(area, dict):
+            continue
         poly = area.get("polygon")
         if poly is None:
             continue
@@ -202,16 +218,24 @@ def parse_warnings(payload: dict, lat: float, lon: float, language: str, now: da
     """The alerts of the feed that cover the point and are not expired."""
     data = WarningsData(fetched=now)
     seen: set[str] = set()
-    for entry in payload.get("warnings") or []:
-        alert = entry.get("alert") or {}
-        infos = alert.get("info") or []
+    entries = [e for e in payload.get("warnings") or [] if isinstance(e, dict) and isinstance(e.get("alert"), dict)]
+    # an Update or Cancel names the alerts it replaces in `references` ("sender,identifier,sent" items)
+    replaced: set[str] = set()
+    for entry in entries:
+        for ref in str(entry["alert"].get("references") or "").split():
+            parts = ref.split(",")
+            if len(parts) >= 2:
+                replaced.add(parts[1])
+    for entry in entries:
+        alert = entry["alert"]
+        infos = [i for i in alert.get("info") or [] if isinstance(i, dict)]
         if not infos:
             continue
         data.total += 1
         if str(alert.get("msgType", "Alert")).lower() == "cancel" or str(alert.get("status", "Actual")).lower() != "actual":
             continue
         identifier = str(alert.get("identifier") or entry.get("uuid") or "")
-        if identifier in seen:
+        if identifier in seen or identifier in replaced:
             continue
         info = _pick_info(infos, language)
         expires = _parse_time(info.get("expires"))
@@ -230,13 +254,16 @@ def parse_warnings(payload: dict, lat: float, lon: float, language: str, now: da
         if not any(point_in_ring(lat, lon, ring) for ring in rings):
             continue
         seen.add(identifier)
-        level_code = _code(_param(info, "awareness_level")) or 2
+        level_param = _param(info, "awareness_level")
+        level_code = _code(level_param) if level_param is not None else 2  # absent: treat as the lowest published colour
+        if level_code is None or level_code < 2:
+            continue  # green (no particular awareness) or unparsable
         type_code = _code(_param(info, "awareness_type"))
         onset = _parse_time(info.get("onset")) or _parse_time(info.get("effective"))
         data.items.append(
             Warning(
                 identifier=identifier,
-                level=LEVEL_BY_CODE.get(level_code, "yellow" if level_code < 2 else "red"),
+                level=LEVEL_BY_CODE.get(level_code, "red"),
                 level_code=level_code,
                 type_key=TYPES.get(type_code or -1, "other"),
                 type_code=type_code,
@@ -247,7 +274,7 @@ def parse_warnings(payload: dict, lat: float, lon: float, language: str, now: da
                 onset=onset,
                 expires=expires,
                 sent=_parse_time(alert.get("sent")),
-                areas=[str(a.get("areaDesc") or "").strip() for a in info.get("area") or [] if a.get("areaDesc")],
+                areas=[str(a.get("areaDesc") or "").strip() for a in info.get("area") or [] if isinstance(a, dict) and a.get("areaDesc")],
                 sender=str(info.get("senderName") or alert.get("sender") or "").strip(),
                 web=str(info.get("web") or "").strip(),
                 language=str(info.get("language") or ""),
@@ -279,6 +306,8 @@ class WarningsCoordinator(DataUpdateCoordinator[WarningsData]):
                 if resp.status != 200:
                     raise WarningsError(f"MeteoAlarm answered {resp.status}")
                 payload = await resp.json(content_type=None)
+                if not isinstance(payload, dict):
+                    raise WarningsError("MeteoAlarm feed is not a JSON object")
         except (aiohttp.ClientError, TimeoutError, ValueError, WarningsError) as err:
             if self.data is not None and now - self.data.fetched <= _MAX_AGE:
                 if not self._warned:
@@ -287,8 +316,6 @@ class WarningsCoordinator(DataUpdateCoordinator[WarningsData]):
                 return self.data
             raise UpdateFailed(str(err)) from err
         self._warned = False
-        if not isinstance(payload, dict):
-            raise UpdateFailed("MeteoAlarm feed is not a JSON object")
         return parse_warnings(payload, self.lat, self.lon, self.hass.config.language, now)
 
     @property

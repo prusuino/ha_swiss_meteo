@@ -1,6 +1,6 @@
-"""Binary sensors from the hourly forecast: rain expected within the next
-hours, frost expected tonight. They need the hourly forecast (on by
-default); without it they stay unavailable."""
+"""Binary sensors: rain expected within the next hours and frost tonight
+(from the hourly forecast; without it they stay unavailable), and an
+official warning in force (from the MeteoAlarm feed)."""
 from __future__ import annotations
 
 from datetime import timedelta
@@ -21,7 +21,7 @@ from .coordinator import EntryData, ForecastCoordinator
 from .derived import RAIN_THRESHOLD_MM, next_rain, night_minimum, window_sum
 from .device import device_info, entry_suffix
 from .localization import t
-from .warnings import WarningsCoordinator
+from .meteoalarm import WarningsCoordinator
 
 RAIN_WINDOW_HOURS = 6
 FROST_THRESHOLD = 0.0
@@ -165,4 +165,4 @@ class WarningActiveSensor(CoordinatorEntity[WarningsCoordinator], BinarySensorEn
         data = self.coordinator.data
         if data is None:
             return {}
-        return {"level": data.level(), "count": len(data.active), "upcoming": len(data.upcoming), "warnings": [w.as_dict() for w in data.items]}
+        return {"level": data.level(), "count": len(data.active), "upcoming": len(data.upcoming), "warnings": data.as_list(brief=True)}

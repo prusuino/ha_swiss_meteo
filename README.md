@@ -16,8 +16,24 @@ A Home Assistant custom integration for the **MeteoSwiss** forecast and measurem
 - **Official warnings matched to your place**: the MeteoSwiss warnings (via MeteoAlarm) are tested against your forecast point itself, with a banner on the cards.
 - **Pollen with the MeteoSwiss load classes**: seven species from the nearest of the 15 pollen stations.
 - **Decades of station history**: one action imports the station's archive (hourly since 1980, daily since the station started) into the long-term statistics.
-- **Five dashboard cards**: hourly chart with uncertainty bands, nine-day strip, daily list, map of Switzerland, sky card — in three colour schemes, four sizes, with animated or still icons, all with a visual editor.
+- **Five dashboard cards**: hourly chart with uncertainty bands, nine-day strip, daily list, map of Switzerland, sky card — in the Swiss Meteo palette, your Home Assistant theme or a glass look, in sizes from small to XL, with animated or still icons, all with a visual editor.
 - **Set up in a minute**: from your Home Assistant location or by typing a place or postal code; German, English, French and Italian; diagnostics download with your location redacted.
+
+## Screenshots
+
+The cards, here for Zürich (the Swiss Meteo palette, the glass look and the Home Assistant theme):
+
+| Forecast card, daily and hourly | Daily list |
+|---|---|
+| ![Forecast card](docs/card-forecast.png) | ![Daily list card](docs/card-daily.png) |
+
+| Map of Switzerland | Sky card |
+|---|---|
+| ![Map card](docs/card-map.png) | ![Sky card](docs/card-sky.png) |
+
+The main card and the compact sizes on a wall tablet:
+
+![Compact cards](docs/compact.png)
 
 ## Background
 
@@ -136,13 +152,13 @@ days: 9          # 1–9 days in the strip
 show_current: true
 show_hourly: true
 show_daily: true
-show_pollen: true   # pollen chip from the entry's pollen-level sensor
-show_warnings: true # banner for official warnings (main, forecast and sky cards)
+show_pollen: true   # pollen chip from the entry's pollen-level sensor (pollen_entity: another one)
+show_warnings: true # banner for official warnings (warning_entity: another warning-level sensor)
 size: normal        # or small, large, xl
 animated: true
 ```
 
-With a pollen station configured, the current values carry a **pollen chip**: the day's load class and the species behind it; a click opens the pollen-level sensor. `pollen_entity` names another pollen-level sensor, `show_pollen: false` drops the chip. With official warnings on, the main, forecast and sky cards show a **warning banner** per warning in force or announced (yellow, orange or red; a click opens the warning sensor); `show_warnings: false` drops it. The main card uses the dark blue Swiss Meteo palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead. Every card takes `theme: ha` to follow your Home Assistant theme instead of the Swiss Meteo palette, `theme: glass` for the deep-blue glass look (glowing borders, values and days as tiles, blue temperature line), and `animated: false` for still icons. Four more cards come with the same file, in the look of the MeteoSwiss website:
+With a pollen station configured, the current values carry a **pollen chip**: the day's load class and the species behind it; a click opens the pollen-level sensor. `pollen_entity` names another pollen-level sensor, `show_pollen: false` drops the chip. With official warnings on, the main, forecast and sky cards show a **warning banner** per warning in force or announced (yellow, orange or red; a click opens the warning sensor); `show_warnings: false` drops it. The main card uses the dark blue Swiss Meteo palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead; every card takes `theme: ha` to follow your Home Assistant theme instead of the Swiss Meteo palette, `theme: glass` for the deep-blue glass look (glowing borders, values and days as tiles, blue temperature line), and `animated: false` for still icons. Four more cards come with the same file, in the look of the MeteoSwiss website:
 
 **Swiss Meteo – forecast** (`custom:swiss-meteo-forecast-card`): the drop-in for Home Assistant's `weather-forecast` card with the same options — current conditions on top and a row of days (symbol, low and high, precipitation) or hours (symbol, temperature, precipitation or chance of rain).
 
@@ -212,7 +228,7 @@ Copy `custom_components/swiss_meteo` into your `custom_components` directory and
 
 1. **Settings → Devices & Services → Add Integration → Swiss Meteo.**
 2. Confirm or move the **location** (your Home Assistant location is pre-filled), and choose whether you want the **hourly forecast** (about 2 MB per model run, every hour) and the **extended hourly values** (temperature and precipitation uncertainty range, cloud layers, zero-degree level — about twice that).
-2b. Or type a **place name or postal code** instead of moving the marker: the matching forecast points are listed, and the stations are then offered around the one you choose.
+   Or type a **place name or postal code** instead of moving the marker: the matching forecast points are listed, and the stations are then offered around the one you choose.
 3. Pick the **forecast point** — the five nearest are listed with their distance: postal-code centres, weather stations and mountain points (summits, passes, resorts) — the **weather station** for the live values among the four nearest, and the **pollen station** among the three nearest of the 15 MeteoSwiss pollen stations (hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak with the MeteoSwiss load classes; the pollen file is read every 30 minutes, 1 KB). Altitude and exposure matter more than distance: a station on a nearby hill is not your valley. Without a station the current values come from the forecast.
 4. Done. The **Configure** dialog switches the hourly forecast, the extended values and the official warnings on or off and lets you pick another weather station (the eight nearest are listed) or pollen station; a change reloads the entry, entity ids and history are kept.
 
@@ -223,8 +239,8 @@ Each entry is one place; add the integration again for another postal code or a 
 - The forecast is the one shown in the MeteoSwiss app and on its website for the postal code, updated every hour; the symbol codes (1–42 by day, 101–142 by night) are mapped to Home Assistant conditions and, in the card, to Meteocons.
 - Daily highs, lows and precipitation count the local calendar day; the daily entries also carry the day's maximum wind and gusts, the chance of rain and the sunshine hours. The hourly list starts with the current hour; past hours of the run are dropped.
 - MeteoSwiss has announced a point API for the local forecast (beta by the end of 2026). The file reader is built behind an interface so the integration can switch to it when it is there — entities and ids will not change.
-- **Weather warnings** are not part of the MeteoSwiss open data. Home Assistant's `meteoalarm` integration carries the official warnings at region level; a warning entity for this integration is on the list.
-- **Download diagnostics** (entry menu) gives the entry's configuration (coordinates redacted), the parameters read, the newest values and the traffic figures.
+- **Official warnings** are not in the MeteoSwiss open-data files; the integration reads them from MeteoAlarm (EUMETNET), where MeteoSwiss publishes them, and matches the warned polygons to the forecast point itself.
+- **Download diagnostics** (entry menu) gives the entry's configuration (coordinates redacted), the parameters read, the newest values and the traffic figures; the coordinates, the place name and the point id are redacted.
 
 ## Disclaimer
 

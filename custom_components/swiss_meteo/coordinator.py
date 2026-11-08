@@ -44,7 +44,7 @@ from .ogd import (
 
 if TYPE_CHECKING:
     from .pollen import PollenCoordinator
-    from .warnings import WarningsCoordinator
+    from .meteoalarm import WarningsCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 

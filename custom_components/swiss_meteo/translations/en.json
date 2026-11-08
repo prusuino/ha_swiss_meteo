@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Swiss Meteo settings",
-        "description": "Switch the hourly forecast or the extended values on or off, or pick another weather station for the live values (the eight nearest to the forecast point are listed). Changing a setting reloads the entry; entity ids and history are kept.",
+        "description": "Switch the hourly forecast, the extended values or the official warnings on or off, or pick another weather station (the eight nearest to the forecast point are listed) or pollen station. Changing a setting reloads the entry; entity ids and history are kept.",
         "data": {
           "hourly": "Hourly forecast",
           "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)",

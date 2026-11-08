@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Paramètres Swiss Meteo",
-        "description": "Activer ou désactiver la prévision horaire ou les valeurs étendues, ou choisir une autre station météo pour les mesures (les huit plus proches du point de prévision sont listées). Une modification recharge l'entrée ; les identifiants d'entités et l'historique sont conservés.",
+        "description": "Activer ou désactiver la prévision horaire, les valeurs étendues ou les alertes officielles, ou choisir une autre station météo (les huit plus proches du point de prévision sont listées) ou station de pollens. Une modification recharge l'entrée ; les identifiants d'entités et l'historique sont conservés.",
         "data": {
           "hourly": "Prévision horaire",
           "extended": "Valeurs horaires étendues (incertitude, couches nuageuses, isotherme 0 °C)",

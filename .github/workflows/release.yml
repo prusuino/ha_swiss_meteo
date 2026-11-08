@@ -22,7 +22,7 @@ jobs:
       - name: Build swiss_meteo.zip (integration files at the archive root)
         run: |
           cd custom_components/swiss_meteo
-          zip -r ../../swiss_meteo.zip . -x '*/__pycache__/*' '*.pyc'
+          zip -r ../../swiss_meteo.zip . -x '*/__pycache__/*' '__pycache__/*' '*.pyc'
           cd ../..
           unzip -l swiss_meteo.zip | head -20
 

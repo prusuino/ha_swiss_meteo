@@ -43,7 +43,7 @@ from .derived import (
 )
 from .forecast import daily_values
 from .localization import t
-from .warnings import LEVELS as WARNING_LEVELS, WarningsCoordinator
+from .meteoalarm import LEVELS as WARNING_LEVELS, WarningsCoordinator
 from .pollen import LEVELS, SPECIES, PollenCoordinator
 
 # key -> (device class, unit, state class, enabled by default, icon)
@@ -373,7 +373,7 @@ class WarningLevelSensor(_Base):
             "upcoming": len(upcoming),
             "highest_upcoming": max((w.level for w in upcoming), key=WARNING_LEVELS.index) if upcoming else "none",
             "next_onset": min((w.onset for w in upcoming if w.onset), default=None).isoformat() if any(w.onset for w in upcoming) else None,
-            "warnings": [w.as_dict() for w in data.items],
+            "warnings": data.as_list(),
             "feed_alerts": data.total,
             "fetched": data.fetched.isoformat(),
         }

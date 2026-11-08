@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Impostazioni Swiss Meteo",
-        "description": "Attivare o disattivare la previsione oraria o i valori estesi, oppure scegliere un'altra stazione meteo per le misure (sono elencate le otto più vicine al punto di previsione). Una modifica ricarica la voce; gli ID delle entità e la cronologia vengono mantenuti.",
+        "description": "Attivare o disattivare la previsione oraria, i valori estesi o le allerte ufficiali, oppure scegliere un'altra stazione meteo (sono elencate le otto più vicine al punto di previsione) o stazione pollinica. Una modifica ricarica la voce; gli ID delle entità e la cronologia vengono mantenuti.",
         "data": {
           "hourly": "Previsione oraria",
           "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)",

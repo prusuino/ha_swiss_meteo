@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "title": "Swiss Meteo Einstellungen",
-        "description": "Stundenprognose oder erweiterte Werte ein- oder ausschalten oder eine andere Wetterstation für die Messwerte wählen (die acht dem Prognosepunkt nächsten sind aufgeführt). Eine Änderung lädt den Eintrag neu; Entitäts-IDs und Verlauf bleiben erhalten.",
+        "description": "Stundenprognose, erweiterte Werte oder amtliche Warnungen ein- oder ausschalten, eine andere Wetterstation (die acht dem Prognosepunkt nächsten sind aufgeführt) oder Pollenstation wählen. Eine Änderung lädt den Eintrag neu; Entitäts-IDs und Verlauf bleiben erhalten.",
         "data": {
           "hourly": "Stundenprognose",
           "extended": "Erweiterte Stundenwerte (Unsicherheitsbereich, Wolkenschichten, Nullgradgrenze)",
