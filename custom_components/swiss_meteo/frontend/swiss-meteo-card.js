@@ -154,15 +154,15 @@ function warningRows(hass, config) {
   return `<div class="warns" data-entity="${esc(id)}">${items.map((w) => `<div class="warn ${esc(w.level)}${w.upcoming ? " soon" : ""}"><span class="wl">${esc(L(hass, "warning"))}</span><span class="we">${esc(w.event)}</span><span class="wt">${esc(when(w))}</span></div>`).join("")}</div>`;
 }
 const WARN_CSS = `
-      .warns { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 4px; cursor: pointer; }
-      .warn { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; font-size: 0.95em; color: #fff; background: #d8232a; }
+      .warns { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 6px; cursor: pointer; }
+      .warn { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: calc(1.15em * var(--fs, 1)); line-height: 1.25; color: #fff; background: #d8232a; }
       .warn.yellow { background: #f5c400; color: #1c2733; }
       .warn.orange { background: #f08a00; color: #1c2733; }
       .warn.red { background: #d8232a; }
       .warn.soon { opacity: 0.85; }
-      .warn .wl { font-weight: 700; text-transform: uppercase; font-size: 0.8em; letter-spacing: 0.04em; }
-      .warn .we { flex: 1 1 auto; font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .warn .wt { font-size: 0.85em; white-space: nowrap; opacity: 0.9; }
+      .warn .wl { font-weight: 800; text-transform: uppercase; font-size: 0.82em; letter-spacing: 0.05em; }
+      .warn .we { flex: 1 1 auto; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .warn .wt { font-size: 0.9em; font-weight: 500; white-space: nowrap; }
 `;
 // The entity a new card starts with: the first Swiss Meteo weather entity
 // of the instance (whether or not the dashboard uses it already), else
