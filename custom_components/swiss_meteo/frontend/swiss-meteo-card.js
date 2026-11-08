@@ -62,7 +62,7 @@ const EDITOR_LABELS = {
   animated: { de: "Animierte Symbole", en: "Animated icons", fr: "Icônes animées", it: "Icone animate" },
   size: { de: "Grösse (Symbole und Schrift)", en: "Size (icons and text)", fr: "Taille (icônes et texte)", it: "Dimensione (icone e testo)" },
   show_pollen: { de: "Pollen anzeigen", en: "Show pollen", fr: "Afficher les pollens", it: "Mostra pollini" },
-  pollen_entity: { de: "Pollen-Sensor (optional, sonst der des Eintrags)", en: "Pollen sensor (optional, else the entry's own)", fr: "Capteur de pollens (facultatif, sinon celui de l'entrée)", it: "Sensore pollini (facoltativo, altrimenti quello della voce)" },
+  pollen_entity: { de: "Pollen-Sensor (leer lassen = automatisch der des Eintrags)", en: "Pollen sensor (leave empty = the entry's own, automatically)", fr: "Capteur de pollens (vide = celui de l'entrée, automatiquement)", it: "Sensore pollini (vuoto = quello della voce, automaticamente)" },
 };
 
 // MeteoSwiss symbol code -> Meteocons icon. "{dn}" becomes "day" or "night";
@@ -126,6 +126,18 @@ function pollenEntity(hass, config) {
   return id && hass.states[id] ? id : null;
 }
 const TREE_POLLEN = new Set(["birch", "alder", "hazel", "beech", "ash", "oak"]);
+// The entity a new card starts with: the first Swiss Meteo weather entity
+// of the instance (whether or not the dashboard uses it already), else
+// the first weather entity offered by the picker.
+function stubEntity(hass, entities) {
+  const all = hass && hass.states ? Object.keys(hass.states) : [];
+  return (
+    all.find((e) => e.startsWith("weather.swiss_meteo")) ||
+    (entities || []).find((e) => e.startsWith("weather.")) ||
+    all.find((e) => e.startsWith("weather.")) ||
+    ""
+  );
+}
 function bearingArrow(deg) {
   if (deg == null) return "";
   return `<span class="arrow" style="transform: rotate(${Number(deg) + 180}deg)">➤</span>`;
@@ -179,7 +191,7 @@ class SwissMeteoCard extends HTMLElement {
   }
 
   static getStubConfig(hass, entities) {
-    const entity = (entities || []).find((e) => e.startsWith("weather.swiss_meteo")) || (entities || []).find((e) => e.startsWith("weather.")) || "";
+    const entity = stubEntity(hass, entities);
     return { entity, hours: 24, days: 9 };
   }
 
@@ -670,7 +682,7 @@ class SwissMeteoDailyCard extends HTMLElement {
     return document.createElement("swiss-meteo-daily-card-editor");
   }
   static getStubConfig(hass, entities) {
-    const entity = (entities || []).find((e) => e.startsWith("weather.swiss_meteo")) || (entities || []).find((e) => e.startsWith("weather.")) || "";
+    const entity = stubEntity(hass, entities);
     return { entity, days: 8 };
   }
   getCardSize() {
@@ -1062,7 +1074,7 @@ class SwissMeteoForecastCard extends HTMLElement {
     return document.createElement("swiss-meteo-forecast-card-editor");
   }
   static getStubConfig(hass, entities) {
-    const entity = (entities || []).find((e) => e.startsWith("weather.swiss_meteo")) || (entities || []).find((e) => e.startsWith("weather.")) || "";
+    const entity = stubEntity(hass, entities);
     return { entity, forecast_type: "daily" };
   }
   getCardSize() {
@@ -1263,7 +1275,7 @@ class SwissMeteoSkyCard extends HTMLElement {
     return document.createElement("swiss-meteo-sky-card-editor");
   }
   static getStubConfig(hass, entities) {
-    const entity = (entities || []).find((e) => e.startsWith("weather.swiss_meteo")) || (entities || []).find((e) => e.startsWith("weather.")) || "";
+    const entity = stubEntity(hass, entities);
     return { entity, forecast_type: "daily" };
   }
   getCardSize() {
