@@ -235,15 +235,17 @@ background: sky        # or panel
 theme: meteo           # or ha (your Home Assistant theme), glass, sky (banner blue)
 ```
 
-**Swiss Meteo – radar** (`custom:swiss-meteo-radar-card`): the precipitation radar around your place as a loop — the last two hours of MeteoSwiss frames (every five minutes) and up to an hour of frames extrapolated along the measured motion, marked as an estimate. Swiss border and lakes in the radar's projection, 25 and 50 km rings, your place as the marker, play/pause and a slider, the rain-rate legend. The frames come from the integration (small PNGs over the WebSocket), nothing is loaded from third parties.
+**Swiss Meteo – radar** (`custom:swiss-meteo-radar-card`): the precipitation radar around your place as a loop — the last two hours of MeteoSwiss frames (every five minutes) and up to three hours of frames extrapolated along the measured motion, marked as an estimate (an hour by default; the rain field is only moved, not grown or dissolved, so the further out, the rougher it gets). On the swisstopo national map (grey or colour, free WMTS tiles that your browser loads from `wmts.geo.admin.ch`, attribution shown on the map) or, with `basemap: none`, on a plain background with the Swiss border and lakes drawn in the radar's projection. Distance rings, your place as the marker, +/− buttons to zoom from the whole region (200 km) down to your town (25 km; the radar's 1 km cells are smoothed when zoomed in), play/pause and a slider, the rain-rate legend. The radar frames come from the integration (small PNGs over the WebSocket).
 
 ```yaml
 type: custom:swiss-meteo-radar-card
 entity: weather.swiss_meteo_ab12
 past_minutes: 120     # 30–120
-forecast_minutes: 60  # 0–60, estimate
+forecast_minutes: 60  # 0–180, estimate; the further out, the rougher
 speed: 400            # ms per frame
-show_outline: true
+basemap: grey         # grey | color | none
+radius_km: 100        # map extent at start: 100 (200 km wide), 50, 25 or 12; +/− buttons on the map
+show_outline: true    # border and lakes, used with basemap: none
 show_marker: true
 show_legend: true
 theme: meteo          # or ha, glass

@@ -37,6 +37,14 @@ The outline of Switzerland and the lakes drawn by the map card are derived
 from Natural Earth (https://www.naturalearthdata.com), 1:10m cultural and
 physical vectors, which are in the public domain.
 
+## swisstopo
+
+The radar card can show the swisstopo national map (grey or colour) as
+its background. The browser loads the tiles from the federal WMTS
+service at wmts.geo.admin.ch; the data is open government data of the
+Federal Office of Topography swisstopo, free to use with the attribution
+"© swisstopo", which the card shows on the map.
+
 ## MeteoAlarm
 
 The official warnings come from MeteoAlarm (https://meteoalarm.org), the
