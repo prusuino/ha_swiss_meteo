@@ -92,7 +92,7 @@ data:
 
 - The station sensors (temperature, humidity, pressure, wind, radiation, snow depth, soil temperatures) get mean, minimum and maximum per hour or per day, under their own entity ids.
 - Totals that the 10-minute sensors cannot carry come as separate statistics: `swiss_meteo:<id>_precipitation` (mm), `_sunshine` (min), `_evaporation` (FAO reference evaporation, mm) and, with daily values, `_heating_degree_days` (12/20). Pick them in a statistics graph card.
-- Hourly values cost about 7 MB per ten-year file plus 1 MB for the current year; daily values about 2.5 MB for the whole history. The traffic sensor counts them. Run it once; a second run over the same period replaces the rows.
+- Hourly values cost about 7 MB per ten-year file plus 1 MB for the current year; daily values about 2.5 MB for the whole history. The traffic sensor counts them. Run it once; a second run over the same period replaces the rows. Keep one resolution for the totals (precipitation, sunshine, evaporation): an hourly run after a daily one, or the other way round, mixes rows of both kinds in the same statistic.
 
 ## Dashboard card
 
