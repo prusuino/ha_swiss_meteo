@@ -166,6 +166,7 @@ class SwissMeteoCard extends HTMLElement {
       show_daily: true,
       show_pollen: true,
       animated: true,
+      size: "normal",
       theme: "meteo",
       ...config,
     };
@@ -251,7 +252,7 @@ class SwissMeteoCard extends HTMLElement {
       title = a.point_name || a.friendly_name || this._config.entity;
       if (a.point_name && a.elevation != null) title += `, ${fmt(a.elevation)} ${ASL[lang(hass)] || ASL.en}`;
     }
-    const cls = this._config.theme === "ha" ? "" : "meteo";
+    const cls = (this._config.theme === "ha" ? "" : "meteo") + (this._config.size === "large" || this._config.size === "xl" ? " " + this._config.size : "");
     if (!state || state.state === "unavailable") {
       this.shadowRoot.innerHTML = `${this._style()}<ha-card class="${cls}"><div class="head"><div class="title">${esc(title)}</div></div><div class="empty">${esc(L(hass, "unavailable"))}</div></ha-card>`;
       return;
@@ -315,7 +316,7 @@ class SwissMeteoCard extends HTMLElement {
     const hass = this._hass;
     const rows = this._hourly.slice(0, Math.max(6, Math.min(72, Number(this._config.hours) || 24)));
     const n = rows.length;
-    const W = 1000, H = 260, padL = 36, padR = 36, padT = 70, padB = 44;
+    const W = 1000, H = 362, padL = 40, padR = 40, padT = 120, padB = 66;
     const plotW = W - padL - padR, plotH = H - padT - padB;
     const x = (i) => padL + (i + 0.5) * (plotW / n);
     const temps = rows.map((r) => r.temperature).filter((v) => v != null);
@@ -355,10 +356,10 @@ class SwissMeteoCard extends HTMLElement {
       const d = new Date(r.datetime);
       const step = n > 36 ? 6 : 3;
       if (i % step === 0) {
-        if (r.temperature != null) parts.push(`<text class="tlabel" x="${x(i)}" y="${y(r.temperature) - 10}">${fmt(r.temperature)}°</text>`);
+        if (r.temperature != null) parts.push(`<text class="tlabel" x="${x(i)}" y="${y(r.temperature) - 14}">${fmt(r.temperature)}°</text>`);
         const icon = iconFor(r.symbol, r.condition, isNightAt(d, hass), this._config.animated);
-        parts.push(`<image href="${icon}" x="${x(i) - 22}" y="${padT - 62}" width="44" height="44" />`);
-        parts.push(`<text class="xlabel" x="${x(i)}" y="${H - 22}">${esc(d.toLocaleTimeString(l, { hour: "2-digit", minute: "2-digit" }))}</text>`);
+        parts.push(`<image href="${icon}" x="${x(i) - 40}" y="${padT - 118}" width="80" height="80" />`);
+        parts.push(`<text class="xlabel" x="${x(i)}" y="${H - 34}">${esc(d.toLocaleTimeString(l, { hour: "2-digit", minute: "2-digit" }))}</text>`);
         if (d.getHours() < step) parts.push(`<text class="dlabel" x="${x(i)}" y="${H - 6}">${esc(weekday(d, l))}</text>`);
       }
       if (d.getHours() === 0 && i > 0) parts.push(`<line class="dayline" x1="${x(i) - plotW / n / 2}" x2="${x(i) - plotW / n / 2}" y1="${padT - 10}" y2="${padT + plotH}" />`);
@@ -397,23 +398,25 @@ class SwissMeteoCard extends HTMLElement {
       .title { font-size: 1.15em; font-weight: 500; }
       ha-card.meteo .title { font-size: 1.6em; font-weight: 700; line-height: 1.15; }
       .empty { opacity: 0.7; padding: 16px 0; }
-      ha-card { display: block; container-type: inline-size; --ico-big: 148px; }
+      ha-card { display: block; container-type: inline-size; --ico-big: 148px; --fs: 1; }
+      ha-card.large { --ico-big: 172px; --fs: 1.18; }
+      ha-card.xl { --ico-big: 200px; --fs: 1.36; }
       @container (max-width: 300px) { .current { --ico-big: 104px; } }
       .current { display: grid; grid-template-columns: var(--ico-big) minmax(0, 1fr); grid-template-areas: "icon now" "chips chips"; gap: 4px 8px; align-items: center; margin-top: 4px; }
       .current .big { grid-area: icon; width: var(--ico-big); height: var(--ico-big); margin: calc(var(--ico-big) * -0.1) 0 calc(var(--ico-big) * -0.1) calc(var(--ico-big) * -0.08); }
       .current .now { grid-area: now; }
-      .temp { font-size: 3em; font-weight: 300; line-height: 1; }
+      .temp { font-size: calc(3em * var(--fs)); font-weight: 300; line-height: 1; }
       .temp .unit { font-size: 0.4em; margin-left: 2px; vertical-align: top; }
-      .cond { font-size: 1.05em; margin-top: 4px; text-transform: capitalize; }
-      .station { font-size: 0.85em; color: var(--sm-dim); margin-top: 2px; }
+      .cond { font-size: calc(1.1em * var(--fs)); margin-top: 4px; text-transform: capitalize; }
+      .station { font-size: calc(0.9em * var(--fs)); color: var(--sm-dim); margin-top: 2px; }
       .chips { grid-area: chips; display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; }
-      ha-card.meteo .chips { background: var(--sm-panel); border-radius: 4px; padding: 8px 12px; margin-top: 10px; gap: 6px 14px; }
-      .chip { display: flex; align-items: center; gap: 4px; min-width: 124px; }
-      .chip img { width: 40px; height: 40px; margin: -4px 0; }
-      .chip .k { font-size: 0.85em; color: var(--sm-dim); }
-      .chip .v { font-size: 1.05em; }
+      ha-card.meteo .chips { background: var(--sm-panel); border-radius: 4px; padding: 10px 14px; margin-top: 10px; gap: 10px 14px; }
+      .chip { display: flex; align-items: center; gap: 6px; flex: 1 1 calc(150px * var(--fs)); min-width: calc(140px * var(--fs)); }
+      .chip img { width: calc(46px * var(--fs)); height: calc(46px * var(--fs)); margin: -5px 0; }
+      .chip .k { font-size: calc(0.95em * var(--fs)); color: var(--sm-dim); line-height: 1.2; }
+      .chip .v { font-size: calc(1.2em * var(--fs)); font-weight: 500; line-height: 1.2; }
       .chip.link { cursor: pointer; }
-      .chip .sub { font-size: 0.8em; opacity: 0.7; }
+      .chip .sub { font-size: 0.75em; font-weight: 400; opacity: 0.8; }
       .arrow { display: inline-block; font-size: 0.8em; opacity: 0.8; }
       .hourly { margin-top: 8px; }
       .hourly svg { width: 100%; height: auto; display: block; font-family: inherit; }
@@ -422,30 +425,30 @@ class SwissMeteoCard extends HTMLElement {
       .whisker { stroke: var(--sm-rain); stroke-width: 2; opacity: 0.5; stroke-dasharray: 4 3; }
       .band { fill: var(--sm-temp); opacity: 0.15; }
       ha-card.meteo .band { opacity: 0.22; }
-      .line { fill: none; stroke: var(--sm-temp); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+      .line { fill: none; stroke: var(--sm-temp); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
       .zero { stroke: var(--sm-dim); stroke-width: 1; stroke-dasharray: 6 4; opacity: 0.6; }
       .dayline { stroke: var(--sm-line); stroke-width: 1; opacity: 0.5; }
       ha-card.meteo .dayline { stroke: #fff; opacity: 0.25; }
-      .tlabel { font-size: 20px; text-anchor: middle; fill: var(--sm-text); }
-      .xlabel { font-size: 19px; text-anchor: middle; fill: var(--sm-dim); }
-      .dlabel { font-size: 18px; text-anchor: middle; fill: var(--sm-text); font-weight: 500; }
-      .plabel { font-size: 17px; fill: var(--sm-rain); }
+      .tlabel { font-size: calc(29px * var(--fs)); text-anchor: middle; fill: var(--sm-text); font-weight: 500; }
+      .xlabel { font-size: calc(27px * var(--fs)); text-anchor: middle; fill: var(--sm-dim); }
+      .dlabel { font-size: calc(26px * var(--fs)); text-anchor: middle; fill: var(--sm-text); font-weight: 500; }
+      .plabel { font-size: calc(24px * var(--fs)); fill: var(--sm-rain); }
       .daily { display: flex; gap: 2px; margin-top: 10px; overflow-x: auto; scrollbar-width: thin; }
       ha-card.meteo .daily { background: var(--sm-panel); border-radius: 4px; padding: 8px 4px; gap: 4px; }
       .daily .day { flex: 1 1 0; min-width: 44px; text-align: center; padding: 4px 0; border-radius: 8px; }
       .daily .day:first-child { background: var(--sm-panel); }
       ha-card.meteo .daily .day:first-child { background: rgba(255,255,255,0.06); }
-      .daily img { width: 48px; height: 48px; }
-      .daily .wd { font-size: 0.85em; color: var(--sm-dim); }
+      .daily img { width: calc(48px * var(--fs)); height: calc(48px * var(--fs)); }
+      .daily .wd { font-size: calc(0.85em * var(--fs)); color: var(--sm-dim); }
       .daily .tt { display: flex; flex-direction: column; align-items: center; gap: 2px; }
       .daily .hi { font-weight: 500; }
       .daily .lo { opacity: 0.6; font-size: 0.9em; }
       ha-card.meteo .daily .tt { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 3px; margin: 2px 0; }
-      ha-card.meteo .daily .hi, ha-card.meteo .daily .lo { background: var(--sm-box); border-radius: 3px; padding: 3px 0; min-width: 2.2em; font-size: 0.9em; opacity: 1; font-weight: 400; }
-      .daily .rain { font-size: 0.8em; color: var(--sm-rain); }
+      ha-card.meteo .daily .hi, ha-card.meteo .daily .lo { background: var(--sm-box); border-radius: 3px; padding: 3px 0; min-width: 2.2em; font-size: calc(0.9em * var(--fs)); opacity: 1; font-weight: 400; }
+      .daily .rain { font-size: calc(0.8em * var(--fs)); color: var(--sm-rain); }
       .daily .rain.dry { opacity: 0.45; color: inherit; }
-      .daily .prob { font-size: 0.78em; color: var(--sm-dim); }
-      .daily .range { font-size: 0.72em; color: var(--sm-dim); opacity: 0.8; }
+      .daily .prob { font-size: calc(0.78em * var(--fs)); color: var(--sm-dim); }
+      .daily .range { font-size: calc(0.72em * var(--fs)); color: var(--sm-dim); opacity: 0.8; }
       .foot { font-size: 0.72em; opacity: 0.55; margin-top: 8px; text-align: right; }
     </style>`;
   }
@@ -455,7 +458,7 @@ customElements.define("swiss-meteo-card", SwissMeteoCard);
 
 class SwissMeteoCardEditor extends HTMLElement {
   setConfig(config) {
-    this._config = { hours: 24, days: 9, show_current: true, show_hourly: true, show_daily: true, show_pollen: true, animated: true, theme: "meteo", ...config };
+    this._config = { hours: 24, days: 9, show_current: true, show_hourly: true, show_daily: true, show_pollen: true, animated: true, size: "normal", theme: "meteo", ...config };
     this._render();
   }
   set hass(hass) {
@@ -490,6 +493,7 @@ class SwissMeteoCardEditor extends HTMLElement {
       { name: "show_daily", selector: { boolean: {} } },
       { name: "show_pollen", selector: { boolean: {} } },
       { name: "pollen_entity", selector: { entity: { domain: "sensor" } } },
+      { name: "size", selector: { select: { mode: "dropdown", options: [{ value: "normal", label: "normal" }, { value: "large", label: "large" }, { value: "xl", label: "XL" }] } } },
       { name: "animated", selector: { boolean: {} } },
       { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "ha", label: "Home Assistant" }] } } },
     ];

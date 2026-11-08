@@ -120,6 +120,8 @@ show_current: true
 show_hourly: true
 show_daily: true
 show_pollen: true   # pollen chip from the entry's pollen-level sensor
+size: normal        # or large, xl
+animated: true
 ```
 
 With a pollen station configured, the current values carry a **pollen chip**: the day's load class and the species behind it; a click opens the pollen-level sensor. `pollen_entity` names another pollen-level sensor, `show_pollen: false` drops the chip. The main card uses the dark blue Swiss Meteo palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead. Every card takes `theme: ha` to follow your Home Assistant theme instead of the Swiss Meteo palette, and `animated: false` for still icons. Four more cards come with the same file, in the look of the MeteoSwiss website:
