@@ -1,5 +1,9 @@
 # Swiss Meteo for Home Assistant
 
+[![marketplace_badge](https://img.shields.io/badge/Marketplace-Custom-41BDF5.svg)](https://hacs.xyz/docs/marketplace/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<a href="https://www.buymeacoffee.com/prusuino"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="20"></a>
+
 ![Swiss Meteo](readme_header.png)
 
 A Home Assistant custom integration for the **MeteoSwiss** forecast and measurements, from the official open data: the local forecast of your postal code (nine days, hour by hour, with the uncertainty range), the live values of the nearest SwissMetNet station every ten minutes, and a dashboard card with animated icons — read so sparingly that the hourly forecast costs a few megabytes a day, not hundreds.
@@ -252,8 +256,26 @@ MIT — see [LICENSE](LICENSE). Third-party notices in [NOTICE.md](NOTICE.md).
 
 ## Related integrations
 
-Part of a series of Home Assistant integrations for Switzerland by the same author: [Swiss Hail Protection](https://github.com/prusuino/ha_swiss_hail_protection), [Swiss Public Alerts](https://github.com/prusuino/ha_swiss_public_alerts), [Swiss Waters](https://github.com/prusuino/ha_swiss_waters), [Swiss Avalanche Bulletin](https://github.com/prusuino/ha_swiss_avalanche_bulletin), [Swiss Earthquakes](https://github.com/prusuino/ha_swiss_earthquakes), [Swiss Transport](https://github.com/prusuino/ha_swiss_transport), [Swiss Electricity Price](https://github.com/prusuino/ha_swiss_electricity_price), [Swiss Solar Reference Price](https://github.com/prusuino/ha_swiss_solar_reference_price), [Swiss Charging Stations](https://github.com/prusuino/ha_swiss_charging_stations), [Swiss Lottery](https://github.com/prusuino/ha_swiss_lottery).
+More Home Assistant integrations from the same author:
+
+- [Swiss Hail Protection](https://github.com/prusuino/ha_swiss_hail_protection) — hail warnings (VKF signal or MeteoSwiss radar) to raise your blinds in time
+- [Swiss Public Alerts](https://github.com/prusuino/ha_swiss_public_alerts) — official Swiss public alerts (Alertswiss) with home-location matching
+- [Swiss Waters](https://github.com/prusuino/ha_swiss_waters) — live water temperature, water level, discharge and flood danger levels of Swiss rivers and lakes
+- [Swiss Earthquakes](https://github.com/prusuino/ha_swiss_earthquakes) — recent Swiss earthquakes on a map (SED)
+- [Swiss Avalanche Bulletin](https://github.com/prusuino/ha_swiss_avalanche_bulletin) — the official SLF avalanche bulletin for your location
+- [Swiss Charging Stations](https://github.com/prusuino/ha_swiss_charging_stations) — real-time availability and prices of public EV charging stations in Switzerland
+- [Austrian Charging Stations](https://github.com/prusuino/ha_austrian_charging_stations) — real-time availability of public EV charging stations in Austria
+- [Swiss Transport](https://github.com/prusuino/ha_swiss_transport) — live public-transport departure boards and saved connections
+- [Swiss Parking](https://github.com/prusuino/ha_swiss_parking) — live free parking spaces in Swiss cities
+- [Swiss Electricity Price](https://github.com/prusuino/ha_swiss_electricity_price) — electricity tariffs of any Swiss grid operator (ElCom)
+- [Swiss Solar Reference Price](https://github.com/prusuino/ha_swiss_solar_reference_price) — the Swiss solar reference market price (SFOE)
+- [Innoxel Master 3](https://github.com/prusuino/ha_innoxel_master3) — local control of the Innoxel Master 3 home-automation system
+- [Swiss Lottery](https://github.com/prusuino/ha_swiss_lottery) — the latest Swiss Lotto, EuroMillions and EuroDreams draws from Swisslos, your tickets checked against every draw, with a dashboard card
 
 ## Support
 
 Questions and bug reports: [Issues](../../issues). Please attach the diagnostics download to a bug report.
+
+If this integration is useful to you, you can support its development:
+
+<a href="https://www.buymeacoffee.com/prusuino"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="41"></a>
