@@ -489,7 +489,7 @@ class SwissMeteoCardEditor extends HTMLElement {
       { name: "show_pollen", selector: { boolean: {} } },
       { name: "pollen_entity", selector: { entity: { domain: "sensor" } } },
       { name: "animated", selector: { boolean: {} } },
-      { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "MeteoSwiss" }, { value: "ha", label: "Home Assistant" }] } } },
+      { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "ha", label: "Home Assistant" }] } } },
     ];
     this._form.computeLabel = (s) => this._label(s.name);
   }
@@ -756,7 +756,7 @@ SwissMeteoDailyCardEditor.schema = [
   { name: "show_wind", selector: { boolean: {} } },
   { name: "show_sunshine", selector: { boolean: {} } },
   { name: "show_toggles", selector: { boolean: {} } },
-  { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "MeteoSwiss" }, { value: "ha", label: "Home Assistant" }] } } },
+  { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "ha", label: "Home Assistant" }] } } },
   { name: "animated", selector: { boolean: {} } },
 ];
 customElements.define("swiss-meteo-daily-card-editor", SwissMeteoDailyCardEditor);
@@ -1029,7 +1029,7 @@ class SwissMeteoForecastCard extends HTMLElement {
       this.shadowRoot.innerHTML = `${this._style()}<ha-card class="${cls}"><div class="title">${esc(title)}</div><div class="empty">${esc(L(hass, "unavailable"))}</div></ha-card>`;
       return;
     }
-    const parts = [this._style(), `<ha-card class="${cls}">`];
+    const parts = [this._style(), `<ha-card class="${cls}"><div class="wrap">`];
     if (this._config.show_current) {
       const night = isNightAt(new Date(), hass);
       const conditionText = hass.localize ? hass.localize(`component.weather.entity_component._.state.${state.state}`) || state.state : state.state;
@@ -1067,7 +1067,7 @@ class SwissMeteoForecastCard extends HTMLElement {
       });
       parts.push(`<div class="row ${hourly ? "hourly" : "daily"}">${cells.join("")}</div>`);
     }
-    parts.push("</ha-card>");
+    parts.push("</div></ha-card>");
     this.shadowRoot.innerHTML = parts.join("");
     this.shadowRoot.querySelector(".current, .title")?.addEventListener("click", () => {
       const ev = new Event("hass-more-info", { bubbles: true, composed: true });
@@ -1085,8 +1085,10 @@ class SwissMeteoForecastCard extends HTMLElement {
       ha-card { --ico-big: 84px; --ico-row: 46px; --fs: 1; }
       ha-card.large { --ico-big: 112px; --ico-row: 64px; --fs: 1.22; }
       ha-card.xl { --ico-big: 144px; --ico-row: 84px; --fs: 1.45; }
+      ha-card { display: block; container-type: inline-size; }
+      @container (max-width: 300px) { .wrap { --ico-big: 64px; --ico-row: 40px; --fs: 0.9; } .current { grid-template-columns: var(--ico-big) minmax(0, 1fr); } .temp { grid-column: 1 / -1; justify-self: end; } }
       .empty { opacity: 0.7; padding: 8px 0; }
-      .current { display: grid; grid-template-columns: var(--ico-big) 1fr auto; gap: 12px; align-items: center; cursor: pointer; }
+      .current { display: grid; grid-template-columns: var(--ico-big) minmax(0, 1fr) auto; gap: 12px; align-items: center; cursor: pointer; }
       .current .big { width: var(--ico-big); height: var(--ico-big); }
       .title { font-size: calc(1.25em * var(--fs)); font-weight: 700; line-height: 1.15; color: var(--sm-text); }
       .title.small { cursor: pointer; margin-bottom: 8px; }
@@ -1094,15 +1096,15 @@ class SwissMeteoForecastCard extends HTMLElement {
       .sec { font-size: calc(0.8em * var(--fs)); color: var(--sm-dim); margin-top: 2px; }
       .temp { font-size: calc(2.6em * var(--fs)); font-weight: 300; line-height: 1; color: var(--sm-text); white-space: nowrap; }
       .temp .unit { font-size: 0.45em; margin-left: 2px; vertical-align: top; }
-      .row { display: flex; gap: 2px; margin-top: 12px; overflow-x: auto; }
+      .row { display: flex; gap: 2px; margin-top: 12px; overflow-x: auto; scrollbar-width: thin; }
       ha-card.meteo .row { background: var(--sm-panel); border-radius: 4px; padding: 8px 4px; }
       .col { flex: 1 1 0; min-width: calc(54px * var(--fs)); text-align: center; padding: 2px 0; color: var(--sm-text); }
-      .row.daily .col { min-width: calc(74px * var(--fs)); }
+      .row.daily .col { min-width: calc(40px * var(--fs)); }
       .col.daybreak { border-left: 1px solid rgba(255,255,255,0.25); }
       ha-card:not(.meteo) .col.daybreak { border-left: 1px solid var(--divider-color, #666); }
       .col img { width: var(--ico-row); height: var(--ico-row); }
       .lbl { font-size: calc(0.8em * var(--fs)); color: var(--sm-dim); }
-      .t { display: flex; justify-content: center; gap: 3px; margin: 2px 0; }
+      .t { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; margin: 2px 0; }
       .t span { border-radius: 3px; padding: 3px 0; min-width: 2.2em; font-size: calc(0.9em * var(--fs)); }
       ha-card.meteo .t span { background: var(--sm-box); }
       ha-card:not(.meteo) .t .lo { opacity: 0.6; }
@@ -1126,7 +1128,7 @@ SwissMeteoForecastCardEditor.schema = [
   { name: "show_forecast", selector: { boolean: {} } },
   { name: "size", selector: { select: { mode: "dropdown", options: [{ value: "normal", label: "normal" }, { value: "large", label: "large" }, { value: "xl", label: "XL" }] } } },
   { name: "animated", selector: { boolean: {} } },
-  { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "MeteoSwiss" }, { value: "ha", label: "Home Assistant" }] } } },
+  { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "ha", label: "Home Assistant" }] } } },
 ];
 customElements.define("swiss-meteo-forecast-card-editor", SwissMeteoForecastCardEditor);
 
@@ -1268,25 +1270,27 @@ class SwissMeteoSkyCard extends HTMLElement {
       ha-card.blue { --sk-bg: radial-gradient(ellipse at 78% 18%, #2a8ae0 0%, rgba(42,138,224,0) 55%), linear-gradient(160deg, #0d4a86 0%, #082a4e 100%); --sk-mtn: #06223f;
         --sk-glass: rgba(10,30,56,0.86); --sk-border: rgba(143,195,240,0.25); --sk-text: #fff; --sk-dim: #8fc3f0; --sk-line: rgba(143,195,240,0.2); }
       ha-card.sky { padding: 18px 20px; background: var(--sk-bg); }
+      ha-card { display: block; container-type: inline-size; }
+      @container (max-width: 300px) { .glass { --ico-big: 72px; --ico-row: 36px; --fs: 0.9; padding: 12px 12px 10px; } }
       ha-card.panel { padding: 0; background: var(--sk-glass); border: 1px solid var(--sk-border); }
       .mtn { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 34%; }
       .mtn path { fill: var(--sk-mtn); opacity: 0.7; }
       .glass { position: relative; padding: 16px 18px 14px; border-radius: 16px; }
       ha-card.sky .glass { background: var(--sk-glass); border: 1px solid var(--sk-border); box-shadow: 0 12px 30px rgba(0,0,0,0.35); }
-      .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; cursor: pointer; }
-      .who { min-width: 0; flex: 1 1 auto; }
+      .top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; cursor: pointer; }
+      .who { min-width: 0; flex: 1 1 120px; }
       .loc { font-size: calc(1.45em * var(--fs)); color: var(--sk-text); line-height: 1.2; font-weight: 500; }
       ha-card.blue .loc { color: #bfdcf7; }
       .cond { font-size: calc(1.08em * var(--fs)); color: var(--sk-dim); margin-top: 3px; text-transform: capitalize; }
-      .big { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; margin-right: 4px; }
-      .big img { width: var(--ico-big); height: var(--ico-big); margin: calc(var(--ico-big) * -0.12); }
+      .big { display: flex; align-items: center; gap: 2px; flex: 0 0 auto; margin-left: auto; margin-right: 4px; }
+      .big img { width: var(--ico-big); height: var(--ico-big); margin: calc(var(--ico-big) * -0.12) calc(var(--ico-big) * -0.06) calc(var(--ico-big) * -0.12) 0; }
       .tmp { font-size: calc(3.3em * var(--fs)); font-weight: 700; line-height: 1; letter-spacing: -1px; white-space: nowrap; margin-left: 8px; }
       .det { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 12px; font-size: calc(1em * var(--fs)); color: var(--sk-dim); }
       ha-card.blue .det { color: #bfdcf7; }
       .det span { display: inline-flex; align-items: center; gap: 2px; }
       .det img { width: calc(30px * var(--fs)); height: calc(30px * var(--fs)); margin: -3px 0; }
-      .fc { display: flex; justify-content: space-between; border-top: 1px solid var(--sk-line); padding-top: 12px; overflow-x: auto; gap: 2px; }
-      .d { flex: 1 1 0; min-width: calc(48px * var(--fs)); text-align: center; }
+      .fc { display: flex; justify-content: space-between; border-top: 1px solid var(--sk-line); padding-top: 12px; overflow-x: auto; gap: 0; scrollbar-width: thin; }
+      .d { flex: 1 1 0; min-width: calc(var(--ico-row) * 0.95); text-align: center; }
       .dn { font-size: calc(0.95em * var(--fs)); color: var(--sk-dim); margin-bottom: 0; white-space: nowrap; }
       .d img { width: var(--ico-row); height: var(--ico-row); margin: calc(var(--ico-row) * -0.08) 0; }
       .hi { font-size: calc(1.2em * var(--fs)); font-weight: 700; margin-top: 0; }
@@ -1309,7 +1313,7 @@ SwissMeteoSkyCardEditor.schema = [
   { name: "size", selector: { select: { mode: "dropdown", options: [{ value: "normal", label: "normal" }, { value: "large", label: "large" }, { value: "xl", label: "XL" }] } } },
   { name: "animated", selector: { boolean: {} } },
   { name: "background", selector: { select: { mode: "dropdown", options: [{ value: "sky", label: "Sky" }, { value: "panel", label: "Panel" }] } } },
-  { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "MeteoSwiss" }, { value: "sky", label: "Banner blue" }] } } },
+  { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "sky", label: "Banner blue" }] } } },
 ];
 customElements.define("swiss-meteo-sky-card-editor", SwissMeteoSkyCardEditor);
 

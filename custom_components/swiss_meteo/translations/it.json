@@ -185,6 +185,9 @@
     },
     "no_station": {
       "message": "La voce non ha una stazione meteo; l'importazione dello storico ne richiede una (finestra «Configura»)."
+    },
+    "hourly_years": {
+      "message": "I valori orari sono limitati a 20 anni per importazione; eseguire di nuovo l'azione per gli anni precedenti o scegliere i valori giornalieri."
     }
   },
   "entity": {

@@ -10,8 +10,9 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
@@ -42,22 +43,14 @@ class _Base(CoordinatorEntity[ForecastCoordinator], BinarySensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_device_info = device_info(hass, entry)
         self.entity_id = f"binary_sensor.{DOMAIN}_{entry_suffix(entry)}_{key}"
-        self._unsub_timer = None
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         # The state depends on the clock as well as on the data: re-evaluate
         # every full hour so "within 6 hours" slides along without a new run.
-        from homeassistant.helpers.event import async_track_time_change
+        self.async_on_remove(async_track_time_change(self.hass, self._tick, minute=0, second=30))
 
-        self._unsub_timer = async_track_time_change(self.hass, self._tick, minute=0, second=30)
-
-    async def async_will_remove_from_hass(self) -> None:
-        if self._unsub_timer:
-            self._unsub_timer()
-            self._unsub_timer = None
-        await super().async_will_remove_from_hass()
-
+    @callback
     def _tick(self, _now) -> None:
         self.async_write_ha_state()
 

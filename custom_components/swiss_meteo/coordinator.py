@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -72,11 +72,16 @@ class ForecastSnapshot:
     last_bytes: int = 0
 
 
+# A kept run older than this is no forecast any more: the entities go unavailable.
+_FORECAST_MAX_AGE = timedelta(hours=12)
+
+
 class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
     """The local forecast of the entry's point."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        super().__init__(hass, _LOGGER, name=f"{DOMAIN} forecast", update_interval=_CHECK_INTERVAL)
+        super().__init__(hass, _LOGGER, name=f"{DOMAIN} forecast", update_interval=_CHECK_INTERVAL, config_entry=entry)
+        self._warned_run: datetime | None = None
         self.entry = entry
         self.point = (int(entry.data[CONF_POINT_ID]), int(entry.data[CONF_POINT_TYPE]))
         self.hourly_enabled = bool(entry.options.get(CONF_HOURLY, entry.data.get(CONF_HOURLY, True)))
@@ -94,6 +99,14 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
         snap.last_requests = requests
         snap.last_bytes = nbytes
 
+    @staticmethod
+    def _usable(snap: ForecastSnapshot, now: datetime) -> bool:
+        """Whether the kept run is still recent enough to show."""
+        if snap.run is None:
+            return False
+        run = snap.run if snap.run.tzinfo else snap.run.replace(tzinfo=timezone.utc)
+        return now - run <= _FORECAST_MAX_AGE
+
     async def _async_update_data(self) -> ForecastSnapshot:
         session = async_get_clientsession(self.hass)
         snap = self._snapshot
@@ -103,14 +116,14 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
             if run is None:
                 run = await async_catalogue_latest_run(session)
         except OgdUnavailable as err:
-            if snap.run is not None:
+            if self._usable(snap, now):
                 _LOGGER.debug("Run check failed, keeping run %s: %s", snap.run, err)
                 return snap
             raise UpdateFailed(str(err)) from err
         # One probe per check; a HEAD costs no payload.
         self._account(snap, 1, 0)
         if run is None:
-            if snap.run is not None:
+            if self._usable(snap, now):
                 return snap
             raise UpdateFailed("MeteoSwiss has published no local forecast run for the last hours")
 
@@ -139,8 +152,12 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
                 missing += data.missing
                 self._account(snap, data.stats.requests, data.stats.bytes)
         except OgdUnavailable as err:
-            if snap.run is not None:
-                _LOGGER.warning("Forecast run %s not read, keeping the previous one: %s", run, err)
+            if self._usable(snap, now):
+                if self._warned_run != run:
+                    self._warned_run = run
+                    _LOGGER.warning("Forecast run %s not read, keeping the previous one: %s", run, err)
+                else:
+                    _LOGGER.debug("Forecast run %s still not read: %s", run, err)
                 return snap
             raise UpdateFailed(str(err)) from err
         except OgdError as err:
@@ -157,7 +174,7 @@ class StationCoordinator(DataUpdateCoordinator[StationReading]):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(
-            hass, _LOGGER, name=f"{DOMAIN} station", update_interval=timedelta(minutes=STATION_INTERVAL_MINUTES)
+            hass, _LOGGER, name=f"{DOMAIN} station", update_interval=timedelta(minutes=STATION_INTERVAL_MINUTES), config_entry=entry
         )
         self.entry = entry
         self.station = str(entry.options.get(CONF_STATION, entry.data.get(CONF_STATION, "")))

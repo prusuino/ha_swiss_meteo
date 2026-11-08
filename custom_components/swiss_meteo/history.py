@@ -26,6 +26,7 @@ from homeassistant.components.recorder.statistics import (
     get_last_statistics,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import COLLECTION_STATIONS, DATA_BASE, DOMAIN, USER_AGENT
@@ -168,7 +169,7 @@ async def async_import_history(
     hass: HomeAssistant,
     *,
     station: str,
-    entity_prefix: str,
+    entry_id: str,
     statistic_prefix: str,
     units: dict[str, str | None],
     years: int,
@@ -177,8 +178,9 @@ async def async_import_history(
     account=None,
 ) -> dict[str, Any]:
     """Read the archive and write the statistics. `units` maps sensor key
-    to the unit of the entity (only keys present get entity statistics).
-    Returns a summary per statistic."""
+    to the unit of the entity; a sensor gets statistics when its entity
+    exists in the registry and is enabled (looked up by unique id, so a
+    renamed entity keeps receiving them). Returns a summary per statistic."""
     from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
     session = async_get_clientsession(hass)
@@ -198,13 +200,10 @@ async def async_import_history(
         account(requests, nbytes)
     if not rows:
         raise HistoryError(f"No archive rows for station {station}")
-    rows.sort(key=lambda r: r["start"])
-    # the files overlap at the year boundary: keep one row per start
-    dedup: dict[datetime, dict[str, Any]] = {}
-    for r in rows:
-        dedup.setdefault(r["start"], r).update(r)
-    rows = list(dedup.values())
+    rows = await hass.async_add_executor_job(_prepare, rows)
     col = 1 if resolution == "hourly" else 2
+    registry = er.async_get(hass)
+    skipped: list[str] = []
     summary: dict[str, Any] = {"station": station, "resolution": resolution, "rows": len(rows), "first": rows[0]["start"].isoformat(), "last": rows[-1]["start"].isoformat(), "statistics": {}}
 
     for key, (group, hourly, daily) in MEASUREMENTS.items():
@@ -213,17 +212,14 @@ async def async_import_history(
         mean_c, min_c, max_c = (hourly, daily)[col - 1]
         if not mean_c:
             continue
-        stats: list[StatisticData] = []
-        for r in rows:
-            if mean_c not in r:
-                continue
-            item: dict[str, Any] = {"start": r["start"], "mean": r[mean_c]}
-            item["min"] = r.get(min_c, r[mean_c]) if min_c else r[mean_c]
-            item["max"] = r.get(max_c, r[mean_c]) if max_c else r[mean_c]
-            stats.append(item)  # type: ignore[arg-type]
+        entity_id = registry.async_get_entity_id("sensor", DOMAIN, f"{entry_id}_{key}")
+        reg_entry = registry.async_get(entity_id) if entity_id else None
+        if entity_id is None or reg_entry is None or reg_entry.disabled:
+            skipped.append(key)
+            continue
+        stats = await hass.async_add_executor_job(_measurement_stats, rows, mean_c, min_c, max_c)
         if not stats:
             continue
-        entity_id = f"sensor.{entity_prefix}_{key}"
         async_import_statistics(hass, _meta(entity_id, "recorder", key, units[key], True, False), stats)
         summary["statistics"][entity_id] = len(stats)
 
@@ -244,16 +240,44 @@ async def async_import_history(
                 prev_start = datetime.fromtimestamp(prev_start, tz=timezone.utc)
             if prev_start is not None and prev_start < first_start and prev.get("sum") is not None:
                 base = float(prev["sum"])
-        running = base
-        stats = []
-        for r in rows:
-            if column not in r:
-                continue
-            running += r[column]
-            stats.append({"start": r["start"], "state": r[column], "sum": round(running, 3)})  # type: ignore[arg-type]
+        stats = await hass.async_add_executor_job(_total_stats, rows, column, base)
         if not stats:
             continue
         async_add_external_statistics(hass, _meta(statistic_id, DOMAIN, f"{station} {name}", unit, False, True), stats)
         summary["statistics"][statistic_id] = len(stats)
+    if skipped:
+        summary["skipped"] = skipped
     _LOGGER.info("Station %s: %s rows (%s) imported into %d statistics, %.1f MB read", station, len(rows), resolution, len(summary["statistics"]), nbytes / 1e6)
     return summary
+
+
+def _prepare(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Sorted, one row per start (the files overlap at the year boundary)."""
+    rows.sort(key=lambda r: r["start"])
+    dedup: dict[datetime, dict[str, Any]] = {}
+    for r in rows:
+        dedup.setdefault(r["start"], r).update(r)
+    return list(dedup.values())
+
+
+def _measurement_stats(rows: list[dict[str, Any]], mean_c: str, min_c: str | None, max_c: str | None) -> list[StatisticData]:
+    stats: list[StatisticData] = []
+    for r in rows:
+        if mean_c not in r:
+            continue
+        item: dict[str, Any] = {"start": r["start"], "mean": r[mean_c]}
+        item["min"] = r.get(min_c, r[mean_c]) if min_c else r[mean_c]
+        item["max"] = r.get(max_c, r[mean_c]) if max_c else r[mean_c]
+        stats.append(item)  # type: ignore[arg-type]
+    return stats
+
+
+def _total_stats(rows: list[dict[str, Any]], column: str, base: float) -> list[StatisticData]:
+    running = base
+    stats: list[StatisticData] = []
+    for r in rows:
+        if column not in r:
+            continue
+        running += r[column]
+        stats.append({"start": r["start"], "state": r[column], "sum": round(running, 3)})  # type: ignore[arg-type]
+    return stats

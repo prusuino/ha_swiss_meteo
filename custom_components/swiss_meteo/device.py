@@ -23,7 +23,7 @@ def place_name(entry: ConfigEntry) -> str:
 
 
 def device_info(hass: HomeAssistant, entry: ConfigEntry) -> DeviceInfo:
-    station = entry.data.get(CONF_STATION_NAME) or entry.data.get(CONF_STATION) or ""
+    station = entry.options.get(CONF_STATION_NAME) or entry.data.get(CONF_STATION_NAME) or entry.options.get(CONF_STATION) or entry.data.get(CONF_STATION) or ""
     height = entry.data.get(CONF_POINT_HEIGHT)
     model = t("model", hass, station=station) if station else t("model_no_station", hass)
     pollen = entry.options.get(CONF_POLLEN_STATION_NAME) or entry.data.get(CONF_POLLEN_STATION_NAME) or entry.options.get(CONF_POLLEN_STATION) or entry.data.get(CONF_POLLEN_STATION) or ""

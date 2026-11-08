@@ -24,6 +24,7 @@ PLATFORMS = ["weather", "sensor", "binary_sensor"]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 SERVICE_IMPORT_HISTORY = "import_history"
+HOURLY_MAX_YEARS = 20  # hourly archive rows per import call (about 175 000 rows)
 IMPORT_SCHEMA = vol.Schema(
     {
         vol.Required("entry"): cv.string,
@@ -44,6 +45,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="entry_not_loaded")
         if data.station is None:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_station")
+        if call.data["resolution"] == "hourly" and call.data["years"] > HOURLY_MAX_YEARS:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="hourly_years")
         groups = set(call.data.get("values") or GROUPS)
         units = {key: (unit or None) for _col, (key, unit) in STATION_PARAMS.items()}
         forecast = data.forecast
@@ -57,7 +60,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             return await async_import_history(
                 hass,
                 station=data.station.station,
-                entity_prefix=f"{DOMAIN}_{entry_suffix(entry)}",
+                entry_id=entry.entry_id,
                 statistic_prefix=entry_suffix(entry),
                 units=units,
                 years=call.data["years"],
@@ -82,14 +85,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # A station outage must not block the forecast: refresh without raising.
         await station.async_refresh()
         if not station.last_update_success:
-            _LOGGER.warning("%s: station %s not readable yet, its sensors start unavailable", entry.title, station.station)
+            _LOGGER.warning("Entry %s: station %s not readable yet, its sensors start unavailable", entry_suffix(entry), station.station)
 
     pollen: PollenCoordinator | None = None
     if entry.options.get(CONF_POLLEN_STATION, entry.data.get(CONF_POLLEN_STATION)):
         pollen = PollenCoordinator(hass, entry)
         await pollen.async_refresh()
         if not pollen.last_update_success:
-            _LOGGER.warning("%s: pollen station %s not readable yet, its sensors start unavailable", entry.title, pollen.station)
+            _LOGGER.warning("Entry %s: pollen station %s not readable yet, its sensors start unavailable", entry_suffix(entry), pollen.station)
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = EntryData(forecast=forecast, station=station, pollen=pollen)
     await async_serve_frontend(hass)

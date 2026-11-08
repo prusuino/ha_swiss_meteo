@@ -185,6 +185,9 @@
     },
     "no_station": {
       "message": "The entry has no weather station; the history import needs one (Configure dialog)."
+    },
+    "hourly_years": {
+      "message": "Hourly values are limited to 20 years per import; run the action again for earlier years, or choose daily values."
     }
   },
   "entity": {

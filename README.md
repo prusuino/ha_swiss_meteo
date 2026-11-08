@@ -14,7 +14,7 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 
 | Entity | Description |
 |---|---|
-| `weather.swiss_meteo_<id>` | The weather entity. Condition from the MeteoSwiss symbol (day/night aware), temperature, humidity, dew point, pressure, wind, gusts and bearing from the station when one is configured (else from the forecast). **Daily forecast** for nine days: condition, high, low, precipitation and its 10–90 % range, chance of rain, wind and gusts. **Hourly forecast** (option, on by default) for the coming 200+ hours: temperature with its 10–90 % range, precipitation with its range, chance of rain, wind, gusts, bearing, cloud cover, global radiation, sunshine minutes, zero-degree level and the symbol code. Attributes: `forecast_run`, `symbol`, `symbol_meaning`, `precipitation_probability`, `zero_degree_level`, `station`, `station_time`, and the point's `point_name`, `latitude`, `longitude` and `elevation` (so the entity can be placed on a map). |
+| `weather.swiss_meteo_<id>` | The weather entity. Condition from the MeteoSwiss symbol (day/night aware), temperature, humidity, dew point, pressure, wind, gusts and bearing from the station when one is configured (else from the forecast). **Daily forecast** for nine days: condition, high, low, precipitation and its 10–90 % range, chance of rain, wind and gusts. **Hourly forecast** (option, on by default) for the coming 200+ hours: temperature with its 10–90 % range, precipitation with its range, chance of rain, wind, gusts, bearing, cloud cover, global radiation, sunshine minutes, zero-degree level and the symbol code. Attributes: `forecast_run`, `symbol`, `symbol_meaning`, `precipitation_probability`, `zero_degree_level`, `global_radiation`, `station`, `station_time`, `station_fresh`, and the point's `point_name`, `latitude`, `longitude` and `elevation` (so the entity can be placed on a map). |
 | `sensor.swiss_meteo_<id>_temperature` … | The station's 10-minute values: temperature, dew point, humidity, pressure (QNH), wind, gusts, wind direction, precipitation, sunshine, global radiation enabled by default; temperature at 5 cm and at the surface, pressure QFF and station level, vapour pressure, 3-second gusts, diffuse, reflected and longwave radiation, snow depth, wind chill, soil temperatures at 5/10/20 cm, the 850 and 700 hPa geopotential heights and the foehn index created disabled — every column of the station file, 28 in all; a station that does not measure a value leaves its sensor unknown. Unavailable once the station's file is older than 45 minutes. |
 | `sensor.swiss_meteo_<id>_today_max` / `_today_min` / `_today_precipitation` | Today's high, low and precipitation from the daily forecast; the same for tomorrow (`_tomorrow_…`). |
 | `sensor.swiss_meteo_<id>_today_mean` / `_tomorrow_mean` | The day's mean temperature: the mean of the hourly values when the day is covered, else of the high and low. |
@@ -92,7 +92,7 @@ data:
   values: [temperature, precipitation, sunshine]   # empty = all
 ```
 
-- The station sensors (temperature, humidity, pressure, wind, radiation, snow depth, soil temperatures) get mean, minimum and maximum per hour or per day, under their own entity ids.
+- The station sensors (temperature, humidity, pressure, wind, radiation, snow depth, soil temperatures) get the mean per hour or per day — and the minimum and maximum where the archive has them (temperature, gusts) — under their own entity ids; a sensor that is disabled is skipped (the summary lists them). Hourly values are limited to 20 years per call; run the action again for earlier years.
 - Totals that the 10-minute sensors cannot carry come as separate statistics: `swiss_meteo:<id>_precipitation` (mm), `_sunshine` (min), `_evaporation` (FAO reference evaporation, mm) and, with daily values, `_heating_degree_days` (12/20). Pick them in a statistics graph card.
 - Hourly values cost about 7 MB per ten-year file plus 1 MB for the current year; daily values about 2.5 MB for the whole history. The traffic sensor counts them. Run it once; a second run over the same period replaces the rows. Keep one resolution for the totals (precipitation, sunshine, evaporation): an hourly run after a daily one, or the other way round, mixes rows of both kinds in the same statistic.
 
@@ -122,7 +122,7 @@ show_daily: true
 show_pollen: true   # pollen chip from the entry's pollen-level sensor
 ```
 
-With a pollen station configured, the current values carry a **pollen chip**: the day's load class and the species behind it; a click opens the pollen-level sensor. `pollen_entity` names another pollen-level sensor, `show_pollen: false` drops the chip. The main card uses the dark blue MeteoSwiss palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead. Every card takes `animated: false` for still icons. Four more cards come with the same file, in the look of the MeteoSwiss website:
+With a pollen station configured, the current values carry a **pollen chip**: the day's load class and the species behind it; a click opens the pollen-level sensor. `pollen_entity` names another pollen-level sensor, `show_pollen: false` drops the chip. The main card uses the dark blue Swiss Meteo palette by default (`theme: meteo`); `theme: ha` follows your Home Assistant theme instead. Every card takes `animated: false` for still icons. Four more cards come with the same file, in the look of the MeteoSwiss website:
 
 **Swiss Meteo – forecast** (`custom:swiss-meteo-forecast-card`): the drop-in for Home Assistant's `weather-forecast` card with the same options — current conditions on top and a row of days (symbol, low and high, precipitation) or hours (symbol, temperature, precipitation or chance of rain).
 
@@ -139,7 +139,7 @@ theme: meteo
 ```
 
 
-**Swiss Meteo – sky** (`custom:swiss-meteo-sky-card`): a glass panel on a sky with the mountain silhouette, in the MeteoSwiss palette (`theme: sky` for the blue of the Swiss Meteo banner): place and condition, the big temperature with the symbol, a row of details (humidity, wind, precipitation of the next day or hour) and a row of days (symbol, high, low) or hours (symbol, temperature, precipitation). `background: panel` draws the panel alone, for a dashboard with its own background.
+**Swiss Meteo – sky** (`custom:swiss-meteo-sky-card`): a glass panel on a sky with the mountain silhouette, in the Swiss Meteo palette (`theme: sky` for the blue of the Swiss Meteo banner): place and condition, the big temperature with the symbol, a row of details (humidity, wind, precipitation of the next day or hour) and a row of days (symbol, high, low) or hours (symbol, temperature, precipitation). `background: panel` draws the panel alone, for a dashboard with its own background.
 
 ```yaml
 type: custom:swiss-meteo-sky-card
@@ -155,7 +155,7 @@ background: sky        # or panel
 theme: meteo           # or sky (banner blue)
 ```
 
-**Swiss Meteo – daily list** (`custom:swiss-meteo-daily-card`): the nine-day list — weekday, symbol, low and high in boxes, precipitation with its 10–90 % range — with the *Wind* and *Sunshine* toggles that add the day's wind, gusts and sunshine hours to each row. `theme: meteo` (default) uses the dark blue MeteoSwiss palette, `theme: ha` your Home Assistant theme.
+**Swiss Meteo – daily list** (`custom:swiss-meteo-daily-card`): the nine-day list — weekday, symbol, low and high in boxes, precipitation with its 10–90 % range — with the *Wind* and *Sunshine* toggles that add the day's wind, gusts and sunshine hours to each row. `theme: meteo` (default) uses the dark blue Swiss Meteo palette, `theme: ha` your Home Assistant theme.
 
 ```yaml
 type: custom:swiss-meteo-daily-card

@@ -47,7 +47,7 @@ class SwissMeteoWeather(CoordinatorEntity[ForecastCoordinator], WeatherEntity):
         super().__init__(data.forecast)
         self._entry = entry
         self._station = data.station
-        self._attr_name = t("weather_name", hass)
+        self._attr_name = None  # the device's main entity carries the device name
         self._attr_unique_id = f"{entry.entry_id}_weather"
         self._attr_device_info = device_info(hass, entry)
         self.entity_id = f"weather.{DOMAIN}_{entry_suffix(entry)}"

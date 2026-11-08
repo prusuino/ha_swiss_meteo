@@ -185,6 +185,9 @@
     },
     "no_station": {
       "message": "L'entrée n'a pas de station météo ; l'import de l'historique en a besoin (dialogue « Configurer »)."
+    },
+    "hourly_years": {
+      "message": "Les valeurs horaires sont limitées à 20 ans par importation ; relancez l'action pour les années antérieures ou choisissez les valeurs journalières."
     }
   },
   "entity": {

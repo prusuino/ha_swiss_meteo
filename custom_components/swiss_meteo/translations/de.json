@@ -185,6 +185,9 @@
     },
     "no_station": {
       "message": "Der Eintrag hat keine Wetterstation; der Historie-Import braucht eine (Dialog «Konfigurieren»)."
+    },
+    "hourly_years": {
+      "message": "Stundenwerte sind auf 20 Jahre pro Import begrenzt; für frühere Jahre die Aktion nochmals ausführen oder Tageswerte wählen."
     }
   },
   "entity": {

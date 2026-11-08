@@ -50,6 +50,7 @@ _PROBE = 1024  # bytes read per binary-search probe
 _WINDOW = 3 * 1024  # bytes read around a predicted row in a date-major file
 _SMALL_FILE = 300 * 1024  # below this a single read beats any search
 _MAX_PARALLEL = 6  # concurrent Range requests against one file
+_MAX_PARALLEL_FILES = 3  # forecast files read at once (each with up to _MAX_PARALLEL ranges)
 
 
 class OgdError(Exception):
@@ -694,10 +695,12 @@ async def async_fetch_forecast(
     file is missing or unreadable is listed in `missing` rather than
     failing the whole fetch; the entities then show what there is."""
     data = ForecastData(run=run, point=point)
+    limit = asyncio.Semaphore(_MAX_PARALLEL_FILES)
 
     async def one(param: str) -> None:
         try:
-            data.series[param] = await async_read_point(session, forecast_file_url(run, param), point, param, data.stats)
+            async with limit:
+                data.series[param] = await async_read_point(session, forecast_file_url(run, param), point, param, data.stats)
         except OgdError as err:
             _LOGGER.debug("Forecast %s for %s not read: %s", param, point, err)
             data.missing.append(param)

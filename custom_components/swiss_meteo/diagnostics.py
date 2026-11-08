@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_POINT_LAT, CONF_POINT_LON, DOMAIN, USER_AGENT
+from .const import CONF_POINT_LAT, CONF_POINT_NAME, CONF_POINT_LON, DOMAIN, USER_AGENT
 from .coordinator import EntryData
 
 
@@ -41,7 +41,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
         "entry": {
             "title": "**REDACTED**",
             "unique_id": "**REDACTED**" if entry.unique_id else None,
-            "data": {k: ("**REDACTED**" if k in (CONF_POINT_LAT, CONF_POINT_LON) else v) for k, v in entry.data.items()},
+            "data": {k: ("**REDACTED**" if k in (CONF_POINT_LAT, CONF_POINT_LON, CONF_POINT_NAME) else v) for k, v in entry.data.items()},
             "options": dict(entry.options),
         },
         "forecast": {

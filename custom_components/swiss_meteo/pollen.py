@@ -144,7 +144,7 @@ class PollenCoordinator(DataUpdateCoordinator[PollenReading]):
     """The pollen station's current day."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        super().__init__(hass, _LOGGER, name=f"{DOMAIN} pollen", update_interval=UPDATE_INTERVAL)
+        super().__init__(hass, _LOGGER, name=f"{DOMAIN} pollen", update_interval=UPDATE_INTERVAL, config_entry=entry)
         self.entry = entry
         self.station = str(entry.options.get(CONF_POLLEN_STATION, entry.data.get(CONF_POLLEN_STATION, "")))
 
