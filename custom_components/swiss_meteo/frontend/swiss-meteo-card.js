@@ -1104,9 +1104,7 @@ class SwissMeteoForecastCard extends HTMLElement {
       .current { display: grid; grid-template-columns: var(--ico-big) minmax(0, 1fr) auto; gap: 12px; align-items: center; cursor: pointer; }
       .current .big { width: var(--ico-big); height: var(--ico-big); }
       .title { font-size: calc(1.25em * min(var(--fs), 1.2)); font-weight: 700; line-height: 1.15; color: var(--sm-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .title .asl { font-size: 0.72em; font-weight: 400; color: var(--sm-dim); margin-left: 0.5em; }
-      @container (max-width: 540px) { ha-card.xl .asl { display: none; } }
-      @container (max-width: 400px) { ha-card.large .asl { display: none; } }
+      .title .asl { font-size: 0.68em; font-weight: 400; color: var(--sm-dim); margin-left: 0.45em; }
       .title.small { cursor: pointer; margin-bottom: 8px; }
       .cond { font-size: calc(0.95em * var(--fs)); margin-top: 2px; text-transform: capitalize; color: var(--sm-text); }
       .sec { font-size: calc(0.8em * var(--fs)); color: var(--sm-dim); margin-top: 2px; }
