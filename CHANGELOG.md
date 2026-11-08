@@ -2,6 +2,7 @@
 
 ## 1.5.0 — 2026-11-08
 
+- **New: repair notices.** A notice under **Settings → Repairs** when the forecast could not be read for three refreshes in a row, when the weather station's values could not be read for an hour (the station may have been discontinued: pick another in *Configure*), and when the pollen station's values could not be read. Each clears itself with the next successful read. In all four languages.
 - **New: reconfigure an entry in place.** The entry's menu under **Settings → Devices & services** now offers *Reconfigure*: move the marker or search for another place or postal code, then pick the forecast point, the weather station and the pollen station around it, as in the setup. The entry keeps its entities, their ids and history; the title follows the new point. The hourly forecast, extended values, warnings and radar switches stay as set in *Configure*. A change to a point another entry already uses is refused.
 
 ## 1.4.0 — 2026-11-08

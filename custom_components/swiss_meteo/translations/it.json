@@ -425,5 +425,19 @@
         }
       }
     }
+  },
+  "issues": {
+    "forecast_unreachable": {
+      "title": "Swiss Meteo: previsione non leggibile",
+      "description": "Gli open data di MeteoSvizzera non hanno potuto essere letti per diversi aggiornamenti consecutivi ({error}). Controlla la connessione internet; se funziona, il servizio di MeteoSvizzera è guasto o è cambiato. L'entità meteo resta non disponibile fino ad allora e si ripristina da sola; questo avviso scompare con il prossimo aggiornamento riuscito."
+    },
+    "station_unreadable": {
+      "title": "Swiss Meteo: stazione meteo {station} non leggibile",
+      "description": "I valori misurati della stazione {station} non hanno potuto essere letti per un'ora ({error}). Se dura per giorni, MeteoSvizzera potrebbe aver dismesso la stazione o cambiato la sua sigla: scegli un'altra stazione nel dialogo «Configura» della voce. I sensori della stazione restano non disponibili fino ad allora; questo avviso scompare con il prossimo aggiornamento riuscito."
+    },
+    "pollen_unreadable": {
+      "title": "Swiss Meteo: stazione pollinica {station} non leggibile",
+      "description": "I valori pollinici della stazione {station} non hanno potuto essere letti per diversi aggiornamenti consecutivi ({error}). Fuori dalla stagione pollinica MeteoSvizzera non pubblica valori per alcune stazioni; se persiste in stagione, scegli un'altra stazione pollinica nel dialogo «Configura» della voce. Questo avviso scompare con il prossimo aggiornamento riuscito."
+    }
   }
 }

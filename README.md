@@ -297,6 +297,7 @@ Each entry is one place; add the integration again for another postal code or a 
 
 ## Notes
 
+- **Repairs.** When the forecast could not be read for three refreshes in a row, the weather station's values for an hour, or the pollen station's values for three refreshes, a notice appears under **Settings → Repairs** that says what happened and what to do; it disappears on its own with the next successful read.
 - The forecast is the one shown in the MeteoSwiss app and on its website for the postal code, updated every hour; the symbol codes (1–42 by day, 101–142 by night) are mapped to Home Assistant conditions and, in the card, to Meteocons.
 - Daily highs, lows and precipitation count the local calendar day; the daily entries also carry the day's maximum wind and gusts, the chance of rain and the sunshine hours. The hourly list starts with the current hour; past hours of the run are dropped.
 - MeteoSwiss has announced a point API for the local forecast (beta by the end of 2026). The file reader is built behind an interface so the integration can switch to it when it is there — entities and ids will not change.

@@ -18,6 +18,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .issues import IssueReporter
+
 from .const import COLLECTION_POLLEN, CONF_POLLEN_STATION, DATA_BASE, DOMAIN
 from .ogd import OgdError, _fetch, _float, _parse_csv, _parse_station_timestamp
 
@@ -147,12 +149,16 @@ class PollenCoordinator(DataUpdateCoordinator[PollenReading]):
         super().__init__(hass, _LOGGER, name=f"{DOMAIN} pollen", update_interval=UPDATE_INTERVAL, config_entry=entry)
         self.entry = entry
         self.station = str(entry.options.get(CONF_POLLEN_STATION, entry.data.get(CONF_POLLEN_STATION, "")))
+        self.issues = IssueReporter(hass, entry.entry_id)
 
     async def _async_update_data(self) -> PollenReading:
         try:
-            return await async_fetch_pollen_reading(async_get_clientsession(self.hass), self.station)
+            reading = await async_fetch_pollen_reading(async_get_clientsession(self.hass), self.station)
         except OgdError as err:
+            self.issues.failure("pollen_unreadable", {"station": self.station, "error": str(err)})
             raise UpdateFailed(str(err)) from err
+        self.issues.clear("pollen_unreadable")
+        return reading
 
     @property
     def fresh(self) -> bool:

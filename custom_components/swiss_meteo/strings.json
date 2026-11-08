@@ -425,5 +425,19 @@
         }
       }
     }
+  },
+  "issues": {
+    "forecast_unreachable": {
+      "title": "Swiss Meteo: forecast not readable",
+      "description": "The MeteoSwiss open data could not be read for several refreshes in a row ({error}). Check your internet connection; if it is fine, the MeteoSwiss service is down or has changed. The weather entity stays unavailable until then and recovers on its own; this notice disappears with the next successful refresh."
+    },
+    "station_unreadable": {
+      "title": "Swiss Meteo: weather station {station} not readable",
+      "description": "The live values of station {station} could not be read for an hour ({error}). If this persists for days, MeteoSwiss may have discontinued the station or changed its abbreviation: pick another station in the entry's Configure dialog. The station sensors stay unavailable until then; this notice disappears with the next successful refresh."
+    },
+    "pollen_unreadable": {
+      "title": "Swiss Meteo: pollen station {station} not readable",
+      "description": "The pollen values of station {station} could not be read for several refreshes in a row ({error}). Outside the pollen season MeteoSwiss publishes no values for some stations; if it persists in season, pick another pollen station in the entry's Configure dialog. This notice disappears with the next successful refresh."
+    }
   }
 }

@@ -425,5 +425,19 @@
         }
       }
     }
+  },
+  "issues": {
+    "forecast_unreachable": {
+      "title": "Swiss Meteo : prévision illisible",
+      "description": "Les données ouvertes de MétéoSuisse n'ont pas pu être lues lors de plusieurs actualisations consécutives ({error}). Vérifie ta connexion internet ; si elle fonctionne, le service de MétéoSuisse est en panne ou a changé. L'entité météo reste indisponible jusque-là et se rétablit d'elle-même ; cet avis disparaît à la prochaine actualisation réussie."
+    },
+    "station_unreadable": {
+      "title": "Swiss Meteo : station météo {station} illisible",
+      "description": "Les mesures de la station {station} n'ont pas pu être lues pendant une heure ({error}). Si cela dure des jours, MétéoSuisse a peut-être abandonné la station ou changé son abréviation : choisis une autre station dans le dialogue « Configurer » de l'entrée. Les capteurs de la station restent indisponibles jusque-là ; cet avis disparaît à la prochaine actualisation réussie."
+    },
+    "pollen_unreadable": {
+      "title": "Swiss Meteo : station pollinique {station} illisible",
+      "description": "Les valeurs polliniques de la station {station} n'ont pas pu être lues lors de plusieurs actualisations consécutives ({error}). Hors saison pollinique, MétéoSuisse ne publie pas de valeurs pour certaines stations ; si cela persiste en saison, choisis une autre station pollinique dans le dialogue « Configurer » de l'entrée. Cet avis disparaît à la prochaine actualisation réussie."
+    }
   }
 }

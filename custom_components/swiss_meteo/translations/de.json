@@ -425,5 +425,19 @@
         }
       }
     }
+  },
+  "issues": {
+    "forecast_unreachable": {
+      "title": "Swiss Meteo: Prognose nicht lesbar",
+      "description": "Die MeteoSchweiz-Open-Data konnten mehrere Aktualisierungen in Folge nicht gelesen werden ({error}). Prüfe deine Internetverbindung; ist sie in Ordnung, ist der MeteoSchweiz-Dienst gestört oder hat sich geändert. Die Wetter-Entität bleibt bis dahin nicht verfügbar und erholt sich von selbst; dieser Hinweis verschwindet mit der nächsten erfolgreichen Aktualisierung."
+    },
+    "station_unreadable": {
+      "title": "Swiss Meteo: Wetterstation {station} nicht lesbar",
+      "description": "Die Messwerte der Station {station} konnten eine Stunde lang nicht gelesen werden ({error}). Hält das tagelang an, hat MeteoSchweiz die Station möglicherweise aufgegeben oder ihr Kürzel geändert: Wähle im Dialog „Konfigurieren“ des Eintrags eine andere Station. Die Stationssensoren bleiben bis dahin nicht verfügbar; dieser Hinweis verschwindet mit der nächsten erfolgreichen Aktualisierung."
+    },
+    "pollen_unreadable": {
+      "title": "Swiss Meteo: Pollenstation {station} nicht lesbar",
+      "description": "Die Pollenwerte der Station {station} konnten mehrere Aktualisierungen in Folge nicht gelesen werden ({error}). Ausserhalb der Pollensaison publiziert MeteoSchweiz für manche Stationen keine Werte; hält es in der Saison an, wähle im Dialog „Konfigurieren“ des Eintrags eine andere Pollenstation. Dieser Hinweis verschwindet mit der nächsten erfolgreichen Aktualisierung."
+    }
   }
 }

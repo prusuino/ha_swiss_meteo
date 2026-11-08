@@ -32,6 +32,7 @@ from .const import (
     HOURLY_PARAMS,
     STATION_INTERVAL_MINUTES,
 )
+from .issues import IssueReporter
 from .ogd import (
     OgdError,
     OgdUnavailable,
@@ -89,6 +90,18 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
         self.hourly_enabled = bool(entry.options.get(CONF_HOURLY, entry.data.get(CONF_HOURLY, True)))
         self.extended_enabled = bool(entry.options.get(CONF_EXTENDED, entry.data.get(CONF_EXTENDED, False)))
         self._snapshot = ForecastSnapshot()
+        self.issues = IssueReporter(hass, entry.entry_id)
+
+    async def _async_update_data(self) -> ForecastSnapshot:
+        # A kept run is not a failure; only a refresh that leaves the entity
+        # without a usable forecast counts towards the repair notice.
+        try:
+            snap = await self._async_fetch()
+        except UpdateFailed as err:
+            self.issues.failure("forecast_unreachable", {"error": str(err)})
+            raise
+        self.issues.clear("forecast_unreachable")
+        return snap
 
     def _account(self, snap: ForecastSnapshot, requests: int, nbytes: int) -> None:
         today = dt_util.start_of_local_day()
@@ -109,7 +122,7 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
         run = snap.run if snap.run.tzinfo else snap.run.replace(tzinfo=timezone.utc)
         return now - run <= _FORECAST_MAX_AGE
 
-    async def _async_update_data(self) -> ForecastSnapshot:
+    async def _async_fetch(self) -> ForecastSnapshot:
         session = async_get_clientsession(self.hass)
         snap = self._snapshot
         now = dt_util.utcnow()
@@ -180,13 +193,19 @@ class StationCoordinator(DataUpdateCoordinator[StationReading]):
         )
         self.entry = entry
         self.station = str(entry.options.get(CONF_STATION, entry.data.get(CONF_STATION, "")))
+        self.issues = IssueReporter(hass, entry.entry_id)
 
     async def _async_update_data(self) -> StationReading:
         session = async_get_clientsession(self.hass)
         try:
-            return await async_fetch_station_reading(session, self.station)
+            reading = await async_fetch_station_reading(session, self.station)
         except OgdError as err:
+            # An hour of failures (six 10-minute refreshes): the station file
+            # is gone or the station was discontinued, say so under Repairs.
+            self.issues.failure("station_unreadable", {"station": self.station, "error": str(err)}, after=6)
             raise UpdateFailed(str(err)) from err
+        self.issues.clear("station_unreadable")
+        return reading
 
     @property
     def fresh(self) -> bool:
