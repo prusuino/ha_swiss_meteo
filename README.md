@@ -301,6 +301,10 @@ Each entry is one place; add the integration again for another postal code or a 
 2. Remove the integration itself in the **Marketplace** (or HACS), then restart Home Assistant. With a manual installation, delete `custom_components/swiss_meteo` instead.
 3. Station history imported with the *Import station history* action stays in the long-term statistics; delete it under **Developer tools → Statistics** if you do not want to keep it.
 
+## Quality scale
+
+The integration declares **Bronze** on the [Home Assistant integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/): a config flow with tests, unique ids for every entity, brand images, installation and removal instructions, a connection check before an entry is created, no duplicate entries, runtime data on the config entry, and the other Bronze rules. The tier is self-assessed, as it is for every custom integration; the per-rule status, including what is still open for Silver and Gold, is in `custom_components/swiss_meteo/quality_scale.yaml`.
+
 ## Notes
 
 - **Repairs.** When the forecast could not be read for three refreshes in a row, the weather station's values for an hour, or the pollen station's values for three refreshes, a notice appears under **Settings → Repairs** that says what happened and what to do; it disappears on its own with the next successful read.
