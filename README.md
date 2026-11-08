@@ -6,6 +6,19 @@ A Home Assistant custom integration for the **MeteoSwiss** forecast and measurem
 
 > **Open data only.** Everything comes from the files MeteoSwiss publishes under CC BY 4.0 on the federal geodata platform, plus the official warnings from MeteoAlarm (EUMETNET, CC BY 4.0), where MeteoSwiss publishes them. No app backend, no scraping, no API key, no third-party service, no Python dependencies.
 
+## Highlights
+
+- **Everything official, in one device**: the MeteoSwiss local forecast, the live values of a SwissMetNet station, the official warnings and the pollen counts — all from open data, read by one integration.
+- **Reads sparingly**: a forecast parameter costs about 40 KB instead of the 33 MB file it lives in, thanks to range requests; the hourly forecast is a few megabytes a day, and a traffic sensor shows it.
+- **Built for the automation editor**: triggers (rain expected, rain cleared, frost tonight, new run, warning issued, warning cleared), conditions (rain expected, dry, frost expected, warning in force) and ready-made blueprints — no templates needed.
+- **Figures for heating and solar**: heating degree days, daily mean temperature, global radiation and sunshine sums for today and tomorrow, as sensors.
+- **Rain and frost at a glance**: the next rain as a timestamp, "rain expected" for the coming hours, "frost tonight" for the garden.
+- **Official warnings matched to your place**: the MeteoSwiss warnings (via MeteoAlarm) are tested against your forecast point itself, with a banner on the cards.
+- **Pollen with the MeteoSwiss load classes**: seven species from the nearest of the 15 pollen stations.
+- **Decades of station history**: one action imports the station's archive (hourly since 1980, daily since the station started) into the long-term statistics.
+- **Five dashboard cards**: hourly chart with uncertainty bands, nine-day strip, daily list, map of Switzerland, sky card — in three colour schemes, four sizes, with animated or still icons, all with a visual editor.
+- **Set up in a minute**: from your Home Assistant location or by typing a place or postal code; German, English, French and Italian; diagnostics download with your location redacted.
+
 ## Background
 
 Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Swiss postal code, the automatic station network, radar, pollen. The forecast, though, comes as one file per parameter and model run covering all of Switzerland — 30 to 34 MB for an hourly value, every hour. Reading your place out of that without pulling the whole file is what this integration does differently: the rows of one forecast point are fetched with HTTP range requests — a binary search over the file where the rows are grouped by point, a predicted position where they are grouped by hour — so a parameter costs some 40 KB instead of 33 MB. The traffic is shown as a sensor, so you can see it stay small.

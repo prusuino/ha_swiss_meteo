@@ -8,7 +8,7 @@ ATTRIBUTION_WARNINGS = "Source: MeteoSwiss via MeteoAlarm (EUMETNET), CC BY 4.0"
 
 # Sent with every request. MeteoSwiss serves the files from the federal
 # geodata platform; identifying the client helps them attribute traffic.
-USER_AGENT = "SwissMeteo/0.1.0 (Home Assistant integration; +https://github.com/prusuino/ha_swiss_meteo)"
+USER_AGENT = "SwissMeteo/1.3.0 (Home Assistant integration; +https://github.com/prusuino/ha_swiss_meteo)"
 
 # --- Open data endpoints -----------------------------------------------------
 DATA_BASE = "https://data.geo.admin.ch"
