@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.0 — unreleased
+## 1.4.0 — 2026-11-08
 
 - Radar nowcast from the MeteoSwiss precipitation composite (PRECIP, every 5 minutes, 29 KB per frame, read without an HDF5 library): rain rate at the point, distance to the nearest rain, estimated minutes until rain arrives from the motion of the rain field; binary sensors "Raining" and "Rain approaching"; triggers "Rain approaching", "Rain started", "Rain stopped"; conditions "It is raining", "It is not raining", "Rain is approaching"; radar chip on the main card; option to switch the radar off.
 - Radar card `custom:swiss-meteo-radar-card`: the last two hours of radar frames around the place as a loop, plus up to an hour extrapolated along the measured motion (estimate), on the swisstopo national map (grey or colour, or none with the Swiss border and lakes drawn instead), distance rings, marker, zoom from 200 km down to 25 km, play/pause and slider. Image entity `image.<id>_radar` with the newest frame. The integration keeps two hours of 200 × 200 km crops and renders the PNGs itself.

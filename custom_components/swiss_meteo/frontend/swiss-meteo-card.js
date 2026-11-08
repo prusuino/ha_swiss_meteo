@@ -17,7 +17,7 @@
  * Served by the integration at /swiss_meteo_files/swiss-meteo-card.js.
  */
 
-const CARD_VERSION = "1.3.1";
+const CARD_VERSION = "1.4.0";
 const ICON_BASE = "/swiss_meteo_files/icons/";
 
 const LABELS = {
