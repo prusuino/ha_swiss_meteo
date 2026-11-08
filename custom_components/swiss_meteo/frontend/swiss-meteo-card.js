@@ -784,7 +784,7 @@ class SwissMeteoMapCard extends HTMLElement {
     this._lastStamp = null;
   }
   setConfig(config) {
-    this._config = { day: 0, show_names: true, ...(config || {}) };
+    this._config = { day: 0, show_names: true, theme: "meteo", ...(config || {}) };
     this._wanted = null;
     this._render();
   }
@@ -873,7 +873,7 @@ class SwissMeteoMapCard extends HTMLElement {
       title = `${LL(hass, "map_title")} ${when}${ds ? ", " + ds : ""}`;
     }
     const empty = ents.length ? "" : `<div class="empty">${esc(LL(hass, "no_entities"))}</div>`;
-    this.shadowRoot.innerHTML = `${this._style()}<ha-card>
+    this.shadowRoot.innerHTML = `${this._style()}<ha-card class="${this._config.theme === "ha" ? "ha" : "meteo"}">
       <div class="map">
         <svg viewBox="0 0 ${MAP.W} ${MAP.H}" preserveAspectRatio="none">
           <defs><clipPath id="ch"><path d="${MAP.ch}" /></clipPath>
@@ -900,7 +900,16 @@ class SwissMeteoMapCard extends HTMLElement {
     return `<style>
       :host { display: block; }
       ha-card { overflow: hidden; background: #4b5661; color: #fff; }
+      ha-card.ha { background: var(--card-background-color); color: var(--primary-text-color); }
       .map { position: relative; width: 100%; aspect-ratio: ${MAP.W} / ${MAP.H}; background: radial-gradient(ellipse at 50% 40%, #5a6773 0%, #414b55 70%, #39424b 100%); container-type: inline-size; }
+      ha-card.ha .map { background: var(--secondary-background-color, rgba(128,128,128,0.12)); }
+      ha-card.ha .land { fill: rgba(128,128,128,0.3); }
+      ha-card.ha .lake { fill: rgba(74,144,217,0.45); }
+      ha-card.ha .border { stroke: var(--primary-text-color); opacity: 0.35; }
+      ha-card.ha .title { text-shadow: none; }
+      ha-card.ha .pill .body { background: var(--primary-color, #1f5fd6); color: var(--text-primary-color, #fff); }
+      ha-card.ha .pill .t span { background: rgba(0,0,0,0.25); }
+      ha-card.ha .info { border-color: var(--secondary-text-color); color: var(--secondary-text-color); }
       .map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
       .land { fill: #86c3a1; }
       .lake { fill: #a9d9f3; }
@@ -927,6 +936,7 @@ SwissMeteoMapCardEditor.schema = [
   { name: "day", selector: { number: { min: 0, max: 8, mode: "box" } } },
   { name: "show_names", selector: { boolean: {} } },
   { name: "animated", selector: { boolean: {} } },
+  { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "ha", label: "Home Assistant" }] } } },
 ];
 customElements.define("swiss-meteo-map-card-editor", SwissMeteoMapCardEditor);
 
@@ -1207,7 +1217,7 @@ class SwissMeteoSkyCard extends HTMLElement {
     const state = hass.states[this._config.entity];
     const a = state ? state.attributes : {};
     const hourly = this._config.forecast_type === "hourly";
-    const cls = (this._config.background === "panel" ? "panel" : "sky") + (this._config.theme === "sky" ? " blue" : "") + (this._config.size === "large" || this._config.size === "xl" ? " " + this._config.size : "");
+    const cls = (this._config.background === "panel" ? "panel" : "sky") + (this._config.theme === "sky" ? " blue" : this._config.theme === "ha" ? " ha" : "") + (this._config.size === "large" || this._config.size === "xl" ? " " + this._config.size : "");
     const name = this._config.name || this._config.title || a.point_name || a.friendly_name || this._config.entity;
     const sky = cls === "sky" ? `<svg class="mtn" viewBox="0 0 1280 220" preserveAspectRatio="none"><path d="${SKY_MOUNTAINS}" /></svg>` : "";
     if (!state || state.state === "unavailable") {
@@ -1269,6 +1279,9 @@ class SwissMeteoSkyCard extends HTMLElement {
         --sk-text: #fff; --sk-dim: #c3ccd6; --sk-line: rgba(195,204,214,0.2); }
       ha-card.blue { --sk-bg: radial-gradient(ellipse at 78% 18%, #2a8ae0 0%, rgba(42,138,224,0) 55%), linear-gradient(160deg, #0d4a86 0%, #082a4e 100%); --sk-mtn: #06223f;
         --sk-glass: rgba(10,30,56,0.86); --sk-border: rgba(143,195,240,0.25); --sk-text: #fff; --sk-dim: #8fc3f0; --sk-line: rgba(143,195,240,0.2); }
+      ha-card.ha { --sk-bg: var(--card-background-color); --sk-mtn: var(--secondary-background-color, rgba(128,128,128,0.15)); --sk-glass: var(--card-background-color);
+        --sk-border: var(--divider-color, rgba(128,128,128,0.3)); --sk-text: var(--primary-text-color); --sk-dim: var(--secondary-text-color); --sk-line: var(--divider-color, rgba(128,128,128,0.3)); color: var(--primary-text-color); }
+      ha-card.ha.sky .glass { box-shadow: none; }
       ha-card.sky { padding: 18px 20px; background: var(--sk-bg); }
       ha-card { display: block; container-type: inline-size; }
       @container (max-width: 300px) { .glass { --ico-big: 72px; --ico-row: 36px; --fs: 0.9; padding: 12px 12px 10px; } }
@@ -1313,7 +1326,7 @@ SwissMeteoSkyCardEditor.schema = [
   { name: "size", selector: { select: { mode: "dropdown", options: [{ value: "normal", label: "normal" }, { value: "large", label: "large" }, { value: "xl", label: "XL" }] } } },
   { name: "animated", selector: { boolean: {} } },
   { name: "background", selector: { select: { mode: "dropdown", options: [{ value: "sky", label: "Sky" }, { value: "panel", label: "Panel" }] } } },
-  { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "sky", label: "Banner blue" }] } } },
+  { name: "theme", selector: { select: { mode: "dropdown", options: [{ value: "meteo", label: "Swiss Meteo" }, { value: "ha", label: "Home Assistant" }, { value: "sky", label: "Banner blue" }] } } },
 ];
 customElements.define("swiss-meteo-sky-card-editor", SwissMeteoSkyCardEditor);
 
