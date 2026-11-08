@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1 — 2026-11-08
+
+- **Maintenance.** The integration now keeps its per-entry data in the config entry's runtime data, as the Home Assistant quality scale asks, and declares the **bronze** tier in its manifest. The README gained a removal section. A test suite (parsers, forecast helpers, config flow) runs on every push. No change to entities or configuration.
+
 ## 1.5.0 — 2026-11-08
 
 - **New: repair notices.** A notice under **Settings → Repairs** when the forecast could not be read for three refreshes in a row, when the weather station's values could not be read for an hour (the station may have been discontinued: pick another in *Configure*), and when the pollen station's values could not be read. Each clears itself with the next successful read. In all four languages.

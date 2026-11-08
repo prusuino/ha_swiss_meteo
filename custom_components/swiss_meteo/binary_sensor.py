@@ -29,7 +29,7 @@ FROST_THRESHOLD = 0.0
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    data: EntryData = hass.data[DOMAIN][entry.entry_id]
+    data: EntryData = entry.runtime_data
     entities: list[BinarySensorEntity] = []
     if data.forecast.hourly_enabled:
         entities += [RainExpectedSensor(hass, entry, data.forecast), FrostTonightSensor(hass, entry, data.forecast), StrongWindExpectedSensor(hass, entry, data.forecast)]

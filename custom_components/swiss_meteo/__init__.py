@@ -16,6 +16,8 @@ from homeassistant.helpers.typing import ConfigType
 from .issues import async_clear_entry_issues
 from .const import CONF_POLLEN_STATION, CONF_RADAR, CONF_STATION, CONF_WARNINGS, DOMAIN, STATION_PARAMS
 from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
+
+type SwissMeteoConfigEntry = ConfigEntry[EntryData]
 from .device import entry_suffix
 from .frontend import async_serve_frontend
 from .derived import best_window
@@ -56,7 +58,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     async def _import_history(call: ServiceCall) -> ServiceResponse:
         entry = hass.config_entries.async_get_entry(call.data["entry"])
-        data: EntryData | None = hass.data.get(DOMAIN, {}).get(call.data["entry"])
+        data: EntryData | None = getattr(entry, "runtime_data", None) if entry else None
         if entry is None or data is None:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="entry_not_loaded")
         if data.station is None:
@@ -90,7 +92,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.services.async_register(DOMAIN, SERVICE_IMPORT_HISTORY, _import_history, schema=IMPORT_SCHEMA, supports_response=SupportsResponse.OPTIONAL)
 
     async def _best_window(call: ServiceCall) -> ServiceResponse:
-        data: EntryData | None = hass.data.get(DOMAIN, {}).get(call.data["entry"])
+        entry = hass.config_entries.async_get_entry(call.data["entry"])
+        data: EntryData | None = getattr(entry, "runtime_data", None) if entry else None
         if data is None:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="entry_not_loaded")
         snap = data.forecast.data
@@ -111,14 +114,15 @@ async def ws_radar_frames(hass: HomeAssistant, connection: websocket_api.ActiveC
     entity belongs to, for the radar card."""
     registry = er.async_get(hass)
     ent = registry.async_get(msg["entity_id"])
-    data: EntryData | None = hass.data.get(DOMAIN, {}).get(ent.config_entry_id) if ent and ent.config_entry_id else None
+    entry = hass.config_entries.async_get_entry(ent.config_entry_id) if ent and ent.config_entry_id else None
+    data: EntryData | None = getattr(entry, "runtime_data", None) if entry else None
     if data is None or data.radar is None:
         connection.send_error(msg["id"], "not_found", "No radar for this entity (radar off or entity not from Swiss Meteo)")
         return
     connection.send_result(msg["id"], await data.radar.async_frames_for_card())
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: SwissMeteoConfigEntry) -> bool:
     forecast = ForecastCoordinator(hass, entry)
     await forecast.async_config_entry_first_refresh()
 
@@ -159,7 +163,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if not radar.last_update_success:
                 _LOGGER.warning("Entry %s: radar not readable yet, its entities start unavailable", entry_suffix(entry))
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = EntryData(forecast=forecast, station=station, pollen=pollen, warnings=warnings, radar=radar)
+    entry.runtime_data = EntryData(forecast=forecast, station=station, pollen=pollen, warnings=warnings, radar=radar)
     await async_serve_frontend(hass)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -170,9 +174,8 @@ async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> Non
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: SwissMeteoConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         async_clear_entry_issues(hass, entry.entry_id)
-        hass.data[DOMAIN].pop(entry.entry_id, None)
     return unloaded

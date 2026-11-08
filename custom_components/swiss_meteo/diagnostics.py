@@ -25,7 +25,7 @@ def _series_summary(series: dict) -> dict[str, Any]:
 
 
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
-    data: EntryData | None = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    data: EntryData | None = getattr(entry, "runtime_data", None)
     snap = data.forecast.data if data and data.forecast.data else None
     station = data.station if data else None
     pollen = data.pollen if data else None

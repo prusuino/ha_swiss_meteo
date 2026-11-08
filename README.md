@@ -295,6 +295,12 @@ Copy `custom_components/swiss_meteo` into your `custom_components` directory and
 
 Each entry is one place; add the integration again for another postal code or a summit.
 
+## Removal
+
+1. **Settings → Devices & services → Swiss Meteo**, open the entry's menu (⋮) and choose **Delete**. Repeat for every place. The entities, their history and the device go with the entry.
+2. Remove the integration itself in the **Marketplace** (or HACS), then restart Home Assistant. With a manual installation, delete `custom_components/swiss_meteo` instead.
+3. Station history imported with the *Import station history* action stays in the long-term statistics; delete it under **Developer tools → Statistics** if you do not want to keep it.
+
 ## Notes
 
 - **Repairs.** When the forecast could not be read for three refreshes in a row, the weather station's values for an hour, or the pollen station's values for three refreshes, a notice appears under **Settings → Repairs** that says what happened and what to do; it disappears on its own with the next successful read.

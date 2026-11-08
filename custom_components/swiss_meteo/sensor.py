@@ -82,7 +82,7 @@ _STATION_META: dict[str, tuple] = {
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    data: EntryData = hass.data[DOMAIN][entry.entry_id]
+    data: EntryData = entry.runtime_data
     entities: list[SensorEntity] = []
     if data.station is not None:
         for column, (key, _unit) in STATION_PARAMS.items():

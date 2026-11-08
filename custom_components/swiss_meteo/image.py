@@ -18,7 +18,7 @@ from .radar import RadarCoordinator
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    data: EntryData = hass.data[DOMAIN][entry.entry_id]
+    data: EntryData = entry.runtime_data
     if data.radar is not None:
         async_add_entities([RadarImage(hass, entry, data.radar)])
 
