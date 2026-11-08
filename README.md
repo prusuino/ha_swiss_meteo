@@ -1,5 +1,7 @@
 # Swiss Meteo for Home Assistant
 
+![Swiss Meteo](readme_header.png)
+
 A Home Assistant custom integration for the **MeteoSwiss** forecast and measurements, from the official open data: the local forecast of your postal code (nine days, hour by hour, with the uncertainty range), the live values of the nearest SwissMetNet station every ten minutes, and a dashboard card with animated icons — read so sparingly that the hourly forecast costs a few megabytes a day, not hundreds.
 
 > **Open data only.** Everything comes from the files MeteoSwiss publishes under CC BY 4.0 on the federal geodata platform. No app backend, no scraping, no API key, no third-party service, no Python dependencies.
