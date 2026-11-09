@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.4 — 2026-11-09
+
+- **Listed in the Marketplace default catalog.** The README now leads with the Marketplace/HACS search and keeps the custom-repository steps as a fallback, as suggested by @frenck in the HACS review (hacs/default #13678).
+
 ## 1.5.3 — 2026-11-09
 
 - **Card hardening.** Condition and basemap lookups match own table keys only, so an unexpected state or option can no longer break the card. Follow-up to the HACS review of Swiss Lottery by @frenck.

@@ -276,9 +276,15 @@ The standard `weather-forecast` card and the weather tile features work with the
 
 ## Installation
 
-### Home Assistant Marketplace / HACS
+### Home Assistant Marketplace (recommended)
 
-Add `https://github.com/prusuino/ha_swiss_meteo` as a custom repository (category *Integration*), install **Swiss Meteo**, restart Home Assistant.
+1. Open **Settings → Marketplace** (Home Assistant 2026.11 or newer; on older versions open **HACS**), search for **"Swiss Meteo"** and download it — or use the button, which opens the integration directly in your Marketplace:
+
+   [![Open in Marketplace](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=prusuino&repository=ha_swiss_meteo&category=integration)
+
+2. Restart Home Assistant.
+
+The integration is listed in the Marketplace default catalog (formerly the HACS default store), so no custom repository is needed. If your installation does not show it yet, add `https://github.com/prusuino/ha_swiss_meteo` under **⋮ → Custom repositories** with the category *Integration* as a fallback.
 
 ### Manual
 
