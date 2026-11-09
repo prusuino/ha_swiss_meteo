@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.2 — 2026-11-09
+
+- **Version on the service card.** The integration's version now appears on its service card under Settings → Devices & services, where the entities are listed.
+
 ## 1.5.1 — 2026-11-08
 
 - **Maintenance.** The integration now keeps its per-entry data in the config entry's runtime data, as the Home Assistant quality scale asks, and declares the **bronze** tier in its manifest. The README gained a removal section. A test suite (parsers, forecast helpers, config flow) runs on every push. No change to entities or configuration.

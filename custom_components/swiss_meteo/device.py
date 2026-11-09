@@ -5,7 +5,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 
-from .const import CONF_POINT_HEIGHT, CONF_POINT_NAME, CONF_POLLEN_STATION, CONF_POLLEN_STATION_NAME, CONF_STATION, CONF_STATION_NAME, DOMAIN
+from .const import CONF_POINT_HEIGHT, CONF_POINT_NAME, CONF_POLLEN_STATION, CONF_POLLEN_STATION_NAME, CONF_STATION, CONF_STATION_NAME, DOMAIN, VERSION
 from .localization import t
 
 CONFIGURATION_URL = "https://opendatadocs.meteoswiss.ch/e-forecast-data/e4-local-forecast-data"
@@ -29,12 +29,14 @@ def device_info(hass: HomeAssistant, entry: ConfigEntry) -> DeviceInfo:
     pollen = entry.options.get(CONF_POLLEN_STATION_NAME) or entry.data.get(CONF_POLLEN_STATION_NAME) or entry.options.get(CONF_POLLEN_STATION) or entry.data.get(CONF_POLLEN_STATION) or ""
     if pollen:
         model = t("model_pollen", hass, station=model, pollen=pollen)
+    if isinstance(height, (int, float)):
+        model = f"{model} · {height:.0f} m"
     return DeviceInfo(
         identifiers={(DOMAIN, entry.entry_id)},
+        sw_version=VERSION,
         name=t("device_name", hass, place=place_name(entry)),
         manufacturer=t("manufacturer", hass),
         model=model,
         entry_type=DeviceEntryType.SERVICE,
         configuration_url=CONFIGURATION_URL,
-        sw_version=f"{height:.0f} m" if isinstance(height, (int, float)) else None,
     )
