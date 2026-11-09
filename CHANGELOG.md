@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.3 — 2026-11-09
+
+- **Card hardening.** Condition and basemap lookups match own table keys only, so an unexpected state or option can no longer break the card. Follow-up to the HACS review of Swiss Lottery by @frenck.
+
 ## 1.5.2 — 2026-11-09
 
 - **Version on the service card.** The integration's version now appears on its service card under Settings → Devices & services, where the entities are listed.

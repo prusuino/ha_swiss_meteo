@@ -124,7 +124,7 @@ function iconFor(symbol, condition, night, animated = true) {
     name = SYMBOL_ICONS[code > 100 ? code - 100 : code];
     if (code > 100) night = true;
   }
-  if (!name) name = CONDITION_ICONS[condition] || "not-available";
+  if (!name) name = Object.prototype.hasOwnProperty.call(CONDITION_ICONS, condition) ? CONDITION_ICONS[condition] : "not-available";
   return iconUrl(name.replace("{dn}", symbol != null && Number(symbol) > 100 ? "night" : dn), animated);
 }
 function fmt(value, digits = 0) {
@@ -1791,7 +1791,7 @@ class SwissMeteoRadarCard extends HTMLElement {
     this._draw();
   }
   _basemapUrl() {
-    return BASEMAPS[this._config.basemap] || null;
+    return Object.prototype.hasOwnProperty.call(BASEMAPS, this._config.basemap) ? BASEMAPS[this._config.basemap] : null;
   }
   _zoom(dir) {
     const i = ZOOM_RADII.indexOf(this._r) + dir;
