@@ -69,12 +69,10 @@ def open_meteo_device_info(hass: HomeAssistant, entry: ConfigEntry) -> DeviceInf
     )
     main = (DOMAIN, entry.entry_id)
     if links_by_device_id():
-        # The id is only known once the main device is registered; the
-        # platforms are set up in no fixed order, so register it if need be.
-        registry = dr.async_get(hass)
-        device = registry.async_get_device(identifiers={main}) or registry.async_get_or_create(
-            config_entry_id=entry.entry_id, **device_info(hass, entry)
-        )
+        # The id is only known once the main device is registered, and the
+        # platforms are set up in no fixed order: registering it here
+        # returns the existing device or creates it, as the entities do.
+        device = dr.async_get(hass).async_get_or_create(config_entry_id=entry.entry_id, **device_info(hass, entry))
         info["via_device_id"] = device.id
     else:
         info["via_device"] = main
