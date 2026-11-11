@@ -250,7 +250,7 @@ class DerivedSensor(_Base):
 
     def _day(self):
         day = dt_util.now().date()
-        return day + timedelta(days=1) if self._key.endswith("_tomorrow") else day
+        return day + timedelta(days=1) if "tomorrow" in self._key else day
 
     @property
     def native_value(self):
