@@ -14,6 +14,8 @@
 A Home Assistant custom integration for the **MeteoSwiss** forecast and measurements, from the official open data: the local forecast of your postal code (nine days, hour by hour, with the uncertainty range), the live values of the nearest SwissMetNet station every ten minutes, and a dashboard card with animated icons — read so sparingly that the hourly forecast costs a few megabytes a day, not hundreds.
 
 > **Open data only.** Everything comes from the files MeteoSwiss publishes under CC BY 4.0 on the federal geodata platform, plus the official warnings from MeteoAlarm (EUMETNET, CC BY 4.0), where MeteoSwiss publishes them. No app backend, no scraping, no API key, no third-party service, no Python dependencies.
+>
+> One exception, opt-in and **off by default**: a switch adds air quality, UV index and a pollen forecast from [Open-Meteo](https://open-meteo.com) — modelled values on a device of their own, labelled as not official MeteoSwiss data. See [Optional: air quality, UV index and pollen forecast](#optional-air-quality-uv-index-and-pollen-forecast).
 
 ## Highlights
 
@@ -24,6 +26,7 @@ A Home Assistant custom integration for the **MeteoSwiss** forecast and measurem
 - **Rain and frost at a glance**: the next rain as a timestamp, "rain expected" for the coming hours, "frost tonight" for the garden.
 - **Official warnings matched to your place**: the MeteoSwiss warnings (via MeteoAlarm) are tested against your forecast point itself, with a banner on the cards.
 - **Pollen with the MeteoSwiss load classes**: seven species from the nearest of the 15 pollen stations.
+- **Optional: air quality, UV index and pollen forecast**: MeteoSwiss publishes none of the three as open data for a point, so a switch (off by default) adds them from Open-Meteo — modelled CAMS values on a device of their own, clearly labelled as not official MeteoSwiss data.
 - **Decades of station history**: one action imports the station's archive (hourly since 1980, daily since the station started) into the long-term statistics.
 - **Five dashboard cards**: hourly chart with uncertainty bands, nine-day strip, daily list, map of Switzerland, sky card — in the Swiss Meteo palette, your Home Assistant theme or a glass look, in sizes from small to XL, with animated or still icons, all with a visual editor.
 - **Set up in a minute**: from your Home Assistant location or by typing a place or postal code; German, English, French and Italian; diagnostics download with your location redacted.
@@ -75,6 +78,10 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 | `sensor.swiss_meteo_<id>_radar_rain_rate` / `_radar_rain_distance` / `_radar_rain_eta` | **Radar nowcast** from the MeteoSwiss precipitation composite (PRECIP, 1 km, every 5 minutes, 29 KB per frame): the rain rate at your point right now (mm/h, the 3×3 km maximum), the distance to the nearest rain cell within 60 km, and the estimated minutes until rain reaches the point, derived from the motion of the rain field between the last frames (0 while it rains, unknown when nothing is heading your way within two hours). An estimate of the integration, not an official nowcast — the official INCA nowcast is not open data. Can be switched off in the options. |
 | `image.swiss_meteo_<id>_radar` | The newest radar frame around the point as a 200 × 200 km picture (1 km per pixel, rain-rate colours), for the picture cards. |
 | `binary_sensor.swiss_meteo_<id>_raining` / `_rain_approaching` | Radar: on while it rains at the point (0.1 mm/h or more), and on while it rains or rain is estimated within 30 minutes. |
+| `sensor.swiss_meteo_<id>_air_quality_index` / `_air_quality_level` | **Optional, from Open-Meteo — modelled, not official MeteoSwiss data** ([details](#optional-air-quality-uv-index-and-pollen-forecast)). The European Air Quality Index of the running hour and its band in words: good, fair, moderate, poor, very poor, extremely poor. Attributes: today's and tomorrow's maximum, and the worst band of today and tomorrow. |
+| `sensor.swiss_meteo_<id>_pm10` / `_pm2_5` / `_nitrogen_dioxide` / `_ozone` | Optional, from Open-Meteo: the modelled concentration of the running hour in µg/m³, with today's and tomorrow's maximum as attributes. |
+| `sensor.swiss_meteo_<id>_uv_index` / `_uv_index_max_today` | Optional, from Open-Meteo: the UV index of the running hour, and today's maximum with the hour it is reached, the clear-sky maximum and tomorrow's maximum as attributes. |
+| `sensor.swiss_meteo_<id>_pollen_forecast_alder` / `_birch` / `_grass` / `_mugwort` / `_olive` / `_ragweed` | Optional, from Open-Meteo: the modelled pollen concentration of the running hour (grains/m³), with today's and tomorrow's maximum and the highest value of each of the four forecast days as attributes. Olive is disabled by default; outside the season the model has no values and the sensors show *unknown*. |
 | `sensor.swiss_meteo_<id>_forecast_run` | When the forecast run in use was issued (diagnostic), with the parameters read and any that were missing. |
 | `sensor.swiss_meteo_<id>_station_time` | Time of the newest station row (diagnostic). |
 | `sensor.swiss_meteo_<id>_traffic_today` | Megabytes read from MeteoSwiss since midnight (diagnostic), with the request count. |
@@ -84,6 +91,22 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 The radar nowcast reads one 29 KB frame every five minutes (about 8 MB a day) and estimates the motion of the rain field within 80 km of your point from consecutive frames; the chip on the main card says "raining now", "rain in ~25 min" or how far the nearest rain is.
 
 Data updates: a new forecast run is looked for every 15 minutes with a single HEAD request and read when it appears (hourly values with every run, daily values at most every three hours); the station file is read every ten minutes. Everything is read from `data.geo.admin.ch` over TLS.
+
+## Optional: air quality, UV index and pollen forecast
+
+MeteoSwiss publishes no air quality, no UV index and no pollen *forecast* as open data for a point. If you want them next to the forecast, the switch **Air quality, UV index and pollen forecast from Open-Meteo** — in the setup and in the Configure dialog, **off by default** — adds them from the free [Open-Meteo air quality API](https://open-meteo.com/en/docs/air-quality-api).
+
+> **Not official MeteoSwiss data.** These values are *modelled*, not measured: they come from the Copernicus CAMS European air quality forecast (a grid of about 11 km, hourly, four days ahead) as served by Open-Meteo. A valley, a busy road or the birch in front of your window is below what the model resolves. To keep the two apart, the sensors sit on a **device of their own** ("Open-Meteo <place>"), and every one of them carries the attribution "Open-Meteo.com (CAMS model data, CC BY 4.0), not official MeteoSwiss data".
+
+- **Air quality**: the European Air Quality Index and its band in words, PM10, PM2.5, nitrogen dioxide and ozone of the running hour, each with today's and tomorrow's maximum.
+- **UV index**: the value of the running hour, and today's maximum with the hour it is reached, the clear-sky maximum and tomorrow's maximum.
+- **Pollen forecast**: alder, birch, grass, mugwort, olive and ragweed for today and the three days after. The *measured* MeteoSwiss pollen sensors stay exactly as they are — the forecast stands beside them, with its own species list, and the MeteoSwiss load classes apply to the measured values only.
+
+**What leaves your network.** With the switch off, nothing changes: no request goes to Open-Meteo. With it on, one request an hour goes to `air-quality-api.open-meteo.com` with the coordinates of the chosen **forecast point**, rounded to two decimals (about a kilometre), and a User-Agent naming the integration and its version. No API key, no account.
+
+**Outages.** The sensors show the value of the running hour from the last forecast read, so a short outage goes unnoticed; when Open-Meteo could not be read for six hours in a row a repair notice appears, and the sensors become unavailable once the last forecast is twelve hours old. The MeteoSwiss data are never affected.
+
+**Terms.** The Open-Meteo API is free for non-commercial use; the data are licensed CC BY 4.0. Switching the option off again removes the device and its sensors.
 
 ## Automations
 
@@ -298,10 +321,10 @@ Copy `custom_components/swiss_meteo` into your `custom_components` directory and
 ## Setup
 
 1. **Settings → Devices & Services → Add Integration → Swiss Meteo.**
-2. Confirm or move the **location** (your Home Assistant location is pre-filled), and choose whether you want the **hourly forecast** (about 2 MB per model run, every hour) and the **extended hourly values** (temperature and precipitation uncertainty range, cloud layers, zero-degree level — about twice that).
+2. Confirm or move the **location** (your Home Assistant location is pre-filled), and choose whether you want the **hourly forecast** (about 2 MB per model run, every hour) and the **extended hourly values** (temperature and precipitation uncertainty range, cloud layers, zero-degree level — about twice that). The last switch, **Air quality, UV index and pollen forecast from Open-Meteo**, is off by default: it adds modelled values that are not official MeteoSwiss data and sends the coordinates of the forecast point to Open-Meteo once an hour ([details](#optional-air-quality-uv-index-and-pollen-forecast)).
    Or type a **place name or postal code** instead of moving the marker: the matching forecast points are listed, and the stations are then offered around the one you choose.
 3. Pick the **forecast point** — the five nearest are listed with their distance: postal-code centres, weather stations and mountain points (summits, passes, resorts) — the **weather station** for the live values among the four nearest, and the **pollen station** among the three nearest of the 15 MeteoSwiss pollen stations (hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak with the MeteoSwiss load classes; the pollen file is read every 30 minutes, 1 KB). Altitude and exposure matter more than distance: a station on a nearby hill is not your valley. Without a station the current values come from the forecast.
-4. Done. The **Configure** dialog switches the hourly forecast, the extended values and the official warnings on or off and lets you pick another weather station (the eight nearest are listed) or pollen station; a change reloads the entry, entity ids and history are kept.
+4. Done. The **Configure** dialog switches the hourly forecast, the extended values, the official warnings and the optional Open-Meteo values on or off and lets you pick another weather station (the eight nearest are listed) or pollen station; a change reloads the entry, entity ids and history are kept.
    **Reconfigure** (the entry's ⋮ menu) moves the entry to another place: move the marker or search for a place or postal code, then pick the forecast point and stations around it as in the setup. Entities, ids and history are kept; the entry title follows the new point.
 
 Each entry is one place; add the integration again for another postal code or a summit.
@@ -318,7 +341,7 @@ The integration declares **Bronze** on the [Home Assistant integration quality s
 
 ## Notes
 
-- **Repairs.** When the forecast could not be read for three refreshes in a row, the weather station's values for an hour, or the pollen station's values for three refreshes, a notice appears under **Settings → Repairs** that says what happened and what to do; it disappears on its own with the next successful read.
+- **Repairs.** When the forecast could not be read for three refreshes in a row, the weather station's values for an hour, the pollen station's values for three refreshes, or — with the option switched on — Open-Meteo for six hours, a notice appears under **Settings → Repairs** that says what happened and what to do; it disappears on its own with the next successful read.
 - The forecast is the one shown in the MeteoSwiss app and on its website for the postal code, updated every hour; the symbol codes (1–42 by day, 101–142 by night) are mapped to Home Assistant conditions and, in the card, to Meteocons.
 - Daily highs, lows and precipitation count the local calendar day; the daily entries also carry the day's maximum wind and gusts, the chance of rain and the sunshine hours. The hourly list starts with the current hour; past hours of the run are dropped.
 - MeteoSwiss has announced a point API for the local forecast (beta by the end of 2026). The file reader is built behind an interface so the integration can switch to it when it is there — entities and ids will not change.
@@ -327,7 +350,7 @@ The integration declares **Bronze** on the [Home Assistant integration quality s
 
 ## Disclaimer
 
-This is an independent project and is not affiliated with, endorsed by or supported by the Federal Office of Meteorology and Climatology MeteoSwiss. Data: MeteoSwiss, CC BY 4.0. The forecast and the measurements are provided as published; the author gives no warranty for their correctness, completeness or availability. Do not rely on this integration for safety-relevant decisions — MeteoSwiss's own warnings and channels remain the authoritative source.
+This is an independent project and is not affiliated with, endorsed by or supported by the Federal Office of Meteorology and Climatology MeteoSwiss. Data: MeteoSwiss, CC BY 4.0. The optional air quality, UV index and pollen forecast values come from Open-Meteo.com (CAMS model data, CC BY 4.0); they are modelled, not measured, and not official MeteoSwiss data, and this project is not affiliated with Open-Meteo either. The forecast and the measurements are provided as published; the author gives no warranty for their correctness, completeness or availability. Do not rely on this integration for safety-relevant decisions — MeteoSwiss's own warnings and channels remain the authoritative source.
 
 ## License
 

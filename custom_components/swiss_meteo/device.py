@@ -9,6 +9,7 @@ from .const import CONF_POINT_HEIGHT, CONF_POINT_NAME, CONF_POLLEN_STATION, CONF
 from .localization import t
 
 CONFIGURATION_URL = "https://opendatadocs.meteoswiss.ch/e-forecast-data/e4-local-forecast-data"
+OPEN_METEO_URL = "https://open-meteo.com/en/docs/air-quality-api"
 
 
 def entry_suffix(entry: ConfigEntry) -> str:
@@ -39,4 +40,23 @@ def device_info(hass: HomeAssistant, entry: ConfigEntry) -> DeviceInfo:
         model=model,
         entry_type=DeviceEntryType.SERVICE,
         configuration_url=CONFIGURATION_URL,
+    )
+
+
+def open_meteo_identifier(entry: ConfigEntry) -> tuple[str, str]:
+    return (DOMAIN, f"{entry.entry_id}_open_meteo")
+
+
+def open_meteo_device_info(hass: HomeAssistant, entry: ConfigEntry) -> DeviceInfo:
+    """The optional Open-Meteo values get a device of their own, so that
+    nobody takes modelled third-party values for MeteoSwiss data."""
+    return DeviceInfo(
+        identifiers={open_meteo_identifier(entry)},
+        sw_version=VERSION,
+        name=t("device_name_open_meteo", hass, place=place_name(entry)),
+        manufacturer="Open-Meteo",
+        model=t("model_open_meteo", hass),
+        entry_type=DeviceEntryType.SERVICE,
+        configuration_url=OPEN_METEO_URL,
+        via_device=(DOMAIN, entry.entry_id),
     )

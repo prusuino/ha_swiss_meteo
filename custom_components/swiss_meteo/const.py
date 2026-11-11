@@ -7,10 +7,16 @@ DOMAIN = "swiss_meteo"
 
 ATTRIBUTION = "Source: MeteoSwiss (Open Data, CC BY 4.0)"
 ATTRIBUTION_WARNINGS = "Source: MeteoSwiss via MeteoAlarm (EUMETNET), CC BY 4.0"
+# The optional Open-Meteo values are modelled, not measured, and not from MeteoSwiss.
+ATTRIBUTION_OPEN_METEO = "Source: Open-Meteo.com (CAMS model data, CC BY 4.0), not official MeteoSwiss data"
+
+# The integration's own version, shown on the service card. Read from the
+# manifest so that a release never needs to touch two places.
+VERSION: str = json.loads((Path(__file__).parent / "manifest.json").read_text(encoding="utf-8"))["version"]
 
 # Sent with every request. MeteoSwiss serves the files from the federal
 # geodata platform; identifying the client helps them attribute traffic.
-USER_AGENT = "SwissMeteo/1.4.0 (Home Assistant integration; +https://github.com/prusuino/ha_swiss_meteo)"
+USER_AGENT = f"SwissMeteo/{VERSION} (Home Assistant integration; +https://github.com/prusuino/ha_swiss_meteo)"
 
 # --- Open data endpoints -----------------------------------------------------
 DATA_BASE = "https://data.geo.admin.ch"
@@ -37,6 +43,7 @@ CONF_HOURLY = "hourly"  # hourly forecast on/off (the expensive part)
 CONF_EXTENDED = "extended"  # uncertainty quantiles, cloud layers, zero-degree level
 CONF_WARNINGS = "warnings"  # official warnings (MeteoAlarm) on/off
 CONF_RADAR = "radar"  # radar nowcast (PRECIP composite every 5 min) on/off
+CONF_OPEN_METEO = "open_meteo"  # air quality, UV index, pollen forecast from Open-Meteo (opt-in)
 CONF_GUST_THRESHOLD = "gust_threshold"  # km/h for "strong wind expected"
 DEFAULT_GUST_THRESHOLD = 60.0
 
@@ -129,7 +136,3 @@ STATION_PARAMS: dict[str, tuple[str, str]] = {
     "osr000z0": ("reflected_radiation", "W/m²"),
     "wcc006s0": ("foehn_index", ""),
 }
-
-# The integration's own version, shown on the service card. Read from the
-# manifest so that a release never needs to touch two places.
-VERSION: str = json.loads((Path(__file__).parent / "manifest.json").read_text(encoding="utf-8"))["version"]

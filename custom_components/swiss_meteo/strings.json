@@ -10,7 +10,11 @@
           "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)",
           "search": "Place or postal code (optional; searching replaces the map location)",
           "warnings": "Official warnings (MeteoSwiss via MeteoAlarm)",
-          "radar": "Radar nowcast (rain now, nearest rain, rain in N minutes; about 8 MB a day)"
+          "radar": "Radar nowcast (rain now, nearest rain, rain in N minutes; about 8 MB a day)",
+          "open_meteo": "Air quality, UV index and pollen forecast from Open-Meteo (not official MeteoSwiss data)"
+        },
+        "data_description": {
+          "open_meteo": "Optional. Adds modelled values from the free Open-Meteo API (Copernicus CAMS, a grid of about 11 km) as a separate device. They are neither measurements nor official MeteoSwiss data. While switched on, the coordinates of the forecast point (rounded to about a kilometre) are sent to open-meteo.com once an hour."
         }
       },
       "place": {
@@ -75,7 +79,11 @@
           "pollen_station": "Pollen station",
           "warnings": "Official warnings (MeteoSwiss via MeteoAlarm)",
           "radar": "Radar nowcast (rain now, nearest rain, rain in N minutes; about 8 MB a day)",
-          "gust_threshold": "Gust threshold for \"strong wind expected\" (km/h)"
+          "gust_threshold": "Gust threshold for \"strong wind expected\" (km/h)",
+          "open_meteo": "Air quality, UV index and pollen forecast from Open-Meteo (not official MeteoSwiss data)"
+        },
+        "data_description": {
+          "open_meteo": "Optional. Adds modelled values from the free Open-Meteo API (Copernicus CAMS, a grid of about 11 km) as a separate device. They are neither measurements nor official MeteoSwiss data. While switched on, the coordinates of the forecast point (rounded to about a kilometre) are sent to open-meteo.com once an hour."
         }
       }
     },
@@ -423,6 +431,16 @@
           "orange": "Orange",
           "red": "Red"
         }
+      },
+      "air_quality_level": {
+        "state": {
+          "good": "Good",
+          "fair": "Fair",
+          "moderate": "Moderate",
+          "poor": "Poor",
+          "very_poor": "Very poor",
+          "extremely_poor": "Extremely poor"
+        }
       }
     }
   },
@@ -438,6 +456,10 @@
     "pollen_unreadable": {
       "title": "Swiss Meteo: pollen station {station} not readable",
       "description": "The pollen values of station {station} could not be read for several refreshes in a row ({error}). Outside the pollen season MeteoSwiss publishes no values for some stations; if it persists in season, pick another pollen station in the entry's Configure dialog. This notice disappears with the next successful refresh."
+    },
+    "open_meteo_unreachable": {
+      "title": "Swiss Meteo: Open-Meteo not readable",
+      "description": "The Open-Meteo air quality API could not be read for several hours in a row ({error}). Check your internet connection; if it is fine, the Open-Meteo service is down or has changed. Air quality, UV index and pollen forecast become unavailable once the last forecast has run out and recover on their own; the MeteoSwiss data are not affected. This notice disappears with the next successful refresh."
     }
   }
 }

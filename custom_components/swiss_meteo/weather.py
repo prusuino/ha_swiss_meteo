@@ -29,6 +29,10 @@ from .localization import t
 from .symbols import condition_for, meaning_for
 
 
+# The coordinators do the reading; the entities only show what they hold.
+PARALLEL_UPDATES = 0
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     data: EntryData = entry.runtime_data
     async_add_entities([SwissMeteoWeather(hass, entry, data)])

@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 from .const import CONF_POINT_ID, CONF_POINT_LAT, CONF_POINT_LON, CONF_POINT_NAME, DOMAIN, USER_AGENT
 from .coordinator import EntryData
@@ -29,6 +30,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     snap = data.forecast.data if data and data.forecast.data else None
     station = data.station if data else None
     pollen = data.pollen if data else None
+    open_meteo = data.open_meteo if data else None
+    om = open_meteo.data if open_meteo else None
     warnings = data.warnings if data else None
     radar = data.radar if data else None
     return {
@@ -48,6 +51,15 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "feed_alerts": warnings.data.total if warnings and warnings.data else None,
             "unlocated": warnings.data.unlocated if warnings and warnings.data else None,
             "matching": [{"event": w.event, "level": w.level, "type": w.type_key, "upcoming": w.upcoming} for w in warnings.data.items] if warnings and warnings.data else None,
+        },
+        "open_meteo": {
+            "enabled": open_meteo is not None,
+            "last_update_success": open_meteo.last_update_success if open_meteo else None,
+            "fetched": om.fetched.isoformat() if om else None,
+            "fresh": open_meteo.fresh if open_meteo else None,
+            "hours": len(om.times) if om else None,
+            "first": om.times[0].isoformat() if om and om.times else None,
+            "current": {key: om.value(key, dt_util.utcnow()) for key in om.series} if om else None,
         },
         "pollen": {
             "configured": pollen.station if pollen else None,

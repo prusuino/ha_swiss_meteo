@@ -14,6 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     DEGREE,
     PERCENTAGE,
+    UV_INDEX,
     EntityCategory,
     UnitOfIrradiance,
     UnitOfLength,
@@ -24,14 +25,23 @@ from homeassistant.const import (
     UnitOfTime,
     UnitOfVolumetricFlux,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTRIBUTION, ATTRIBUTION_WARNINGS, DOMAIN, STATION_PARAMS
+from .const import ATTRIBUTION, ATTRIBUTION_OPEN_METEO, ATTRIBUTION_WARNINGS, DOMAIN, STATION_PARAMS
+
+try:  # the enum of newer releases; the plain constant is deprecated there
+    from homeassistant.const import UnitOfDensity
+
+    _MICROGRAMS_PER_CUBIC_METER: str = UnitOfDensity.MICROGRAMS_PER_CUBIC_METER
+except (ImportError, AttributeError):  # pragma: no cover - older Home Assistant
+    from homeassistant.const import CONCENTRATION_MICROGRAMS_PER_CUBIC_METER as _MICROGRAMS_PER_CUBIC_METER
+
 from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
-from .device import device_info, entry_suffix
+from .device import device_info, entry_suffix, open_meteo_device_info
 from .derived import (
     HDD_BASE,
     HDD_THRESHOLD,
@@ -45,6 +55,7 @@ from .derived import (
 from .forecast import daily_values
 from .localization import t
 from .meteoalarm import LEVELS as WARNING_LEVELS, WarningsCoordinator
+from .open_meteo import AQI_LEVELS, POLLEN_SPECIES, OpenMeteoCoordinator, aqi_level
 from .radar import RadarCoordinator
 from .pollen import LEVELS, SPECIES, PollenCoordinator
 
@@ -81,6 +92,10 @@ _STATION_META: dict[str, tuple] = {
 }
 
 
+# The coordinators do the reading; the entities only show what they hold.
+PARALLEL_UPDATES = 0
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     data: EntryData = entry.runtime_data
     entities: list[SensorEntity] = []
@@ -103,6 +118,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         entities.append(WarningLevelSensor(hass, entry, data.warnings))
     if data.radar is not None:
         entities += [RadarRateSensor(hass, entry, data.radar), RadarDistanceSensor(hass, entry, data.radar), RadarEtaSensor(hass, entry, data.radar)]
+    if data.open_meteo is not None:
+        for key in _OPEN_METEO_META:
+            entities.append(OpenMeteoSensor(hass, entry, data.open_meteo, key))
+        entities.append(AirQualityLevelSensor(hass, entry, data.open_meteo))
+        entities.append(UvIndexMaxSensor(hass, entry, data.open_meteo))
+        for species in POLLEN_SPECIES:
+            entities.append(PollenForecastSensor(hass, entry, data.open_meteo, species))
     entities.append(ForecastRunSensor(hass, entry, data.forecast))
     entities.append(TrafficSensor(hass, entry, data.forecast))
     async_add_entities(entities)
@@ -336,6 +358,170 @@ class PollenLevelSensor(_Base):
             attrs[species] = self.coordinator.level(species)
         attrs["highest"] = [s for s in SPECIES if self.coordinator.level(s) == self.coordinator.overall_level()]
         return attrs
+
+
+# key -> (series, device class, unit, icon, display precision)
+_OPEN_METEO_META: dict[str, tuple] = {
+    "air_quality_index": ("european_aqi", SensorDeviceClass.AQI, None, None, 0),
+    "pm10": ("pm10", SensorDeviceClass.PM10, _MICROGRAMS_PER_CUBIC_METER, None, 1),
+    "pm2_5": ("pm2_5", SensorDeviceClass.PM25, _MICROGRAMS_PER_CUBIC_METER, None, 1),
+    "nitrogen_dioxide": ("nitrogen_dioxide", SensorDeviceClass.NITROGEN_DIOXIDE, _MICROGRAMS_PER_CUBIC_METER, None, 1),
+    "ozone": ("ozone", SensorDeviceClass.OZONE, _MICROGRAMS_PER_CUBIC_METER, None, 0),
+    "uv_index": ("uv_index", None, UV_INDEX, "mdi:sun-wireless", 1),
+}
+
+
+class _OpenMeteoBase(_Base):
+    """A value from the optional Open-Meteo read: modelled, not measured and
+    not from MeteoSwiss, hence its own device and attribution. The value is
+    the one of the running hour, so the state is also written at the top of
+    each hour, between two reads."""
+
+    _attr_attribution = ATTRIBUTION_OPEN_METEO
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: OpenMeteoCoordinator, key: str) -> None:
+        super().__init__(hass, entry, coordinator, key)
+        self._attr_device_info = open_meteo_device_info(hass, entry)
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self.async_on_remove(async_track_time_change(self.hass, self._hour_changed, minute=0, second=10))
+
+    @callback
+    def _hour_changed(self, _now: datetime) -> None:
+        self.async_write_ha_state()
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.fresh
+
+    def _day_max(self, series: str, offset: int) -> float | None:
+        data = self.coordinator.data
+        if data is None:
+            return None
+        return data.day_max(series, dt_util.now().date() + timedelta(days=offset))
+
+
+class OpenMeteoSensor(_OpenMeteoBase):
+    """One hourly value: the air quality index, a pollutant or the UV index."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: OpenMeteoCoordinator, key: str) -> None:
+        super().__init__(hass, entry, coordinator, key)
+        self._series, device_class, unit, icon, precision = _OPEN_METEO_META[key]
+        if device_class is not None:
+            self._attr_device_class = device_class
+        if unit is not None:
+            self._attr_native_unit_of_measurement = unit
+        if icon is not None:
+            self._attr_icon = icon
+        self._attr_suggested_display_precision = precision
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data
+        return data.value(self._series, dt_util.utcnow()) if data else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data
+        if data is None:
+            return {}
+        return {
+            "today_max": self._day_max(self._series, 0),
+            "tomorrow_max": self._day_max(self._series, 1),
+            "model_read": data.fetched.isoformat(),
+        }
+
+
+class AirQualityLevelSensor(_OpenMeteoBase):
+    """The band of the European Air Quality Index, in words."""
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(AQI_LEVELS)
+    _attr_translation_key = "air_quality_level"
+    _attr_icon = "mdi:air-filter"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: OpenMeteoCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "air_quality_level")
+
+    @property
+    def native_value(self) -> str | None:
+        data = self.coordinator.data
+        return aqi_level(data.value("european_aqi", dt_util.utcnow())) if data else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data
+        if data is None:
+            return {}
+        return {
+            "index": data.value("european_aqi", dt_util.utcnow()),
+            "today_worst": aqi_level(self._day_max("european_aqi", 0)),
+            "tomorrow_worst": aqi_level(self._day_max("european_aqi", 1)),
+        }
+
+
+class UvIndexMaxSensor(_OpenMeteoBase):
+    """Today's highest UV index and the hour it is reached."""
+
+    _attr_native_unit_of_measurement = UV_INDEX
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:weather-sunny-alert"
+    _attr_suggested_display_precision = 1
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: OpenMeteoCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "uv_index_max_today")
+
+    @property
+    def native_value(self) -> float | None:
+        return self._day_max("uv_index", 0)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data
+        if data is None:
+            return {}
+        peak = data.day_peak("uv_index", dt_util.now().date())
+        return {
+            "time": dt_util.as_local(peak[1]).isoformat() if peak else None,
+            "clear_sky_max": self._day_max("uv_index_clear_sky", 0),
+            "tomorrow_max": self._day_max("uv_index", 1),
+        }
+
+
+class PollenForecastSensor(_OpenMeteoBase):
+    """The modelled concentration of one species in the running hour, with
+    the highest value of each forecast day. Outside the season the model
+    has no values and the sensor shows unknown."""
+
+    _attr_native_unit_of_measurement = "grains/m³"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:flower-pollen-outline"
+    _attr_suggested_display_precision = 0
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: OpenMeteoCoordinator, species: str) -> None:
+        super().__init__(hass, entry, coordinator, f"pollen_forecast_{species}")
+        self._series = f"{species}_pollen"
+        # Olive trees hardly matter north of the Alps.
+        self._attr_entity_registry_enabled_default = species != "olive"
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data
+        return data.value(self._series, dt_util.utcnow()) if data else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        data = self.coordinator.data
+        if data is None:
+            return {}
+        return {
+            "today_max": self._day_max(self._series, 0),
+            "tomorrow_max": self._day_max(self._series, 1),
+            "daily_max": data.daily_max(self._series),
+        }
 
 
 class WarningLevelSensor(_Base):

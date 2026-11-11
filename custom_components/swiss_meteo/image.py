@@ -17,6 +17,10 @@ from .localization import t
 from .radar import RadarCoordinator
 
 
+# The coordinators do the reading; the entities only show what they hold.
+PARALLEL_UPDATES = 0
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     data: EntryData = entry.runtime_data
     if data.radar is not None:
