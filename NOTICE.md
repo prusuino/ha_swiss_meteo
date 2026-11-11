@@ -60,3 +60,13 @@ Meteorology and Climatology MeteoSwiss under the terms of its open data
 (Creative Commons Attribution 4.0, https://opendatadocs.meteoswiss.ch).
 The MeteoSwiss weather-symbol graphics are proprietary and are not used;
 only the symbol numbers and their meanings are.
+
+## Open-Meteo (optional)
+
+Only when the option is switched on, air quality, UV index and pollen
+forecast values are read from the Open-Meteo air quality API
+(https://open-meteo.com), which is free for non-commercial use; the data
+are licensed under the Creative Commons Attribution 4.0 licence. They
+are model data of the Copernicus Atmosphere Monitoring Service (CAMS
+European air quality forecast) and are shown with their source; they
+are neither measurements nor official MeteoSwiss data.

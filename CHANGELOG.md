@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.0 — 2026-11-11
+
+- **New: optional air quality, UV index and pollen forecast from Open-Meteo.** MeteoSwiss publishes none of the three as open data for a point. A new switch in the setup and in the Configure dialog — **off by default** — adds them from the free Open-Meteo air quality API: the European Air Quality Index with its band in words, PM10, PM2.5, nitrogen dioxide, ozone, the UV index with today's maximum, and a four-day pollen forecast for alder, birch, grass, mugwort, olive and ragweed. The values are modelled (Copernicus CAMS, about 11 km), not measured and **not official MeteoSwiss data**; they sit on a device of their own and every sensor says so in its attribution. The measured MeteoSwiss pollen sensors are unchanged.
+- **What the option sends.** One request an hour to Open-Meteo with the coordinates of the forecast point, rounded to two decimals. With the switch off, no request leaves for Open-Meteo. Switching it off again removes the device and its sensors.
+- **Repair notice and diagnostics for the new part.** When Open-Meteo could not be read for six hours in a row a notice appears under Settings → Repairs; the diagnostics download lists the state of the Open-Meteo read.
+- **Parallel updates declared.** All entity platforms set `PARALLEL_UPDATES = 0` (the coordinators do the reading), which closes the *parallel-updates* rule of the quality scale.
+- **User-Agent follows the release.** The version in the request header is read from the manifest instead of being a fixed string.
+- **Tests.** The range reader for the forecast files and the new Open-Meteo part are covered by tests that answer from memory, without network access.
+
 ## 1.5.4 — 2026-11-09
 
 - **Listed in the Marketplace default catalog.** The README now leads with the Marketplace/HACS search and keeps the custom-repository steps as a fallback, as suggested by @frenck in the HACS review (hacs/default #13678).
