@@ -101,6 +101,13 @@ def fake_forecast():
         yield find, fetch
 
 
+@pytest.fixture
+def all_entities_enabled():
+    """Create the entities that are off by default as well."""
+    with patch("homeassistant.helpers.entity.Entity.entity_registry_enabled_default", return_value=True):
+        yield
+
+
 def make_entry(hass: HomeAssistant, data: dict[str, Any] | None = None, options: dict[str, Any] | None = None) -> MockConfigEntry:
     entry = MockConfigEntry(
         domain=DOMAIN,
