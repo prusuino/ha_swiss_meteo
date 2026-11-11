@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 
 from .const import CONF_POINT_HEIGHT, CONF_POINT_NAME, CONF_POLLEN_STATION, CONF_POLLEN_STATION_NAME, CONF_STATION, CONF_STATION_NAME, DOMAIN, VERSION
@@ -47,10 +48,17 @@ def open_meteo_identifier(entry: ConfigEntry) -> tuple[str, str]:
     return (DOMAIN, f"{entry.entry_id}_open_meteo")
 
 
+def links_by_device_id() -> bool:
+    """Current Home Assistant names the parent of a device by its registry
+    id (`via_device_id`); older versions only know its identifier
+    (`via_device`), which newer ones report as deprecated."""
+    return "via_device_id" in DeviceInfo.__optional_keys__ | DeviceInfo.__required_keys__
+
+
 def open_meteo_device_info(hass: HomeAssistant, entry: ConfigEntry) -> DeviceInfo:
     """The optional Open-Meteo values get a device of their own, so that
     nobody takes modelled third-party values for MeteoSwiss data."""
-    return DeviceInfo(
+    info = DeviceInfo(
         identifiers={open_meteo_identifier(entry)},
         sw_version=VERSION,
         name=t("device_name_open_meteo", hass, place=place_name(entry)),
@@ -58,5 +66,16 @@ def open_meteo_device_info(hass: HomeAssistant, entry: ConfigEntry) -> DeviceInf
         model=t("model_open_meteo", hass),
         entry_type=DeviceEntryType.SERVICE,
         configuration_url=OPEN_METEO_URL,
-        via_device=(DOMAIN, entry.entry_id),
     )
+    main = (DOMAIN, entry.entry_id)
+    if links_by_device_id():
+        # The id is only known once the main device is registered; the
+        # platforms are set up in no fixed order, so register it if need be.
+        registry = dr.async_get(hass)
+        device = registry.async_get_device(identifiers={main}) or registry.async_get_or_create(
+            config_entry_id=entry.entry_id, **device_info(hass, entry)
+        )
+        info["via_device_id"] = device.id
+    else:
+        info["via_device"] = main
+    return info
