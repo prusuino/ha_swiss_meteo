@@ -12,6 +12,7 @@ import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import UpdateFailed
@@ -282,8 +283,8 @@ async def test_sensors_of_the_separate_device(hass: HomeAssistant, setup_integra
     own = find_device(hass, f"{ENTRY_ID}_open_meteo")
     assert own is not None and own.id != main.id
     assert own.via_device_id == main.id
-    # linked the way current Home Assistant wants it
-    assert "deprecated `via_device`" not in caplog.text
+    # linked the way current Home Assistant wants it, without a deprecated call
+    assert "deprecated" not in caplog.text
     assert own.manufacturer == "Open-Meteo"
     assert own.name == "Open-Meteo Zürich"
     assert "not official" in own.model
@@ -313,8 +314,9 @@ async def test_device_link_by_id_or_by_identifier(hass: HomeAssistant, enable_cu
     main = find_device(hass, ENTRY_ID)
     assert main is not None and info["via_device_id"] == main.id
     assert "via_device" not in info
-    # the second entity finds the device instead of registering it again
+    # every further entity gets the same device, not a second one
     assert open_meteo_device_info(hass, entry)["via_device_id"] == main.id
+    assert len(dr.async_entries_for_config_entry(dr.async_get(hass), ENTRY_ID)) == 1
 
 
 async def test_state_follows_the_running_hour(hass: HomeAssistant, setup_integration, freezer) -> None:
