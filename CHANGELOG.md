@@ -7,7 +7,8 @@
 - **Repair notice and diagnostics for the new part.** When Open-Meteo could not be read for six hours in a row a notice appears under Settings → Repairs; the diagnostics download lists the state of the Open-Meteo read.
 - **Parallel updates declared.** All entity platforms set `PARALLEL_UPDATES = 0` (the coordinators do the reading), which closes the *parallel-updates* rule of the quality scale.
 - **User-Agent follows the release.** The version in the request header is read from the manifest instead of being a fixed string.
-- **Tests.** The range reader for the forecast files and the new Open-Meteo part are covered by tests that answer from memory, without network access.
+- **Fixed: tomorrow's mean temperature showed today's.** `sensor.swiss_meteo_<id>_tomorrow_mean` and its `hours_in_forecast` attribute were worked out for the running day. They now cover tomorrow.
+- **Silver on the quality scale.** The tests now cover 99 % of the integration — forecast, station, pollen, warnings, radar, history import, every entity platform, the actions, triggers and conditions, the config and options flow — and answer from memory, without network access. That closes the *test-coverage* rule, the last one open for Silver; the manifest declares **silver** and the test workflow fails when the coverage drops below 95 %.
 
 ## 1.5.4 — 2026-11-09
 

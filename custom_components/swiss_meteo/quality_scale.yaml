@@ -43,7 +43,9 @@ rules:
   reauthentication-flow:
     status: exempt
     comment: The open data needs no credentials.
-  test-coverage: todo
+  test-coverage:
+    status: done
+    comment: Above 95 % of statements and branches; the test workflow fails below that.
 
   # Gold
   devices: done
