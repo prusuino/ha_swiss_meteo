@@ -10,7 +10,11 @@
           "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)",
           "search": "Località o NPA (facoltativo; la ricerca sostituisce la posizione sulla mappa)",
           "warnings": "Allerte ufficiali (MeteoSvizzera via MeteoAlarm)",
-          "radar": "Nowcast radar (pioggia ora, pioggia più vicina, pioggia tra N minuti; circa 8 MB al giorno)"
+          "radar": "Nowcast radar (pioggia ora, pioggia più vicina, pioggia tra N minuti; circa 8 MB al giorno)",
+          "open_meteo": "Qualità dell'aria, indice UV e previsione dei pollini da Open-Meteo (non sono dati ufficiali di MeteoSvizzera)"
+        },
+        "data_description": {
+          "open_meteo": "Facoltativo. Aggiunge valori modellati dall'API libera Open-Meteo (Copernicus CAMS, griglia di circa 11 km) come dispositivo separato. Non sono né misurazioni né dati ufficiali di MeteoSvizzera. Finché l'opzione è attiva, le coordinate del punto di previsione (arrotondate a circa un chilometro) vengono inviate una volta all'ora a open-meteo.com."
         }
       },
       "place": {
@@ -75,7 +79,11 @@
           "pollen_station": "Stazione pollinica",
           "warnings": "Allerte ufficiali (MeteoSvizzera via MeteoAlarm)",
           "radar": "Nowcast radar (pioggia ora, pioggia più vicina, pioggia tra N minuti; circa 8 MB al giorno)",
-          "gust_threshold": "Soglia di raffica per «vento forte previsto» (km/h)"
+          "gust_threshold": "Soglia di raffica per «vento forte previsto» (km/h)",
+          "open_meteo": "Qualità dell'aria, indice UV e previsione dei pollini da Open-Meteo (non sono dati ufficiali di MeteoSvizzera)"
+        },
+        "data_description": {
+          "open_meteo": "Facoltativo. Aggiunge valori modellati dall'API libera Open-Meteo (Copernicus CAMS, griglia di circa 11 km) come dispositivo separato. Non sono né misurazioni né dati ufficiali di MeteoSvizzera. Finché l'opzione è attiva, le coordinate del punto di previsione (arrotondate a circa un chilometro) vengono inviate una volta all'ora a open-meteo.com."
         }
       }
     },
@@ -423,6 +431,16 @@
           "orange": "Arancione",
           "red": "Rosso"
         }
+      },
+      "air_quality_level": {
+        "state": {
+          "good": "Buona",
+          "fair": "Discreta",
+          "moderate": "Moderata",
+          "poor": "Scarsa",
+          "very_poor": "Molto scarsa",
+          "extremely_poor": "Estremamente scarsa"
+        }
       }
     }
   },
@@ -438,6 +456,10 @@
     "pollen_unreadable": {
       "title": "Swiss Meteo: stazione pollinica {station} non leggibile",
       "description": "I valori pollinici della stazione {station} non hanno potuto essere letti per diversi aggiornamenti consecutivi ({error}). Fuori dalla stagione pollinica MeteoSvizzera non pubblica valori per alcune stazioni; se persiste in stagione, scegli un'altra stazione pollinica nel dialogo «Configura» della voce. Questo avviso scompare con il prossimo aggiornamento riuscito."
+    },
+    "open_meteo_unreachable": {
+      "title": "Swiss Meteo: Open-Meteo non leggibile",
+      "description": "L'API della qualità dell'aria di Open-Meteo non ha potuto essere letta per diverse ore consecutive ({error}). Controlla la connessione internet; se funziona, il servizio Open-Meteo è guasto o è cambiato. Qualità dell'aria, indice UV e previsione dei pollini diventano non disponibili una volta scaduta l'ultima previsione e si ripristinano da soli; i dati di MeteoSvizzera non sono interessati. Questo avviso scompare con il prossimo aggiornamento riuscito."
     }
   }
 }

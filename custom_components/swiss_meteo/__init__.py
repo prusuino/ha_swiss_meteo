@@ -10,18 +10,20 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 
 from .issues import async_clear_entry_issues
-from .const import CONF_POLLEN_STATION, CONF_RADAR, CONF_STATION, CONF_WARNINGS, DOMAIN, STATION_PARAMS
+from .const import CONF_OPEN_METEO, CONF_POLLEN_STATION, CONF_RADAR, CONF_STATION, CONF_WARNINGS, DOMAIN, STATION_PARAMS
 from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
 
 type SwissMeteoConfigEntry = ConfigEntry[EntryData]
-from .device import entry_suffix
+from .device import entry_suffix, open_meteo_identifier
 from .frontend import async_serve_frontend
 from .derived import best_window
 from .history import GROUPS, HistoryError, async_import_history
+from .open_meteo import OpenMeteoCoordinator
 from .pollen import PollenCoordinator
 from .meteoalarm import WarningsCoordinator
 from .radar import RadarCoordinator
@@ -163,7 +165,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: SwissMeteoConfigEntry) -
             if not radar.last_update_success:
                 _LOGGER.warning("Entry %s: radar not readable yet, its entities start unavailable", entry_suffix(entry))
 
-    entry.runtime_data = EntryData(forecast=forecast, station=station, pollen=pollen, warnings=warnings, radar=radar)
+    open_meteo: OpenMeteoCoordinator | None = None
+    if entry.options.get(CONF_OPEN_METEO, entry.data.get(CONF_OPEN_METEO, False)):
+        open_meteo = OpenMeteoCoordinator(hass, entry)
+        await open_meteo.async_refresh()
+        if not open_meteo.last_update_success:
+            _LOGGER.warning("Entry %s: Open-Meteo not readable yet, its sensors start unavailable", entry_suffix(entry))
+    else:
+        # Switched off (again): the separate device goes, and its entities with it.
+        devices = dr.async_get(hass)
+        identifier = open_meteo_identifier(entry)
+        for device in dr.async_entries_for_config_entry(devices, entry.entry_id):
+            if identifier in device.identifiers:
+                devices.async_remove_device(device.id)
+
+    entry.runtime_data = EntryData(forecast=forecast, station=station, pollen=pollen, warnings=warnings, radar=radar, open_meteo=open_meteo)
     await async_serve_frontend(hass)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

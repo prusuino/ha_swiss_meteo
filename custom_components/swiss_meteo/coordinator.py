@@ -44,6 +44,7 @@ from .ogd import (
 )
 
 if TYPE_CHECKING:
+    from .open_meteo import OpenMeteoCoordinator
     from .pollen import PollenCoordinator
     from .meteoalarm import WarningsCoordinator
     from .radar import RadarCoordinator
@@ -221,3 +222,4 @@ class EntryData:
     pollen: "PollenCoordinator | None" = None
     warnings: "WarningsCoordinator | None" = None
     radar: "RadarCoordinator | None" = None
+    open_meteo: "OpenMeteoCoordinator | None" = None

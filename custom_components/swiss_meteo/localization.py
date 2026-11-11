@@ -110,6 +110,28 @@ STRINGS: dict[str, dict[str, str]] = {
     "strong_wind_expected": {"de": "Starkwind erwartet", "en": "Strong Wind Expected", "fr": "Vent fort attendu", "it": "Vento forte previsto"},
     "rain_approaching": {"de": "Regen zieht auf", "en": "Rain Approaching", "fr": "Pluie en approche", "it": "Pioggia in arrivo"},
     "radar_image": {"de": "Radarbild", "en": "Radar Image", "fr": "Image radar", "it": "Immagine radar"},
+    # optional Open-Meteo values (modelled, not from MeteoSwiss)
+    "device_name_open_meteo": {"de": "Open-Meteo {place}", "en": "Open-Meteo {place}", "fr": "Open-Meteo {place}", "it": "Open-Meteo {place}"},
+    "model_open_meteo": {
+        "de": "Luftqualität, UV-Index, Pollenprognose (CAMS-Modell, nicht amtlich)",
+        "en": "Air quality, UV index, pollen forecast (CAMS model, not official)",
+        "fr": "Qualité de l'air, indice UV, prévision pollinique (modèle CAMS, non officiel)",
+        "it": "Qualità dell'aria, indice UV, previsione pollini (modello CAMS, non ufficiale)",
+    },
+    "air_quality_index": {"de": "Luftqualitätsindex", "en": "Air Quality Index", "fr": "Indice de qualité de l'air", "it": "Indice di qualità dell'aria"},
+    "air_quality_level": {"de": "Luftqualität", "en": "Air Quality", "fr": "Qualité de l'air", "it": "Qualità dell'aria"},
+    "pm10": {"de": "Feinstaub PM10", "en": "PM10", "fr": "Particules fines PM10", "it": "Polveri fini PM10"},
+    "pm2_5": {"de": "Feinstaub PM2.5", "en": "PM2.5", "fr": "Particules fines PM2.5", "it": "Polveri fini PM2.5"},
+    "nitrogen_dioxide": {"de": "Stickstoffdioxid", "en": "Nitrogen Dioxide", "fr": "Dioxyde d'azote", "it": "Diossido di azoto"},
+    "ozone": {"de": "Ozon", "en": "Ozone", "fr": "Ozone", "it": "Ozono"},
+    "uv_index": {"de": "UV-Index", "en": "UV Index", "fr": "Indice UV", "it": "Indice UV"},
+    "uv_index_max_today": {"de": "UV-Index Maximum heute", "en": "UV Index Max Today", "fr": "Indice UV maximum aujourd'hui", "it": "Indice UV massimo oggi"},
+    "pollen_forecast_alder": {"de": "Pollenprognose Erle", "en": "Pollen Forecast Alder", "fr": "Prévision pollen aulne", "it": "Previsione polline ontano"},
+    "pollen_forecast_birch": {"de": "Pollenprognose Birke", "en": "Pollen Forecast Birch", "fr": "Prévision pollen bouleau", "it": "Previsione polline betulla"},
+    "pollen_forecast_grass": {"de": "Pollenprognose Gräser", "en": "Pollen Forecast Grass", "fr": "Prévision pollen graminées", "it": "Previsione polline graminacee"},
+    "pollen_forecast_mugwort": {"de": "Pollenprognose Beifuss", "en": "Pollen Forecast Mugwort", "fr": "Prévision pollen armoise", "it": "Previsione polline artemisia"},
+    "pollen_forecast_olive": {"de": "Pollenprognose Olive", "en": "Pollen Forecast Olive", "fr": "Prévision pollen olivier", "it": "Previsione polline olivo"},
+    "pollen_forecast_ragweed": {"de": "Pollenprognose Ambrosia", "en": "Pollen Forecast Ragweed", "fr": "Prévision pollen ambroisie", "it": "Previsione polline ambrosia"},
     "model_pollen": {"de": "{station}, Pollen {pollen}", "en": "{station}, pollen {pollen}", "fr": "{station}, pollen {pollen}", "it": "{station}, pollini {pollen}"},
 }
 

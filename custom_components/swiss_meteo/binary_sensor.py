@@ -28,6 +28,10 @@ RAIN_WINDOW_HOURS = 6
 FROST_THRESHOLD = 0.0
 
 
+# The coordinators do the reading; the entities only show what they hold.
+PARALLEL_UPDATES = 0
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     data: EntryData = entry.runtime_data
     entities: list[BinarySensorEntity] = []
