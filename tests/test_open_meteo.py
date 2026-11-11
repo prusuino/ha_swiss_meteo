@@ -18,6 +18,7 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.swiss_meteo.const import ATTRIBUTION_OPEN_METEO, DOMAIN, USER_AGENT, VERSION
+from custom_components.swiss_meteo.device import open_meteo_device_info
 from custom_components.swiss_meteo.open_meteo import (
     API_URL,
     HOURLY_PARAMS,
@@ -29,7 +30,7 @@ from custom_components.swiss_meteo.open_meteo import (
     request_params,
 )
 
-from .conftest import ENTRY_ID, NOW, SUFFIX, find_device
+from .conftest import ENTRY_ID, NOW, SUFFIX, find_device, make_entry
 
 FETCH = "custom_components.swiss_meteo.open_meteo.async_fetch_open_meteo"
 # Local midnight of 8 November in Switzerland (UTC+1): the series starts there.
@@ -230,7 +231,7 @@ async def test_off_by_default(hass: HomeAssistant, setup_integration) -> None:
     assert find_device(hass, f"{ENTRY_ID}_open_meteo") is None
 
 
-async def test_sensors_of_the_separate_device(hass: HomeAssistant, setup_integration) -> None:
+async def test_sensors_of_the_separate_device(hass: HomeAssistant, setup_integration, caplog) -> None:
     with patch(FETCH, return_value=make_data()) as fetch:
         entry = await setup_integration(open_meteo=True)
     fetch.assert_called_once()
@@ -281,6 +282,8 @@ async def test_sensors_of_the_separate_device(hass: HomeAssistant, setup_integra
     own = find_device(hass, f"{ENTRY_ID}_open_meteo")
     assert own is not None and own.id != main.id
     assert own.via_device_id == main.id
+    # linked the way current Home Assistant wants it
+    assert "deprecated `via_device`" not in caplog.text
     assert own.manufacturer == "Open-Meteo"
     assert own.name == "Open-Meteo Zürich"
     assert "not official" in own.model
@@ -293,6 +296,25 @@ async def test_sensors_of_the_separate_device(hass: HomeAssistant, setup_integra
     assert olive.disabled_by is er.RegistryEntryDisabler.INTEGRATION
     assert hass.states.get(entity("pollen_forecast_olive")) is None
     assert entry.runtime_data.open_meteo.fresh
+
+
+async def test_device_link_by_id_or_by_identifier(hass: HomeAssistant, enable_custom_integrations) -> None:
+    """Older Home Assistant names the parent device by its identifier;
+    current versions want the registry id, which needs the main device to
+    be registered first."""
+    entry = make_entry(hass)
+    with patch("custom_components.swiss_meteo.device.links_by_device_id", return_value=False):
+        info = open_meteo_device_info(hass, entry)
+    assert info["via_device"] == (DOMAIN, ENTRY_ID)
+    assert "via_device_id" not in info
+    assert find_device(hass, ENTRY_ID) is None
+
+    info = open_meteo_device_info(hass, entry)
+    main = find_device(hass, ENTRY_ID)
+    assert main is not None and info["via_device_id"] == main.id
+    assert "via_device" not in info
+    # the second entity finds the device instead of registering it again
+    assert open_meteo_device_info(hass, entry)["via_device_id"] == main.id
 
 
 async def test_state_follows_the_running_hour(hass: HomeAssistant, setup_integration, freezer) -> None:
