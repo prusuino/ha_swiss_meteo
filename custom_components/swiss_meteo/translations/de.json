@@ -27,7 +27,7 @@
           "pollen_station": "Pollenstation"
         },
         "data_description": {
-          "precip_station": "MeteoSchweiz betreibt neben den Wetterstationen ein dichteres Netz automatischer Regenmesser. Ist hier einer gewählt, kommt der gemessene Niederschlag von dort; Temperatur, Wind, Druck und alle übrigen Werte kommen weiter von der Wetterstation. Vorgeschlagen wird einer, wenn er näher liegt als die Wetterstation. «–» belässt den Niederschlag der Wetterstation."
+          "precip_station": "MeteoSchweiz betreibt neben den Wetterstationen rund 140 automatische Regenmesser an anderen Orten. Ist hier einer gewählt, kommt der gemessene Niederschlag von dort; Temperatur, Wind, Druck und alle übrigen Werte kommen weiter von der Wetterstation. Vorgeschlagen wird einer, wenn er näher liegt als die Wetterstation. «–» belässt den Niederschlag der Wetterstation."
         }
       },
       "search": {
@@ -62,7 +62,7 @@
           "pollen_station": "Pollenstation"
         },
         "data_description": {
-          "precip_station": "MeteoSchweiz betreibt neben den Wetterstationen ein dichteres Netz automatischer Regenmesser. Ist hier einer gewählt, kommt der gemessene Niederschlag von dort; Temperatur, Wind, Druck und alle übrigen Werte kommen weiter von der Wetterstation. Vorgeschlagen wird einer, wenn er näher liegt als die Wetterstation. «–» belässt den Niederschlag der Wetterstation."
+          "precip_station": "MeteoSchweiz betreibt neben den Wetterstationen rund 140 automatische Regenmesser an anderen Orten. Ist hier einer gewählt, kommt der gemessene Niederschlag von dort; Temperatur, Wind, Druck und alle übrigen Werte kommen weiter von der Wetterstation. Vorgeschlagen wird einer, wenn er näher liegt als die Wetterstation. «–» belässt den Niederschlag der Wetterstation."
         }
       }
     },

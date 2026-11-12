@@ -27,7 +27,7 @@
           "pollen_station": "Pollen station"
         },
         "data_description": {
-          "precip_station": "MeteoSwiss runs a denser network of automatic rain gauges besides the weather stations. With a gauge chosen here, the measured precipitation comes from it; temperature, wind, pressure and all other values still come from the weather station. One is suggested when it is nearer than the weather station. \"–\" keeps the precipitation of the weather station."
+          "precip_station": "Besides the weather stations, MeteoSwiss runs about 140 automatic rain gauges at other places. With a gauge chosen here, the measured precipitation comes from it; temperature, wind, pressure and all other values still come from the weather station. One is suggested when it is nearer than the weather station. \"–\" keeps the precipitation of the weather station."
         }
       },
       "search": {
@@ -62,7 +62,7 @@
           "pollen_station": "Pollen station"
         },
         "data_description": {
-          "precip_station": "MeteoSwiss runs a denser network of automatic rain gauges besides the weather stations. With a gauge chosen here, the measured precipitation comes from it; temperature, wind, pressure and all other values still come from the weather station. One is suggested when it is nearer than the weather station. \"–\" keeps the precipitation of the weather station."
+          "precip_station": "Besides the weather stations, MeteoSwiss runs about 140 automatic rain gauges at other places. With a gauge chosen here, the measured precipitation comes from it; temperature, wind, pressure and all other values still come from the weather station. One is suggested when it is nearer than the weather station. \"–\" keeps the precipitation of the weather station."
         }
       }
     },

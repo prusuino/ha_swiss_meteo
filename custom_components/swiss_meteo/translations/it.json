@@ -27,7 +27,7 @@
           "pollen_station": "Stazione pollinica"
         },
         "data_description": {
-          "precip_station": "Oltre alle stazioni meteo, MeteoSvizzera gestisce una rete più fitta di pluviometri automatici. Se ne viene scelto uno qui, le precipitazioni misurate provengono da esso; temperatura, vento, pressione e tutti gli altri valori continuano a provenire dalla stazione meteo. Ne viene proposto uno quando è più vicino della stazione meteo. «–» mantiene le precipitazioni della stazione meteo."
+          "precip_station": "Oltre alle stazioni meteo, MeteoSvizzera gestisce circa 140 pluviometri automatici in altri luoghi. Se ne viene scelto uno qui, le precipitazioni misurate provengono da esso; temperatura, vento, pressione e tutti gli altri valori continuano a provenire dalla stazione meteo. Ne viene proposto uno quando è più vicino della stazione meteo. «–» mantiene le precipitazioni della stazione meteo."
         }
       },
       "search": {
@@ -62,7 +62,7 @@
           "pollen_station": "Stazione pollinica"
         },
         "data_description": {
-          "precip_station": "Oltre alle stazioni meteo, MeteoSvizzera gestisce una rete più fitta di pluviometri automatici. Se ne viene scelto uno qui, le precipitazioni misurate provengono da esso; temperatura, vento, pressione e tutti gli altri valori continuano a provenire dalla stazione meteo. Ne viene proposto uno quando è più vicino della stazione meteo. «–» mantiene le precipitazioni della stazione meteo."
+          "precip_station": "Oltre alle stazioni meteo, MeteoSvizzera gestisce circa 140 pluviometri automatici in altri luoghi. Se ne viene scelto uno qui, le precipitazioni misurate provengono da esso; temperatura, vento, pressione e tutti gli altri valori continuano a provenire dalla stazione meteo. Ne viene proposto uno quando è più vicino della stazione meteo. «–» mantiene le precipitazioni della stazione meteo."
         }
       }
     },

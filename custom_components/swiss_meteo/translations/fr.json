@@ -27,7 +27,7 @@
           "pollen_station": "Station pollinique"
         },
         "data_description": {
-          "precip_station": "MétéoSuisse exploite, en plus des stations météo, un réseau plus dense de pluviomètres automatiques. Si l'un d'eux est choisi ici, les précipitations mesurées en proviennent ; la température, le vent, la pression et toutes les autres valeurs continuent de provenir de la station météo. Un pluviomètre est proposé lorsqu'il est plus proche que la station météo. « – » conserve les précipitations de la station météo."
+          "precip_station": "MétéoSuisse exploite, en plus des stations météo, environ 140 pluviomètres automatiques à d'autres endroits. Si l'un d'eux est choisi ici, les précipitations mesurées en proviennent ; la température, le vent, la pression et toutes les autres valeurs continuent de provenir de la station météo. Un pluviomètre est proposé lorsqu'il est plus proche que la station météo. « – » conserve les précipitations de la station météo."
         }
       },
       "search": {
@@ -62,7 +62,7 @@
           "pollen_station": "Station pollinique"
         },
         "data_description": {
-          "precip_station": "MétéoSuisse exploite, en plus des stations météo, un réseau plus dense de pluviomètres automatiques. Si l'un d'eux est choisi ici, les précipitations mesurées en proviennent ; la température, le vent, la pression et toutes les autres valeurs continuent de provenir de la station météo. Un pluviomètre est proposé lorsqu'il est plus proche que la station météo. « – » conserve les précipitations de la station météo."
+          "precip_station": "MétéoSuisse exploite, en plus des stations météo, environ 140 pluviomètres automatiques à d'autres endroits. Si l'un d'eux est choisi ici, les précipitations mesurées en proviennent ; la température, le vent, la pression et toutes les autres valeurs continuent de provenir de la station météo. Un pluviomètre est proposé lorsqu'il est plus proche que la station météo. « – » conserve les précipitations de la station météo."
         }
       }
     },

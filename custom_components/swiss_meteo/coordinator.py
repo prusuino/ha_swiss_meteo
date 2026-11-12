@@ -226,7 +226,7 @@ class StationCoordinator(DataUpdateCoordinator[StationReading]):
 
 class PrecipCoordinator(StationCoordinator):
     """The newest 10-minute precipitation of the entry's precipitation
-    station: a rain gauge of the denser precipitation network, read and
+    station: a rain gauge of the automatic precipitation network, read and
     judged like a weather station, with a file and a notice of its own."""
 
     _conf = CONF_PRECIP_STATION
