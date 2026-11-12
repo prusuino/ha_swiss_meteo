@@ -32,7 +32,7 @@ from custom_components.swiss_meteo.sensor import (
     WarningLevelSensor,
 )
 
-from .conftest import NOW, RUN, make_entry
+from .conftest import NOW, RUN, find_device, make_entry
 from .fakes import FakeResponse
 from .feeds import EVERYTHING, entity, forecast_with, precip_reading, setup_everything, station_reading
 
@@ -114,6 +114,8 @@ async def test_precipitation_from_its_own_station(hass: HomeAssistant, setup_int
     # everything else still comes from the weather station
     assert state(hass, "temperature") == "7.5"
     assert attributes(hass, "station_time")["station"] == "SMA"
+    # the device says where the rain is measured
+    assert "precipitation Waldegg" in find_device(hass, entry.entry_id).model
 
 
 async def test_old_precipitation_is_not_shown(hass: HomeAssistant, setup_integration) -> None:
