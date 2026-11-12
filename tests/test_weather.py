@@ -35,7 +35,14 @@ async def test_station_values_now(hass: HomeAssistant, setup_integration) -> Non
     assert (now["point_name"], now["latitude"], now["longitude"], now["elevation"]) == ("Zürich", 47.3769, 8.5417, 408.0)
     assert (now["station"], now["station_time"], now["station_fresh"]) == ("SMA", "2026-11-08T10:20:00+00:00", True)
     assert "zero_degree_level" not in now  # only with the extended parameters
+    assert "precipitation_station" not in now  # only with a precipitation station
     assert now["supported_features"] == 3
+
+
+async def test_precipitation_station_is_named(hass: HomeAssistant, setup_integration) -> None:
+    await setup_everything(hass, setup_integration, precip_station="WAG")
+    now = attributes(hass)
+    assert (now["station"], now["precipitation_station"]) == ("SMA", "WAG")
 
 
 async def test_a_new_station_reading_is_shown_at_once(hass: HomeAssistant, setup_integration) -> None:

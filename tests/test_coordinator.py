@@ -10,13 +10,14 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
 
 from custom_components.swiss_meteo.const import DAILY_PARAMS, DOMAIN, EXTENDED_PARAMS, HOURLY_PARAMS
-from custom_components.swiss_meteo.coordinator import ForecastCoordinator, ForecastSnapshot, StationCoordinator
+from custom_components.swiss_meteo.coordinator import ForecastCoordinator, ForecastSnapshot, PrecipCoordinator, StationCoordinator
 from custom_components.swiss_meteo.ogd import OgdError, OgdUnavailable, StationReading
 
 from .conftest import ENTRY_ID, NOW, RUN, make_entry, make_forecast
 
 CATALOGUE = "custom_components.swiss_meteo.coordinator.async_catalogue_latest_run"
 READING = "custom_components.swiss_meteo.coordinator.async_fetch_station_reading"
+PRECIP_READING = "custom_components.swiss_meteo.coordinator.async_fetch_precip_reading"
 HOUR = timedelta(hours=1)
 DAILY, HOURLY = len(DAILY_PARAMS), len(HOURLY_PARAMS)
 
@@ -273,3 +274,49 @@ async def test_station_repair_notice_after_an_hour_of_failures(hass: HomeAssista
         await coordinator.async_refresh()
     assert coordinator.last_update_success
     assert issue(hass, "station_unreadable") is None
+
+
+# --- precipitation station ---------------------------------------------------
+
+
+async def test_precipitation_station_reading(hass: HomeAssistant, swiss_now, freezer) -> None:
+    entry = make_entry(hass, {"station": "SMA", "precip_station": "WAG"})
+    coordinator = PrecipCoordinator(hass, entry)
+    assert coordinator.station == "WAG"
+    assert coordinator.fresh is False  # nothing read yet
+    reading = StationReading(abbr="WAG", timestamp=NOW - timedelta(minutes=10), values={"rre150z0": 1.4})
+    with patch(PRECIP_READING, return_value=reading) as read, patch(READING) as weather_station:
+        await coordinator.async_refresh()
+    # its own file, not the weather station's
+    assert read.call_args.args[1] == "WAG"
+    weather_station.assert_not_called()
+    assert coordinator.data is reading and coordinator.fresh
+
+    freezer.move_to(NOW + timedelta(minutes=36))
+    assert coordinator.fresh is False
+
+
+async def test_precipitation_station_from_the_options(hass: HomeAssistant, swiss_now) -> None:
+    entry = make_entry(hass, {"precip_station": "WAG"}, {"precip_station": "BEP"})
+    assert PrecipCoordinator(hass, entry).station == "BEP"
+
+
+async def test_precipitation_station_repair_notice_after_an_hour_of_failures(hass: HomeAssistant, swiss_now) -> None:
+    coordinator = PrecipCoordinator(hass, make_entry(hass, {"station": "SMA", "precip_station": "WAG"}))
+    with patch(PRECIP_READING, side_effect=OgdError("station file of WAG has no rows")) as read:
+        for _attempt in range(5):
+            await coordinator.async_refresh()
+            assert coordinator.last_update_success is False
+            assert issue(hass, "precip_station_unreadable") is None
+        await coordinator.async_refresh()
+        notice = issue(hass, "precip_station_unreadable")
+        assert notice is not None
+        assert notice.translation_placeholders == {"station": "WAG", "error": "station file of WAG has no rows"}
+        # a notice of its own: the weather station is not blamed
+        assert issue(hass, "station_unreadable") is None
+
+        read.side_effect = None
+        read.return_value = StationReading(abbr="WAG", timestamp=NOW, values={})
+        await coordinator.async_refresh()
+    assert coordinator.last_update_success
+    assert issue(hass, "precip_station_unreadable") is None

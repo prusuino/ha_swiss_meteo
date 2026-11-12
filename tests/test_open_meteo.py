@@ -417,6 +417,7 @@ async def test_options_switch_it_on_and_off_again(hass: HomeAssistant, setup_int
     entities = er.async_get(hass)
     lists = (
         patch("custom_components.swiss_meteo.config_flow.async_fetch_stations", return_value=[]),
+        patch("custom_components.swiss_meteo.config_flow.async_fetch_precip_stations", return_value=[]),
         patch("custom_components.swiss_meteo.config_flow.async_fetch_pollen_stations", return_value=[]),
     )
 
@@ -429,7 +430,7 @@ async def test_options_switch_it_on_and_off_again(hass: HomeAssistant, setup_int
         assert result["type"] is FlowResultType.CREATE_ENTRY
         await hass.async_block_till_done()
 
-    with lists[0], lists[1], patch(FETCH, return_value=make_data()):
+    with lists[0], lists[1], lists[2], patch(FETCH, return_value=make_data()):
         await _set(True)
         assert entry.options["open_meteo"] is True
         assert float(hass.states.get(entity("air_quality_index")).state) == 31

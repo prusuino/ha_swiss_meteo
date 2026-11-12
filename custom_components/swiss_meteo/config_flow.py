@@ -1,6 +1,8 @@
 """Config flow: a location (the instance's by default) or a place / postal
 code search, then the forecast point, the weather station and the pollen
-station nearest to it, pre-selected. The options (hourly forecast,
+station nearest to it, pre-selected, and the nearest stations of the
+precipitation network (pre-selected when one is nearer than the weather
+station). The options (hourly forecast,
 extended values, official warnings, radar, gust threshold) and the stations
 can be changed later in the Configure dialog; Reconfigure (the entry's
 menu) moves the entry to another place with the same two steps as the
@@ -29,6 +31,8 @@ from .const import (
     CONF_POINT_TYPE,
     CONF_POLLEN_STATION,
     CONF_POLLEN_STATION_NAME,
+    CONF_PRECIP_STATION,
+    CONF_PRECIP_STATION_NAME,
     CONF_RADAR,
     CONF_STATION,
     CONF_STATION_NAME,
@@ -39,7 +43,7 @@ from .const import (
     POINT_TYPE_POSTAL,
     POINT_TYPE_STATION,
 )
-from .ogd import OgdError, Point, Station, async_fetch_points, async_fetch_stations, nearest
+from .ogd import OgdError, Point, Station, async_fetch_points, async_fetch_precip_stations, async_fetch_stations, nearest
 from .pollen import PollenStation, async_fetch_pollen_stations
 
 _LOGGER = logging.getLogger(__name__)
@@ -51,11 +55,19 @@ _MAX_MATCHES = 12
 NO_STATION = "none"
 _NEAREST_POINTS = 5
 _NEAREST_STATIONS = 4
+_NEAREST_PRECIP = 4
 _NEAREST_POLLEN = 3
 
 # Station choices live in the options once Configure was used; a reconfigure
 # writes the new choice to the data and drops these so the data counts again.
-_STATION_KEYS = (CONF_STATION, CONF_STATION_NAME, CONF_POLLEN_STATION, CONF_POLLEN_STATION_NAME)
+_STATION_KEYS = (
+    CONF_STATION,
+    CONF_STATION_NAME,
+    CONF_PRECIP_STATION,
+    CONF_PRECIP_STATION_NAME,
+    CONF_POLLEN_STATION,
+    CONF_POLLEN_STATION_NAME,
+)
 
 
 def _point_label(distance: float, point: Point) -> str:
@@ -127,6 +139,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
         self._lon: float | None = None
         self._points: list[tuple[float, Point]] = []
         self._stations: list[tuple[float, Station]] = []
+        self._precip: list[tuple[float, Station]] = []
         self._pollen: list[tuple[float, PollenStation]] = []
         self._hourly = True
         self._extended = False
@@ -135,6 +148,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
         self._open_meteo = False
         self._all_points: list[Point] = []
         self._all_stations: list[Station] = []
+        self._all_precip: list[Station] = []
         self._all_pollen: list[PollenStation] = []
         self._matches: list[Point] = []
         # The entry being reconfigured; None while setting up a new one.
@@ -158,6 +172,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
         try:
             points = await async_fetch_points(session)
             stations = await async_fetch_stations(session)
+            precip = await async_fetch_precip_stations(session)
             pollen = await async_fetch_pollen_stations(session)
         except OgdError as err:
             _LOGGER.debug("Point lists not readable: %s", err)
@@ -165,6 +180,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             return None, errors
         self._all_points = points
         self._all_stations = stations
+        self._all_precip = precip
         self._all_pollen = pollen
         if search:
             self._matches = search_points(points, search)
@@ -176,14 +192,16 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
         return await getattr(self, f"async_step_{place_step}")(), errors
 
     def _pick_around(self, lat: float, lon: float, chosen: Point | None = None) -> None:
-        """The nearest forecast points, stations and pollen stations around
-        a location; a chosen point (from the search) goes first."""
+        """The nearest forecast points, weather, precipitation and pollen
+        stations around a location; a chosen point (from the search) goes
+        first."""
         points = nearest(self._all_points, lat, lon, _NEAREST_POINTS)
         if chosen is not None:
             others = [(d, p) for d, p in points if _point_value(p) != _point_value(chosen)]
             points = [(0.0, chosen)] + others[: _NEAREST_POINTS - 1]
         self._points = points
         self._stations = nearest(self._all_stations, lat, lon, _NEAREST_STATIONS)
+        self._precip = nearest(self._all_precip, lat, lon, _NEAREST_PRECIP)
         self._pollen = nearest(self._all_pollen, lat, lon, _NEAREST_POLLEN)
 
     def _location_schema(self, lat: float, lon: float, with_options: bool) -> vol.Schema:
@@ -237,9 +255,11 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             point = next(p for _d, p in self._points if _point_value(p) == chosen)
             station_abbr = user_input.get(CONF_STATION, NO_STATION)
             station = next((s for _d, s in self._stations if s.abbr == station_abbr), None)
+            precip_abbr = user_input.get(CONF_PRECIP_STATION, NO_STATION)
+            precip = next((s for _d, s in self._precip if s.abbr == precip_abbr), None)
             pollen_abbr = user_input.get(CONF_POLLEN_STATION, NO_STATION)
             pollen = next((p for _d, p in self._pollen if p.abbr == pollen_abbr), None)
-            return await self._async_finish(point, station, pollen)
+            return await self._async_finish(point, station, pollen, precip)
 
         point_options = [
             selector.SelectOptionDict(value=_point_value(p), label=_point_label(d, p)) for d, p in self._points
@@ -248,6 +268,10 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             selector.SelectOptionDict(value=s.abbr, label=_station_label(d, s)) for d, s in self._stations
         ]
         station_options.append(selector.SelectOptionDict(value=NO_STATION, label="–"))
+        precip_options = [
+            selector.SelectOptionDict(value=s.abbr, label=_station_label(d, s)) for d, s in self._precip
+        ]
+        precip_options.append(selector.SelectOptionDict(value=NO_STATION, label="–"))
         pollen_options = [
             selector.SelectOptionDict(value=p.abbr, label=_pollen_label(d, p)) for d, p in self._pollen
         ]
@@ -258,6 +282,11 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
         point_default = point_options[0]["value"]
         station_default = station_options[0]["value"]
         pollen_default = pollen_options[0]["value"]
+        # A precipitation station measures rain and nothing else, so it is
+        # only the better source when it is nearer than the weather station.
+        precip_default = NO_STATION
+        if self._precip and (not self._stations or self._precip[0][0] < self._stations[0][0]):
+            precip_default = self._precip[0][1].abbr
         if self._entry is not None:
             data = self._entry.data
             current_point = f"{data.get(CONF_POINT_TYPE)}:{data.get(CONF_POINT_ID)}"
@@ -266,6 +295,9 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             current_station = self._current(CONF_STATION)
             if any(o["value"] == current_station for o in station_options):
                 station_default = current_station
+            current_precip = self._current(CONF_PRECIP_STATION)
+            if any(o["value"] == current_precip for o in precip_options):
+                precip_default = current_precip
             current_pollen = self._current(CONF_POLLEN_STATION)
             if any(o["value"] == current_pollen for o in pollen_options):
                 pollen_default = current_pollen
@@ -277,6 +309,9 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_STATION, default=station_default): selector.SelectSelector(
                     selector.SelectSelectorConfig(options=station_options, mode=selector.SelectSelectorMode.LIST)
                 ),
+                vol.Required(CONF_PRECIP_STATION, default=precip_default): selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=precip_options, mode=selector.SelectSelectorMode.LIST)
+                ),
                 vol.Required(CONF_POLLEN_STATION, default=pollen_default): selector.SelectSelector(
                     selector.SelectSelectorConfig(options=pollen_options, mode=selector.SelectSelectorMode.LIST)
                 ),
@@ -285,7 +320,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id=step_id, data_schema=schema)
 
     async def _async_finish(
-        self, point: Point, station: Station | None, pollen: PollenStation | None
+        self, point: Point, station: Station | None, pollen: PollenStation | None, precip: Station | None = None
     ) -> ConfigFlowResult:
         """Create the entry, or update the one being reconfigured."""
         unique_id = f"{point.point_type}-{point.point_id}"
@@ -299,6 +334,8 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_POINT_HEIGHT: point.height,
             CONF_STATION: station.abbr if station else "",
             CONF_STATION_NAME: station.name if station else "",
+            CONF_PRECIP_STATION: precip.abbr if precip else "",
+            CONF_PRECIP_STATION_NAME: precip.name if precip else "",
             CONF_POLLEN_STATION: pollen.abbr if pollen else "",
             CONF_POLLEN_STATION_NAME: pollen.name if pollen else "",
         }
@@ -380,7 +417,7 @@ class SwissMeteoConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class SwissMeteoOptionsFlow(OptionsFlow):
-    """Hourly forecast on/off, extended values on/off, another station."""
+    """Hourly forecast on/off, extended values on/off, other stations."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         entry = self.config_entry
@@ -394,6 +431,14 @@ class SwissMeteoOptionsFlow(OptionsFlow):
                     station_name = next((s.name for s in stations if s.abbr == station_abbr), station_abbr)
                 except OgdError:
                     station_name = station_abbr
+            precip_abbr = user_input.get(CONF_PRECIP_STATION, NO_STATION)
+            precip_name = ""
+            if precip_abbr != NO_STATION:
+                try:
+                    precip_stations = await async_fetch_precip_stations(async_get_clientsession(self.hass))
+                    precip_name = next((s.name for s in precip_stations if s.abbr == precip_abbr), precip_abbr)
+                except OgdError:
+                    precip_name = precip_abbr
             pollen_abbr = user_input.get(CONF_POLLEN_STATION, NO_STATION)
             pollen_name = ""
             if pollen_abbr != NO_STATION:
@@ -411,6 +456,8 @@ class SwissMeteoOptionsFlow(OptionsFlow):
                 CONF_GUST_THRESHOLD: float(user_input.get(CONF_GUST_THRESHOLD, DEFAULT_GUST_THRESHOLD)),
                 CONF_STATION: "" if station_abbr == NO_STATION else station_abbr,
                 CONF_STATION_NAME: station_name,
+                CONF_PRECIP_STATION: "" if precip_abbr == NO_STATION else precip_abbr,
+                CONF_PRECIP_STATION_NAME: precip_name,
                 CONF_POLLEN_STATION: "" if pollen_abbr == NO_STATION else pollen_abbr,
                 CONF_POLLEN_STATION_NAME: pollen_name,
             }
@@ -418,6 +465,8 @@ class SwissMeteoOptionsFlow(OptionsFlow):
 
         current_station = entry.options.get(CONF_STATION, entry.data.get(CONF_STATION, "")) or NO_STATION
         current_pollen = entry.options.get(CONF_POLLEN_STATION, entry.data.get(CONF_POLLEN_STATION, "")) or NO_STATION
+        current_precip = entry.options.get(CONF_PRECIP_STATION, entry.data.get(CONF_PRECIP_STATION, "")) or NO_STATION
+        precip_options = [selector.SelectOptionDict(value=NO_STATION, label="–")]
         station_options = [selector.SelectOptionDict(value=NO_STATION, label="–")]
         pollen_options = [selector.SelectOptionDict(value=NO_STATION, label="–")]
         lat = float(entry.data.get(CONF_POINT_LAT, self.hass.config.latitude))
@@ -428,6 +477,10 @@ class SwissMeteoOptionsFlow(OptionsFlow):
             station_options = [
                 selector.SelectOptionDict(value=s.abbr, label=_station_label(d, s)) for d, s in nearest(stations, lat, lon, 8)
             ] + station_options
+            precip_stations = await async_fetch_precip_stations(session)
+            precip_options = [
+                selector.SelectOptionDict(value=s.abbr, label=_station_label(d, s)) for d, s in nearest(precip_stations, lat, lon, 8)
+            ] + precip_options
             pollen_stations = await async_fetch_pollen_stations(session)
             pollen_options = [
                 selector.SelectOptionDict(value=p.abbr, label=_pollen_label(d, p)) for d, p in nearest(pollen_stations, lat, lon, len(pollen_stations))
@@ -436,6 +489,8 @@ class SwissMeteoOptionsFlow(OptionsFlow):
             errors["base"] = "cannot_connect"
         if current_station != NO_STATION and all(o["value"] != current_station for o in station_options):
             station_options.insert(0, selector.SelectOptionDict(value=current_station, label=current_station))
+        if current_precip != NO_STATION and all(o["value"] != current_precip for o in precip_options):
+            precip_options.insert(0, selector.SelectOptionDict(value=current_precip, label=current_precip))
         if current_pollen != NO_STATION and all(o["value"] != current_pollen for o in pollen_options):
             pollen_options.insert(0, selector.SelectOptionDict(value=current_pollen, label=current_pollen))
         schema = vol.Schema(
@@ -449,6 +504,9 @@ class SwissMeteoOptionsFlow(OptionsFlow):
                 ),
                 vol.Required(CONF_STATION, default=current_station): selector.SelectSelector(
                     selector.SelectSelectorConfig(options=station_options, mode=selector.SelectSelectorMode.DROPDOWN)
+                ),
+                vol.Required(CONF_PRECIP_STATION, default=current_precip): selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=precip_options, mode=selector.SelectSelectorMode.DROPDOWN)
                 ),
                 vol.Required(CONF_POLLEN_STATION, default=current_pollen): selector.SelectSelector(
                     selector.SelectSelectorConfig(options=pollen_options, mode=selector.SelectSelectorMode.DROPDOWN)

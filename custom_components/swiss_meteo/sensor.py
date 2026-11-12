@@ -1,4 +1,5 @@
-"""Sensors: the station's 10-minute values, a few figures from the
+"""Sensors: the station's 10-minute values (the precipitation from the
+precipitation station when one is chosen), a few figures from the
 forecast (today's and tomorrow's high, low and precipitation), and
 diagnostics (forecast run, station time, traffic)."""
 from __future__ import annotations
@@ -31,7 +32,16 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTRIBUTION, ATTRIBUTION_OPEN_METEO, ATTRIBUTION_WARNINGS, DOMAIN, STATION_PARAMS
+from .const import (
+    ATTRIBUTION,
+    ATTRIBUTION_OPEN_METEO,
+    ATTRIBUTION_WARNINGS,
+    CONF_PRECIP_STATION,
+    CONF_PRECIP_STATION_NAME,
+    DOMAIN,
+    PRECIP_COLUMN,
+    STATION_PARAMS,
+)
 
 try:  # the enum of newer releases; the plain constant is deprecated there
     from homeassistant.const import UnitOfDensity
@@ -40,8 +50,8 @@ try:  # the enum of newer releases; the plain constant is deprecated there
 except (ImportError, AttributeError):  # pragma: no cover - older Home Assistant
     from homeassistant.const import CONCENTRATION_MICROGRAMS_PER_CUBIC_METER as _MICROGRAMS_PER_CUBIC_METER
 
-from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
-from .device import device_info, entry_suffix, open_meteo_device_info
+from .coordinator import EntryData, ForecastCoordinator, PrecipCoordinator, StationCoordinator
+from .device import device_info, entry_suffix, open_meteo_device_info, station_choice
 from .derived import (
     HDD_BASE,
     HDD_THRESHOLD,
@@ -101,8 +111,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     entities: list[SensorEntity] = []
     if data.station is not None:
         for column, (key, _unit) in STATION_PARAMS.items():
+            if column == PRECIP_COLUMN and data.precip is not None:
+                continue  # measured by the precipitation station instead
             entities.append(StationSensor(hass, entry, data.station, column, key))
         entities.append(StationTimeSensor(hass, entry, data.station))
+    if data.precip is not None:
+        entities.append(PrecipSensor(hass, entry, data.precip))
     for day_key in ("today", "tomorrow"):
         for what in ("max", "min", "precipitation"):
             entities.append(DayValueSensor(hass, entry, data.forecast, day_key, what))
@@ -165,6 +179,21 @@ class StationSensor(_Base):
         if self.coordinator.data is None:
             return None
         return self.coordinator.data.values.get(self._column)
+
+
+class PrecipSensor(StationSensor):
+    """The 10-minute precipitation of the entry's precipitation station. It
+    takes the place of the weather station's value under the same unique
+    id, so the entity and its history stay whichever station measures, and
+    it names its station in the attributes."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: PrecipCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, PRECIP_COLUMN, STATION_PARAMS[PRECIP_COLUMN][0])
+        self._station_name = station_choice(entry, CONF_PRECIP_STATION, CONF_PRECIP_STATION_NAME)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return {"station": self.coordinator.station, "station_name": self._station_name}
 
 
 class StationTimeSensor(_Base):

@@ -27,6 +27,7 @@ from .test_pollen import MORNING
 from .test_radar import T, radar_file
 
 READING = "custom_components.swiss_meteo.coordinator.async_fetch_station_reading"
+PRECIP_READING = "custom_components.swiss_meteo.coordinator.async_fetch_precip_reading"
 SESSIONS = tuple(f"custom_components.swiss_meteo.{module}.async_get_clientsession" for module in ("pollen", "meteoalarm", "radar"))
 RADAR_ASYNCIO = "custom_components.swiss_meteo.radar.asyncio"
 
@@ -50,6 +51,12 @@ STATION_VALUES = {
 
 def station_reading(minutes_old: int = 10, **values: float) -> StationReading:
     return StationReading(abbr="SMA", timestamp=NOW - timedelta(minutes=minutes_old), values={**STATION_VALUES, **values})
+
+
+def precip_reading(minutes_old: int = 10, amount: float = 1.4) -> StationReading:
+    """The newest row of the precipitation station WAG, read when the entry
+    has `precip_station` set."""
+    return StationReading(abbr="WAG", timestamp=NOW - timedelta(minutes=minutes_old), values={"rre150z0": amount})
 
 
 def entity(domain: str, key: str = "") -> str:
@@ -89,15 +96,19 @@ def all_routes() -> dict[str, Any]:
 
 
 @contextmanager
-def feeds(routes: dict[str, Any] | None = None, reading: Any = None) -> Iterator[FakeSession]:
+def feeds(routes: dict[str, Any] | None = None, reading: Any = None, precip: Any = None) -> Iterator[FakeSession]:
     """Serve the files from memory. `routes` replaces single files (an
     exception or an error response makes that read fail), `reading` is the
-    station's answer (an exception makes it fail)."""
+    station's answer and `precip` the precipitation station's (an exception
+    makes it fail)."""
     session = FakeSession({**all_routes(), **(routes or {})})
     answer = reading if reading is not None else station_reading()
     station = {"side_effect": answer} if isinstance(answer, Exception) else {"return_value": answer}
+    rain = precip if precip is not None else precip_reading()
+    gauge = {"side_effect": rain} if isinstance(rain, Exception) else {"return_value": rain}
     with (
         patch(READING, **station),
+        patch(PRECIP_READING, **gauge),
         patch(SESSIONS[0], return_value=session),
         patch(SESSIONS[1], return_value=session),
         patch(SESSIONS[2], return_value=session),
@@ -113,11 +124,12 @@ async def setup_everything(
     *,
     routes: dict[str, Any] | None = None,
     reading: Any = None,
+    precip: Any = None,
     **data: Any,
 ) -> MockConfigEntry:
     """Load the entry with everything on and wait for the radar history;
-    `routes` and `reading` are handed to `feeds`."""
-    with feeds(routes, reading):
+    `routes`, `reading` and `precip` are handed to `feeds`."""
+    with feeds(routes, reading, precip):
         entry = await setup_integration(options, **{**EVERYTHING, **data})
         await hass.async_block_till_done(wait_background_tasks=True)
     return entry

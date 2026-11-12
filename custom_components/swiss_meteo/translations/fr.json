@@ -23,7 +23,11 @@
         "data": {
           "point": "Point de prévision",
           "station": "Station météo (mesures)",
+          "precip_station": "Station de précipitations (pluviomètre, facultatif)",
           "pollen_station": "Station pollinique"
+        },
+        "data_description": {
+          "precip_station": "MétéoSuisse exploite, en plus des stations météo, un réseau plus dense de pluviomètres automatiques. Si l'un d'eux est choisi ici, les précipitations mesurées en proviennent ; la température, le vent, la pression et toutes les autres valeurs continuent de provenir de la station météo. Un pluviomètre est proposé lorsqu'il est plus proche que la station météo. « – » conserve les précipitations de la station météo."
         }
       },
       "search": {
@@ -54,7 +58,11 @@
         "data": {
           "point": "Point de prévision",
           "station": "Station météo (mesures)",
+          "precip_station": "Station de précipitations (pluviomètre, facultatif)",
           "pollen_station": "Station pollinique"
+        },
+        "data_description": {
+          "precip_station": "MétéoSuisse exploite, en plus des stations météo, un réseau plus dense de pluviomètres automatiques. Si l'un d'eux est choisi ici, les précipitations mesurées en proviennent ; la température, le vent, la pression et toutes les autres valeurs continuent de provenir de la station météo. Un pluviomètre est proposé lorsqu'il est plus proche que la station météo. « – » conserve les précipitations de la station météo."
         }
       }
     },
@@ -71,11 +79,12 @@
     "step": {
       "init": {
         "title": "Paramètres Swiss Meteo",
-        "description": "Activer ou désactiver la prévision horaire, les valeurs étendues ou les alertes officielles, ou choisir une autre station météo (les huit plus proches du point de prévision sont listées) ou station de pollens. Une modification recharge l'entrée ; les identifiants d'entités et l'historique sont conservés.",
+        "description": "Activer ou désactiver la prévision horaire, les valeurs étendues ou les alertes officielles, ou choisir une autre station météo (les huit plus proches du point de prévision sont listées), station de précipitations ou station de pollens. Une modification recharge l'entrée ; les identifiants d'entités et l'historique sont conservés.",
         "data": {
           "hourly": "Prévision horaire",
           "extended": "Valeurs horaires étendues (incertitude, couches nuageuses, isotherme 0 °C)",
           "station": "Station météo (mesures)",
+          "precip_station": "Station de précipitations (pluviomètre, facultatif)",
           "pollen_station": "Station pollinique",
           "warnings": "Alertes officielles (MétéoSuisse via MeteoAlarm)",
           "radar": "Prévision immédiate radar (pluie maintenant, pluie la plus proche, pluie dans N minutes ; environ 8 Mo par jour)",
@@ -83,6 +92,7 @@
           "open_meteo": "Qualité de l'air, indice UV et prévision pollinique d'Open-Meteo (pas de données officielles de MétéoSuisse)"
         },
         "data_description": {
+          "precip_station": "Un pluviomètre du réseau de mesure des précipitations de MétéoSuisse (les huit plus proches du point de prévision sont listés). Les précipitations mesurées en proviennent alors, toutes les autres valeurs continuent de provenir de la station météo. « – » conserve les précipitations de la station météo.",
           "open_meteo": "Facultatif. Ajoute des valeurs modélisées de l'API libre Open-Meteo (Copernicus CAMS, grille d'environ 11 km) sous forme d'appareil séparé. Ce ne sont ni des mesures ni des données officielles de MétéoSuisse. Tant que l'option est activée, les coordonnées du point de prévision (arrondies à environ un kilomètre) sont envoyées une fois par heure à open-meteo.com."
         }
       }
@@ -326,7 +336,7 @@
   "services": {
     "import_history": {
       "name": "Importer l'historique de la station",
-      "description": "Lit les archives de mesure de la station chez MétéoSuisse (valeurs horaires depuis 1980, valeurs journalières depuis le début des mesures) et les écrit dans les statistiques à long terme de Home Assistant : moyenne, minimum et maximum des capteurs de la station, ainsi que précipitations, ensoleillement, évaporation et degrés-jours de chauffage comme statistiques séparées (swiss_meteo:…). À exécuter une fois ; une nouvelle exécution remplace la même période.",
+      "description": "Lit les archives de mesure de la station chez MétéoSuisse (valeurs horaires depuis 1980, valeurs journalières depuis le début des mesures) et les écrit dans les statistiques à long terme de Home Assistant : moyenne, minimum et maximum des capteurs de la station, ainsi que précipitations, ensoleillement, évaporation et degrés-jours de chauffage comme statistiques séparées (swiss_meteo:…). Avec une station de précipitations, les précipitations proviennent des archives de cette station. À exécuter une fois ; une nouvelle exécution remplace la même période.",
       "fields": {
         "entry": {
           "name": "Entrée Swiss Meteo",
@@ -404,7 +414,7 @@
       "message": "L'entrée Swiss Meteo n'est pas chargée."
     },
     "no_station": {
-      "message": "L'entrée n'a pas de station météo ; l'import de l'historique en a besoin (dialogue « Configurer »)."
+      "message": "L'entrée n'a ni station météo ni station de précipitations ; l'import de l'historique a besoin de l'une des deux (dialogue « Configurer »)."
     },
     "hourly_years": {
       "message": "Les valeurs horaires sont limitées à 20 ans par importation ; relancez l'action pour les années antérieures ou choisissez les valeurs journalières."
@@ -452,6 +462,10 @@
     "station_unreadable": {
       "title": "Swiss Meteo : station météo {station} illisible",
       "description": "Les mesures de la station {station} n'ont pas pu être lues pendant une heure ({error}). Si cela dure des jours, MétéoSuisse a peut-être abandonné la station ou changé son abréviation : choisis une autre station dans le dialogue « Configurer » de l'entrée. Les capteurs de la station restent indisponibles jusque-là ; cet avis disparaît à la prochaine actualisation réussie."
+    },
+    "precip_station_unreadable": {
+      "title": "Swiss Meteo : station de précipitations {station} illisible",
+      "description": "Les précipitations de la station {station} n'ont pas pu être lues pendant une heure ({error}). Si cela dure des jours, MétéoSuisse a peut-être abandonné la station ou changé son abréviation : choisis une autre station de précipitations, ou aucune, dans le dialogue « Configurer » de l'entrée. Le capteur de précipitations reste indisponible jusque-là ; cet avis disparaît à la prochaine actualisation réussie."
     },
     "pollen_unreadable": {
       "title": "Swiss Meteo : station pollinique {station} illisible",

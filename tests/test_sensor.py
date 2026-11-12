@@ -7,7 +7,7 @@ from datetime import timedelta
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from custom_components.swiss_meteo.coordinator import ForecastCoordinator, StationCoordinator
+from custom_components.swiss_meteo.coordinator import ForecastCoordinator, PrecipCoordinator, StationCoordinator
 from custom_components.swiss_meteo.meteoalarm import WARNINGS_URL, WarningsCoordinator
 from custom_components.swiss_meteo.open_meteo import OpenMeteoCoordinator
 from custom_components.swiss_meteo.pollen import PollenCoordinator
@@ -21,6 +21,7 @@ from custom_components.swiss_meteo.sensor import (
     PollenForecastSensor,
     PollenLevelSensor,
     PollenSensor,
+    PrecipSensor,
     RadarDistanceSensor,
     RadarEtaSensor,
     RadarRateSensor,
@@ -33,7 +34,7 @@ from custom_components.swiss_meteo.sensor import (
 
 from .conftest import NOW, RUN, make_entry
 from .fakes import FakeResponse
-from .feeds import EVERYTHING, entity, forecast_with, setup_everything, station_reading
+from .feeds import EVERYTHING, entity, forecast_with, precip_reading, setup_everything, station_reading
 
 
 def state(hass: HomeAssistant, key: str) -> str:
@@ -96,6 +97,46 @@ async def test_no_station_no_station_sensors(hass: HomeAssistant, setup_integrat
     assert hass.states.get(entity("sensor", "temperature")) is None
     assert hass.states.get(entity("sensor", "station_time")) is None
     assert state(hass, "today_max") == "10.0"
+
+
+# --- precipitation station ---------------------------------------------------
+
+
+async def test_precipitation_from_its_own_station(hass: HomeAssistant, setup_integration) -> None:
+    entry = await setup_everything(hass, setup_integration, precip_station="WAG", precip_station_name="Waldegg")
+    # the gauge's value, not the 0.2 mm of the weather station ...
+    assert state(hass, "precipitation") == "1.4"
+    assert attributes(hass, "precipitation")["station"] == "WAG"
+    assert attributes(hass, "precipitation")["station_name"] == "Waldegg"
+    # ... under the id the weather station's value had
+    registered = er.async_get(hass).async_get_entity_id("sensor", entry.domain, f"{entry.entry_id}_precipitation")
+    assert registered == entity("sensor", "precipitation")
+    # everything else still comes from the weather station
+    assert state(hass, "temperature") == "7.5"
+    assert attributes(hass, "station_time")["station"] == "SMA"
+
+
+async def test_old_precipitation_is_not_shown(hass: HomeAssistant, setup_integration) -> None:
+    await setup_everything(hass, setup_integration, precip=precip_reading(minutes_old=50), precip_station="WAG")
+    assert state(hass, "precipitation") == "unavailable"
+    assert state(hass, "temperature") == "7.5"
+
+
+async def test_precipitation_station_without_a_weather_station(hass: HomeAssistant, setup_integration) -> None:
+    await setup_everything(hass, setup_integration, station="", precip_station="WAG")
+    assert state(hass, "precipitation") == "1.4"
+    # without a name the abbreviation stands in
+    assert attributes(hass, "precipitation")["station_name"] == "WAG"
+    assert hass.states.get(entity("sensor", "temperature")) is None
+    assert hass.states.get(entity("sensor", "station_time")) is None
+
+
+async def test_precipitation_sensor_before_the_first_read(hass: HomeAssistant, swiss_now) -> None:
+    entry = make_entry(hass, {**EVERYTHING, "precip_station": "WAG", "precip_station_name": "Waldegg"})
+    sensor = PrecipSensor(hass, entry, PrecipCoordinator(hass, entry))
+    assert sensor.native_value is None
+    assert sensor.available is False
+    assert sensor.extra_state_attributes == {"station": "WAG", "station_name": "Waldegg"}
 
 
 # --- forecast ----------------------------------------------------------------

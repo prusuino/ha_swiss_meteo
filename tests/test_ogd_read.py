@@ -15,6 +15,7 @@ from custom_components.swiss_meteo import ogd
 from custom_components.swiss_meteo.const import (
     COLLECTION_FORECAST,
     FORECAST_META_POINTS_URL,
+    PRECIP_STATIONS_META_URL,
     STAC_BASE,
     STATIONS_META_URL,
 )
@@ -26,11 +27,14 @@ from custom_components.swiss_meteo.ogd import (
     async_catalogue_latest_run,
     async_fetch_forecast,
     async_fetch_points,
+    async_fetch_precip_reading,
+    async_fetch_precip_stations,
     async_fetch_station_reading,
     async_fetch_stations,
     async_find_latest_run,
     async_read_point,
     forecast_file_url,
+    precip_now_url,
     station_now_url,
 )
 
@@ -191,6 +195,41 @@ async def test_station_reading_is_the_last_row() -> None:
     broken = b"station_abbr;reference_timestamp;tre200s0\nBER;yesterday;7.9\n"
     with pytest.raises(OgdError, match="bad timestamp"):
         await async_fetch_station_reading(FakeSession({url: broken}), "BER")
+
+
+async def test_precipitation_stations_have_a_list_of_their_own() -> None:
+    body = (
+        "station_abbr;station_name;station_canton;station_height_masl;"
+        "station_coordinates_wgs84_lat;station_coordinates_wgs84_lon\n"
+        "WAG;Waldegg;ZH;545;47.362269;8.454789\n"
+        "BEP;Belp;BE;510;46.906094;7.505339\n"
+    ).encode("latin-1")
+    session = FakeSession({PRECIP_STATIONS_META_URL: body})
+    stations = await async_fetch_precip_stations(session)
+    assert PRECIP_STATIONS_META_URL != STATIONS_META_URL
+    assert session.urls() == [PRECIP_STATIONS_META_URL]
+    assert [(station.abbr, station.name, station.height) for station in stations] == [("WAG", "Waldegg", 545.0), ("BEP", "Belp", 510.0)]
+
+    with pytest.raises(OgdUnavailable, match="HTTP 404"):
+        await async_fetch_precip_stations(FakeSession())
+
+
+async def test_precipitation_reading_is_the_last_row() -> None:
+    url = precip_now_url("WAG")
+    assert url.endswith("/ch.meteoschweiz.ogd-smn-precip/wag/ogd-smn-precip_wag_t_now.csv")
+    assert url != station_now_url("WAG")
+    body = (
+        b"station_abbr;reference_timestamp;rre150z0\n"
+        b"WAG;08.11.2026 10:10;0\n"
+        b"WAG;08.11.2026 10:20;1.4\n"
+    )
+    reading = await async_fetch_precip_reading(FakeSession({url: body}), "WAG")
+    assert reading.abbr == "WAG"
+    assert reading.timestamp == datetime(2026, 11, 8, 10, 20, tzinfo=UTC)
+    assert reading.values == {"rre150z0": 1.4}
+
+    with pytest.raises(OgdError, match="station file of WAG has no rows"):
+        await async_fetch_precip_reading(FakeSession({url: body.split(b"\n", 1)[0] + b"\n"}), "WAG")
 
 
 # --- size and run discovery ------------------------------------------------------

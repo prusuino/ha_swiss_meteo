@@ -142,6 +142,31 @@ async def test_device_model(hass: HomeAssistant) -> None:
     assert " m" not in without_height and "pollen" not in without_height
 
 
+async def test_device_model_with_a_precipitation_station(hass: HomeAssistant) -> None:
+    both = {"station": "SMA", "precip_station": "WAG", "precip_station_name": "Waldegg", "pollen_station": "PZH"}
+    model = device_info(hass, make_entry(hass, both))["model"]
+    assert "SMA" in model and "precipitation Waldegg, pollen PZH" in model
+
+    alone = device_info(hass, make_entry(hass, {"precip_station": "WAG"}))["model"]
+    assert "precipitation WAG" in alone and "SMA" not in alone
+
+    # switched off in the Configure dialog: the options count
+    off = device_info(hass, make_entry(hass, both, {"precip_station": "", "precip_station_name": ""}))["model"]
+    assert "precipitation" not in off
+
+
+async def test_precipitation_station_that_cannot_be_read_does_not_block_the_rest(
+    hass: HomeAssistant, setup_integration, caplog: pytest.LogCaptureFixture
+) -> None:
+    entry = await setup_everything(
+        hass, setup_integration, precip=OgdError("station file of WAG has no rows"), precip_station="WAG"
+    )
+    assert entry.state is ConfigEntryState.LOADED
+    assert "Entry 0001: precipitation station WAG not readable yet, its sensor starts unavailable" in caplog.text
+    assert hass.states.get(entity("sensor", "precipitation")).state == "unavailable"
+    assert hass.states.get(entity("sensor", "temperature")).state == "7.5"
+
+
 # --- best_window -------------------------------------------------------------
 
 
@@ -185,6 +210,7 @@ async def test_import_history(hass: HomeAssistant, setup_integration) -> None:
         assert await call(hass, "import_history", entry=entry.entry_id) == answer
         order = importer.call_args.kwargs
         assert (order["station"], order["entry_id"], order["statistic_prefix"]) == ("SMA", ENTRY_ID, "0001")
+        assert order["precip_station"] == ""
         assert (order["years"], order["resolution"]) == (3, "hourly")
         assert order["groups"] == set(GROUPS)
         assert order["units"]["temperature"] == "°C"
@@ -203,6 +229,22 @@ async def test_import_history(hass: HomeAssistant, setup_integration) -> None:
 
     forecast.data = None
     order["account"](1, 100)  # nothing to count on yet: ignored
+
+
+async def test_import_history_with_a_precipitation_station(hass: HomeAssistant, setup_integration) -> None:
+    entry = await setup_everything(hass, setup_integration, precip_station="WAG")
+    with patch(IMPORT, AsyncMock(return_value={})) as importer:
+        await call(hass, "import_history", entry=entry.entry_id)
+    order = importer.call_args.kwargs
+    assert (order["station"], order["precip_station"]) == ("SMA", "WAG")
+
+
+async def test_import_history_with_a_precipitation_station_alone(hass: HomeAssistant, setup_integration) -> None:
+    entry = await setup_everything(hass, setup_integration, station="", precip_station="WAG")
+    with patch(IMPORT, AsyncMock(return_value={})) as importer:
+        await call(hass, "import_history", entry=entry.entry_id)
+    order = importer.call_args.kwargs
+    assert (order["station"], order["precip_station"]) == ("", "WAG")
 
 
 async def test_import_history_refuses(hass: HomeAssistant, setup_integration) -> None:

@@ -23,7 +23,11 @@
         "data": {
           "point": "Prognosepunkt",
           "station": "Wetterstation (Messwerte)",
+          "precip_station": "Niederschlagsstation (Regenmesser, optional)",
           "pollen_station": "Pollenstation"
+        },
+        "data_description": {
+          "precip_station": "MeteoSchweiz betreibt neben den Wetterstationen ein dichteres Netz automatischer Regenmesser. Ist hier einer gewählt, kommt der gemessene Niederschlag von dort; Temperatur, Wind, Druck und alle übrigen Werte kommen weiter von der Wetterstation. Vorgeschlagen wird einer, wenn er näher liegt als die Wetterstation. «–» belässt den Niederschlag der Wetterstation."
         }
       },
       "search": {
@@ -54,7 +58,11 @@
         "data": {
           "point": "Prognosepunkt",
           "station": "Wetterstation (Messwerte)",
+          "precip_station": "Niederschlagsstation (Regenmesser, optional)",
           "pollen_station": "Pollenstation"
+        },
+        "data_description": {
+          "precip_station": "MeteoSchweiz betreibt neben den Wetterstationen ein dichteres Netz automatischer Regenmesser. Ist hier einer gewählt, kommt der gemessene Niederschlag von dort; Temperatur, Wind, Druck und alle übrigen Werte kommen weiter von der Wetterstation. Vorgeschlagen wird einer, wenn er näher liegt als die Wetterstation. «–» belässt den Niederschlag der Wetterstation."
         }
       }
     },
@@ -71,11 +79,12 @@
     "step": {
       "init": {
         "title": "Swiss Meteo Einstellungen",
-        "description": "Stundenprognose, erweiterte Werte oder amtliche Warnungen ein- oder ausschalten, eine andere Wetterstation (die acht dem Prognosepunkt nächsten sind aufgeführt) oder Pollenstation wählen. Eine Änderung lädt den Eintrag neu; Entitäts-IDs und Verlauf bleiben erhalten.",
+        "description": "Stundenprognose, erweiterte Werte oder amtliche Warnungen ein- oder ausschalten, eine andere Wetterstation (die acht dem Prognosepunkt nächsten sind aufgeführt), Niederschlagsstation oder Pollenstation wählen. Eine Änderung lädt den Eintrag neu; Entitäts-IDs und Verlauf bleiben erhalten.",
         "data": {
           "hourly": "Stundenprognose",
           "extended": "Erweiterte Stundenwerte (Unsicherheitsbereich, Wolkenschichten, Nullgradgrenze)",
           "station": "Wetterstation (Messwerte)",
+          "precip_station": "Niederschlagsstation (Regenmesser, optional)",
           "pollen_station": "Pollenstation",
           "warnings": "Amtliche Warnungen (MeteoSchweiz via MeteoAlarm)",
           "radar": "Radar-Nowcast (Regen jetzt, nächster Regen, Regen in N Minuten; rund 8 MB pro Tag)",
@@ -83,6 +92,7 @@
           "open_meteo": "Luftqualität, UV-Index und Pollenprognose von Open-Meteo (keine offiziellen MeteoSchweiz-Daten)"
         },
         "data_description": {
+          "precip_station": "Ein Regenmesser aus dem Niederschlagsmessnetz von MeteoSchweiz (die acht dem Prognosepunkt nächsten sind aufgeführt). Der gemessene Niederschlag kommt dann von dort, alle übrigen Werte weiter von der Wetterstation. «–» belässt den Niederschlag der Wetterstation.",
           "open_meteo": "Optional. Ergänzt Modellwerte der freien Open-Meteo-API (Copernicus CAMS, Raster von rund 11 km) als eigenes Gerät. Es sind weder Messwerte noch offizielle MeteoSchweiz-Daten. Solange die Option ein ist, gehen die Koordinaten des Prognosepunkts (auf rund einen Kilometer gerundet) einmal pro Stunde an open-meteo.com."
         }
       }
@@ -326,7 +336,7 @@
   "services": {
     "import_history": {
       "name": "Stationshistorie importieren",
-      "description": "Liest das Messarchiv der Station von MeteoSchweiz (Stundenwerte seit 1980, Tageswerte seit Messbeginn) und schreibt es in die Langzeitstatistik von Home Assistant: Mittel, Minimum und Maximum der Stationssensoren sowie Niederschlag, Sonnenschein, Verdunstung und Heizgradtage als eigene Statistiken (swiss_meteo:…). Einmal ausführen; ein erneuter Lauf ersetzt denselben Zeitraum.",
+      "description": "Liest das Messarchiv der Station von MeteoSchweiz (Stundenwerte seit 1980, Tageswerte seit Messbeginn) und schreibt es in die Langzeitstatistik von Home Assistant: Mittel, Minimum und Maximum der Stationssensoren sowie Niederschlag, Sonnenschein, Verdunstung und Heizgradtage als eigene Statistiken (swiss_meteo:…). Mit einer Niederschlagsstation kommt der Niederschlag aus dem Archiv dieser Station. Einmal ausführen; ein erneuter Lauf ersetzt denselben Zeitraum.",
       "fields": {
         "entry": {
           "name": "Swiss-Meteo-Eintrag",
@@ -404,7 +414,7 @@
       "message": "Der Swiss-Meteo-Eintrag ist nicht geladen."
     },
     "no_station": {
-      "message": "Der Eintrag hat keine Wetterstation; der Historie-Import braucht eine (Dialog «Konfigurieren»)."
+      "message": "Der Eintrag hat weder eine Wetterstation noch eine Niederschlagsstation; der Historie-Import braucht eine davon (Dialog «Konfigurieren»)."
     },
     "hourly_years": {
       "message": "Stundenwerte sind auf 20 Jahre pro Import begrenzt; für frühere Jahre die Aktion nochmals ausführen oder Tageswerte wählen."
@@ -452,6 +462,10 @@
     "station_unreadable": {
       "title": "Swiss Meteo: Wetterstation {station} nicht lesbar",
       "description": "Die Messwerte der Station {station} konnten eine Stunde lang nicht gelesen werden ({error}). Hält das tagelang an, hat MeteoSchweiz die Station möglicherweise aufgegeben oder ihr Kürzel geändert: Wähle im Dialog „Konfigurieren“ des Eintrags eine andere Station. Die Stationssensoren bleiben bis dahin nicht verfügbar; dieser Hinweis verschwindet mit der nächsten erfolgreichen Aktualisierung."
+    },
+    "precip_station_unreadable": {
+      "title": "Swiss Meteo: Niederschlagsstation {station} nicht lesbar",
+      "description": "Der Niederschlag der Station {station} konnte eine Stunde lang nicht gelesen werden ({error}). Hält das tagelang an, hat MeteoSchweiz die Station möglicherweise aufgegeben oder ihr Kürzel geändert: Wähle im Dialog «Konfigurieren» des Eintrags eine andere Niederschlagsstation oder keine. Der Niederschlagssensor bleibt bis dahin nicht verfügbar; dieser Hinweis verschwindet mit der nächsten erfolgreichen Aktualisierung."
     },
     "pollen_unreadable": {
       "title": "Swiss Meteo: Pollenstation {station} nicht lesbar",

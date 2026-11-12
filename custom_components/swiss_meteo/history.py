@@ -29,7 +29,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .const import COLLECTION_STATIONS, DATA_BASE, DOMAIN, USER_AGENT
+from .const import COLLECTION_PRECIP, COLLECTION_STATIONS, DATA_BASE, DOMAIN, USER_AGENT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -90,10 +90,11 @@ class HistoryError(Exception):
     """The archive could not be read."""
 
 
-def _files(station: str, resolution: str, years: int, now: datetime) -> list[str]:
-    """The archive files that cover the last `years` years."""
+def _files(station: str, resolution: str, years: int, now: datetime, collection: str = COLLECTION_STATIONS) -> list[str]:
+    """The archive files that cover the last `years` years. Both networks
+    name their files after the collection (ogd-smn, ogd-smn-precip)."""
     a = station.lower()
-    base = f"{DATA_BASE}/{COLLECTION_STATIONS}/{a}/ogd-smn_{a}"
+    base = f"{DATA_BASE}/{collection}/{a}/{collection.rsplit('.', 1)[-1]}_{a}"
     if resolution == "daily":
         out = [f"{base}_d_recent.csv"]
         if years > 1:
@@ -176,38 +177,53 @@ async def async_import_history(
     resolution: str,
     groups: set[str],
     account=None,
+    precip_station: str = "",
 ) -> dict[str, Any]:
     """Read the archive and write the statistics. `units` maps sensor key
     to the unit of the entity; a sensor gets statistics when its entity
     exists in the registry and is enabled (looked up by unique id, so a
-    renamed entity keeps receiving them). Returns a summary per statistic."""
+    renamed entity keeps receiving them). With a `precip_station` the
+    precipitation total comes from the archive of that station of the
+    precipitation network, the gauge the live sensor reads as well; the
+    weather station may then be missing (`station` empty). Returns a
+    summary per statistic."""
     from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
     session = async_get_clientsession(hass)
     now = dt_util.utcnow()
     since = now.replace(year=now.year - years + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
     shift = 1 if resolution == "hourly" else 0
-    rows: list[dict[str, Any]] = []
     requests = 0
     nbytes = 0
-    for url in _files(station, resolution, years, now):
-        raw, n = await _fetch(session, url)
-        requests += n
-        nbytes += len(raw)
-        if raw:
-            rows += await hass.async_add_executor_job(_parse, raw, since, shift)
+
+    async def read(abbr: str, collection: str) -> list[dict[str, Any]]:
+        nonlocal requests, nbytes
+        found: list[dict[str, Any]] = []
+        for url in _files(abbr, resolution, years, now, collection):
+            raw, n = await _fetch(session, url)
+            requests += n
+            nbytes += len(raw)
+            if raw:
+                found += await hass.async_add_executor_job(_parse, raw, since, shift)
+        return await hass.async_add_executor_job(_prepare, found) if found else found
+
+    rows = await read(station, COLLECTION_STATIONS) if station else []
+    own_precip = bool(precip_station) and "precipitation" in groups
+    precip_rows = await read(precip_station, COLLECTION_PRECIP) if own_precip else []
     if account is not None:
         account(requests, nbytes)
-    if not rows:
-        raise HistoryError(f"No archive rows for station {station}")
-    rows = await hass.async_add_executor_job(_prepare, rows)
+    span = rows or precip_rows
+    if not span:
+        raise HistoryError(f"No archive rows for station {station or precip_station}")
     col = 1 if resolution == "hourly" else 2
     registry = er.async_get(hass)
     skipped: list[str] = []
-    summary: dict[str, Any] = {"station": station, "resolution": resolution, "rows": len(rows), "first": rows[0]["start"].isoformat(), "last": rows[-1]["start"].isoformat(), "statistics": {}}
+    summary: dict[str, Any] = {"station": station, "resolution": resolution, "rows": len(span), "first": span[0]["start"].isoformat(), "last": span[-1]["start"].isoformat(), "statistics": {}}
+    if own_precip:
+        summary["precipitation_station"] = precip_station
 
     for key, (group, hourly, daily) in MEASUREMENTS.items():
-        if group not in groups or key not in units:
+        if not rows or group not in groups or key not in units:
             continue
         mean_c, min_c, max_c = (hourly, daily)[col - 1]
         if not mean_c:
@@ -229,8 +245,16 @@ async def async_import_history(
         column = hourly_c if resolution == "hourly" else daily_c
         if not column:
             continue
+        # The precipitation of an entry with a precipitation station is that
+        # gauge's; no rows from it means no total, not the weather station's.
+        own = own_precip and suffix == "precipitation"
+        source, source_station = (precip_rows, precip_station) if own else (rows, station)
+        if not source:
+            if own:
+                skipped.append(suffix)
+            continue
         statistic_id = f"{DOMAIN}:{statistic_prefix}_{suffix}"
-        first_start = rows[0]["start"]
+        first_start = source[0]["start"]
         base = 0.0
         last = await get_instance(hass).async_add_executor_job(get_last_statistics, hass, 1, statistic_id, True, {"sum"})
         if last and last.get(statistic_id):
@@ -240,14 +264,14 @@ async def async_import_history(
                 prev_start = datetime.fromtimestamp(prev_start, tz=timezone.utc)
             if prev_start is not None and prev_start < first_start and prev.get("sum") is not None:
                 base = float(prev["sum"])
-        stats = await hass.async_add_executor_job(_total_stats, rows, column, base)
+        stats = await hass.async_add_executor_job(_total_stats, source, column, base)
         if not stats:
             continue
-        async_add_external_statistics(hass, _meta(statistic_id, DOMAIN, f"{station} {name}", unit, False, True), stats)
+        async_add_external_statistics(hass, _meta(statistic_id, DOMAIN, f"{source_station} {name}", unit, False, True), stats)
         summary["statistics"][statistic_id] = len(stats)
     if skipped:
         summary["skipped"] = skipped
-    _LOGGER.info("Station %s: %s rows (%s) imported into %d statistics, %.1f MB read", station, len(rows), resolution, len(summary["statistics"]), nbytes / 1e6)
+    _LOGGER.info("Station %s: %s rows (%s) imported into %d statistics, %.1f MB read", station or precip_station, len(span), resolution, len(summary["statistics"]), nbytes / 1e6)
     return summary
 
 

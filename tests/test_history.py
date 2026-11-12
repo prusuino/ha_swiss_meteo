@@ -14,7 +14,7 @@ from homeassistant.components.recorder.models import StatisticMeanType
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from custom_components.swiss_meteo.const import DOMAIN
+from custom_components.swiss_meteo.const import COLLECTION_PRECIP, DOMAIN
 from custom_components.swiss_meteo.history import (
     GROUPS,
     MEASUREMENTS,
@@ -38,6 +38,7 @@ HISTORY = "custom_components.swiss_meteo.history"
 
 DAILY_RECENT, DAILY_HISTORICAL = _files("BER", "daily", 2, NOW)
 HOURLY_DECADE, HOURLY_RECENT = _files("BER", "hourly", 1, NOW)
+(GAUGE_RECENT,) = _files("BEP", "daily", 1, NOW, COLLECTION_PRECIP)
 
 PRECIPITATION = f"{DOMAIN}:station_ber_precipitation"
 SUNSHINE = f"{DOMAIN}:station_ber_sunshine"
@@ -60,6 +61,12 @@ HOURS = (
     "station_abbr;reference_timestamp;tre200h0;tre200hn;tre200hx;rre150h0\n"
     "BER;08.11.2026 09:00;5.0;4.5;5.5;0.2\n"
     "BER;08.11.2026 10:00;6.0;5.5;;0.0\n"
+).encode("latin-1")
+# the daily file of a station of the precipitation network
+GAUGE_DAYS = (
+    "station_abbr;reference_timestamp;rre150d0;rka150d0\n"
+    "BEP;06.11.2026 00:00;4.1;4.0\n"
+    "BEP;07.11.2026 00:00;1.6;1.5\n"
 ).encode("latin-1")
 
 
@@ -331,3 +338,76 @@ async def test_archive_that_does_not_answer(hass: HomeAssistant, swiss_now, reco
         await async_import_history(
             hass, station="BER", entry_id=ENTRY_ID, statistic_prefix="station_ber", units={}, years=1, resolution="daily", groups=set(GROUPS)
         )
+
+
+# --- with a precipitation station --------------------------------------------
+
+
+async def gauge_import(hass: HomeAssistant, session: FakeSession, station: str = "BER", groups: set[str] | None = None) -> dict[str, Any]:
+    with patch(SESSION, return_value=session):
+        return await async_import_history(
+            hass,
+            station=station,
+            precip_station="BEP",
+            entry_id=ENTRY_ID,
+            statistic_prefix="station_ber",
+            units={},
+            years=1,
+            resolution="daily",
+            groups=groups or {"precipitation", "sunshine"},
+        )
+
+
+async def test_precipitation_from_the_gauge_archive(hass: HomeAssistant, swiss_now, recorder) -> None:
+    assert GAUGE_RECENT.endswith("/ch.meteoschweiz.ogd-smn-precip/bep/ogd-smn-precip_bep_d_recent.csv")
+    session = FakeSession({DAILY_RECENT: RECENT_DAYS, GAUGE_RECENT: GAUGE_DAYS})
+    summary = await gauge_import(hass, session)
+
+    assert session.urls() == [DAILY_RECENT, GAUGE_RECENT]
+    assert (summary["station"], summary["precipitation_station"], summary["rows"]) == ("BER", "BEP", 2)
+    assert summary["statistics"] == {PRECIPITATION: 2, SUNSHINE: 1}
+    totals = written(recorder.totals)
+    meta, stats = totals[PRECIPITATION]
+    # the gauge's days under the entry's statistic, named after the gauge
+    assert meta["name"] == "BEP Precipitation"
+    assert stats == [
+        {"start": day(6), "state": 4.0, "sum": 4.0},
+        {"start": day(7), "state": 1.5, "sum": 5.5},
+    ]
+    assert totals[SUNSHINE][0]["name"] == "BER Sunshine duration"
+
+
+async def test_precipitation_station_alone(hass: HomeAssistant, swiss_now, recorder) -> None:
+    session = FakeSession({GAUGE_RECENT: GAUGE_DAYS})
+    summary = await gauge_import(hass, session, station="", groups=set(GROUPS))
+
+    assert session.urls() == [GAUGE_RECENT]
+    assert summary == {
+        "station": "",
+        "precipitation_station": "BEP",
+        "resolution": "daily",
+        "rows": 2,
+        "first": "2026-11-06T00:00:00+00:00",
+        "last": "2026-11-07T00:00:00+00:00",
+        "statistics": {PRECIPITATION: 2},
+    }
+    recorder.measurements.assert_not_called()
+    assert set(written(recorder.totals)) == {PRECIPITATION}
+
+
+async def test_gauge_without_an_archive(hass: HomeAssistant, swiss_now, recorder) -> None:
+    # no rows from the gauge: no precipitation total, not the weather station's
+    summary = await gauge_import(hass, FakeSession({DAILY_RECENT: RECENT_DAYS}))
+    assert summary["statistics"] == {SUNSHINE: 1}
+    assert summary["skipped"] == ["precipitation"]
+
+    with pytest.raises(HistoryError, match="No archive rows for station BEP"):
+        await gauge_import(hass, FakeSession(), station="")
+
+
+async def test_gauge_is_left_alone_without_the_precipitation_group(hass: HomeAssistant, swiss_now, recorder) -> None:
+    session = FakeSession({DAILY_RECENT: RECENT_DAYS, GAUGE_RECENT: GAUGE_DAYS})
+    summary = await gauge_import(hass, session, groups={"sunshine"})
+    assert session.urls() == [DAILY_RECENT]
+    assert "precipitation_station" not in summary
+    assert summary["statistics"] == {SUNSHINE: 1}

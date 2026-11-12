@@ -51,6 +51,7 @@ class SwissMeteoWeather(CoordinatorEntity[ForecastCoordinator], WeatherEntity):
         super().__init__(data.forecast)
         self._entry = entry
         self._station = data.station
+        self._precip = data.precip
         self._attr_name = None  # the device's main entity carries the device name
         self._attr_unique_id = f"{entry.entry_id}_weather"
         self._attr_device_info = device_info(hass, entry)
@@ -171,6 +172,9 @@ class SwissMeteoWeather(CoordinatorEntity[ForecastCoordinator], WeatherEntity):
             attrs["station"] = self._station.station
             attrs["station_time"] = self._station.data.timestamp.isoformat()
             attrs["station_fresh"] = self._station.fresh
+        if self._precip is not None:
+            # the rain gauge behind the 10-minute precipitation sensor
+            attrs["precipitation_station"] = self._precip.station
         return {k: v for k, v in attrs.items() if v is not None}
 
     # --- forecasts -----------------------------------------------------------

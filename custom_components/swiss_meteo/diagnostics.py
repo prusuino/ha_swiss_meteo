@@ -29,6 +29,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     data: EntryData | None = getattr(entry, "runtime_data", None)
     snap = data.forecast.data if data and data.forecast.data else None
     station = data.station if data else None
+    precip = data.precip if data else None
     pollen = data.pollen if data else None
     open_meteo = data.open_meteo if data else None
     om = open_meteo.data if open_meteo else None
@@ -93,5 +94,12 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "timestamp": station.data.timestamp.isoformat() if station and station.data else None,
             "fresh": station.fresh if station else None,
             "values": station.data.values if station and station.data else None,
+        },
+        "precip_station": {
+            "configured": precip.station if precip else None,
+            "last_update_success": precip.last_update_success if precip else None,
+            "timestamp": precip.data.timestamp.isoformat() if precip and precip.data else None,
+            "fresh": precip.fresh if precip else None,
+            "values": precip.data.values if precip and precip.data else None,
         },
     }

@@ -16,6 +16,7 @@ from custom_components.swiss_meteo.const import (
     CONF_POINT_NAME,
     CONF_POINT_TYPE,
     CONF_POLLEN_STATION,
+    CONF_PRECIP_STATION,
     CONF_STATION,
     DOMAIN,
 )
@@ -31,11 +32,14 @@ STATIONS = [
     Station("BER", "Bern / Zollikofen", "BE", 553.0, 46.9908, 7.4641),
 ]
 POLLEN = [PollenStation("PZH", "Zürich", "ZH", 556.0, 47.3781, 8.5658), PollenStation("PBE", "Bern", "BE", 553.0, 46.9908, 7.4641)]
+# two gauges of the precipitation network: one west of Zürich, one south of Bern
+PRECIP = [Station("WAG", "Waldegg", "ZH", 545.0, 47.362269, 8.454789), Station("BEP", "Belp", "BE", 510.0, 46.906094, 7.505339)]
 
 
 @pytest.fixture
 def fake_lists(hass: HomeAssistant):
-    """Serve the forecast points, stations and pollen stations from memory.
+    """Serve the forecast points, the weather, precipitation and pollen
+    stations from memory.
 
     The integration depends on the recorder (for the station history import);
     the flow does not use it, so the recorder is marked as set up instead of
@@ -44,6 +48,7 @@ def fake_lists(hass: HomeAssistant):
     with (
         patch("custom_components.swiss_meteo.config_flow.async_fetch_points", return_value=POINTS),
         patch("custom_components.swiss_meteo.config_flow.async_fetch_stations", return_value=STATIONS),
+        patch("custom_components.swiss_meteo.config_flow.async_fetch_precip_stations", return_value=PRECIP),
         patch("custom_components.swiss_meteo.config_flow.async_fetch_pollen_stations", return_value=POLLEN),
     ):
         yield
@@ -71,6 +76,8 @@ async def test_setup_by_location(hass: HomeAssistant, enable_custom_integrations
     assert result["data"][CONF_POINT_TYPE] == 2
     assert result["data"][CONF_STATION] == "SMA"
     assert result["data"][CONF_POLLEN_STATION] == ""
+    # the weather station is nearer than any gauge: no precipitation station
+    assert result["data"][CONF_PRECIP_STATION] == ""
     assert result["data"]["radar"] is False
     assert result["result"].unique_id == "2-800100"
 
@@ -178,3 +185,21 @@ async def test_reconfigure_refuses_another_entrys_point(hass: HomeAssistant, ena
     )
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
+
+
+async def test_setup_with_a_precipitation_station(hass: HomeAssistant, enable_custom_integrations, fake_lists) -> None:
+    """A rain gauge chosen next to the weather station is stored with its name."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"location": {"latitude": 47.37, "longitude": 8.54}, "search": "", "hourly": True, "extended": False, "warnings": True, "radar": False},
+    )
+    assert result["step_id"] == "place"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"point": "2:800100", "station": "SMA", "precip_station": "WAG", "pollen_station": "none"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    data = result["data"]
+    assert (data[CONF_STATION], data["station_name"]) == ("SMA", "Zürich / Fluntern")
+    assert (data[CONF_PRECIP_STATION], data["precip_station_name"]) == ("WAG", "Waldegg")

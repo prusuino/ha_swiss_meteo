@@ -116,7 +116,7 @@ async def test_reconfigure_starts_from_the_current_choices(hass: HomeAssistant, 
         result["flow_id"], {"location": {"latitude": 46.948, "longitude": 7.447}, "search": ""}
     )
     assert offered(result, "point")[0] == "2:301100"
-    assert defaults(result) == {"point": "2:800100", "station": "SMA", "pollen_station": "PZH"}
+    assert defaults(result) == {"point": "2:800100", "station": "SMA", "precip_station": "none", "pollen_station": "PZH"}
 
     # same point, another station: nothing to compare with other entries
     result = await hass.config_entries.flow.async_configure(
@@ -137,7 +137,7 @@ async def test_reconfigure_with_choices_no_longer_on_offer(hass: HomeAssistant, 
         result["flow_id"], {"location": {"latitude": 47.3769, "longitude": 8.5417}, "search": ""}
     )
     assert result["step_id"] == "reconfigure_place"
-    assert defaults(result) == {"point": "2:800100", "station": "SMA", "pollen_station": "PZH"}
+    assert defaults(result) == {"point": "2:800100", "station": "SMA", "precip_station": "none", "pollen_station": "PZH"}
 
 
 async def test_reconfigure_without_stations_starts_from_none(hass: HomeAssistant, enable_custom_integrations, fake_lists) -> None:
@@ -148,7 +148,7 @@ async def test_reconfigure_without_stations_starts_from_none(hass: HomeAssistant
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"location": {"latitude": 47.3769, "longitude": 8.5417}, "search": ""}
     )
-    assert defaults(result) == {"point": "2:800100", "station": "none", "pollen_station": "none"}
+    assert defaults(result) == {"point": "2:800100", "station": "none", "precip_station": "none", "pollen_station": "none"}
     # a new entry has no choice yet
     assert SwissMeteoConfigFlow()._current("station") == "none"
 
@@ -162,8 +162,9 @@ async def test_options_form(hass: HomeAssistant, enable_custom_integrations, fak
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {}
     assert offered(result, "station") == ["SMA", "BER", "none"]
+    assert offered(result, "precip_station") == ["WAG", "BEP", "none"]
     assert offered(result, "pollen_station") == ["PZH", "PBE", "none"]
-    assert defaults(result) == {**SWITCHES, "gust_threshold": 60.0, "station": "SMA", "pollen_station": "PZH", "open_meteo": False}
+    assert defaults(result) == {**SWITCHES, "gust_threshold": 60.0, "station": "SMA", "precip_station": "none", "pollen_station": "PZH", "open_meteo": False}
 
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {**OPTIONS, "hourly": False, "gust_threshold": 55, "station": "BER", "pollen_station": "PBE", "open_meteo": True}
@@ -171,7 +172,8 @@ async def test_options_form(hass: HomeAssistant, enable_custom_integrations, fak
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"] == {
         "hourly": False, "extended": False, "warnings": True, "radar": True, "open_meteo": True, "gust_threshold": 55.0,
-        "station": "BER", "station_name": "Bern / Zollikofen", "pollen_station": "PBE", "pollen_station_name": "Bern",
+        "station": "BER", "station_name": "Bern / Zollikofen", "precip_station": "", "precip_station_name": "",
+        "pollen_station": "PBE", "pollen_station_name": "Bern",
     }
 
 
@@ -213,3 +215,137 @@ async def test_options_without_the_lists(hass: HomeAssistant, enable_custom_inte
         )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert (result["data"]["station_name"], result["data"]["pollen_station_name"]) == ("SMA", "PZH")
+
+
+# --- the precipitation station -----------------------------------------------
+
+
+async def place_form(hass: HomeAssistant, latitude: float, longitude: float):
+    """The second step of a new setup at a location."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"location": {"latitude": latitude, "longitude": longitude}, "search": "", **SWITCHES}
+    )
+
+
+async def test_precipitation_station_is_suggested_only_when_nearer(hass: HomeAssistant, enable_custom_integrations, fake_lists) -> None:
+    # in the city the weather station is two kilometres away, the gauge six
+    result = await place_form(hass, 47.37, 8.54)
+    assert offered(result, "precip_station") == ["WAG", "BEP", "none"]
+    assert defaults(result)["precip_station"] == "none"
+
+    # next to the gauge it is the nearer of the two
+    result = await place_form(hass, 47.362, 8.455)
+    assert defaults(result) == {"point": "2:800100", "station": "SMA", "precip_station": "WAG", "pollen_station": "PZH"}
+
+    # ... and without a weather station on offer it is suggested as well
+    with patch(FLOW + "async_fetch_stations", return_value=[]):
+        result = await place_form(hass, 47.37, 8.54)
+    assert defaults(result)["station"] == "none"
+    assert defaults(result)["precip_station"] == "WAG"
+
+
+async def test_setup_without_the_precipitation_list(hass: HomeAssistant, enable_custom_integrations, fake_lists) -> None:
+    with patch(FLOW + "async_fetch_precip_stations", side_effect=OgdError("HTTP 503")):
+        result = await place_form(hass, 47.37, 8.54)
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "cannot_connect"}
+
+
+async def test_reconfigure_keeps_the_precipitation_station(hass: HomeAssistant, enable_custom_integrations, fake_lists) -> None:
+    entry = entry_at_zurich(hass, precip_station="WAG", precip_station_name="Waldegg")
+    # the Configure dialog has chosen another gauge since
+    hass.config_entries.async_update_entry(entry, options={"precip_station": "BEP", "precip_station_name": "Belp", "gust_threshold": 70.0})
+    here = {"location": {"latitude": 47.3769, "longitude": 8.5417}, "search": ""}
+    context = {"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id}
+
+    result = await hass.config_entries.flow.async_init(DOMAIN, context=context)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], here)
+    assert result["step_id"] == "reconfigure_place"
+    assert defaults(result)["precip_station"] == "BEP"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"point": "2:800100", "station": "SMA", "precip_station": "WAG", "pollen_station": "PZH"}
+    )
+    assert (result["type"], result["reason"]) == (FlowResultType.ABORT, "reconfigure_successful")
+    assert (entry.data["precip_station"], entry.data["precip_station_name"]) == ("WAG", "Waldegg")
+    # the stations now live in the entry data alone, the other options stay
+    assert entry.options == {"gust_threshold": 70.0}
+
+    # ... and "–" switches the gauge off again
+    result = await hass.config_entries.flow.async_init(DOMAIN, context=context)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], here)
+    assert defaults(result)["precip_station"] == "WAG"
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"point": "2:800100", "station": "SMA", "precip_station": "none", "pollen_station": "PZH"}
+    )
+    assert result["reason"] == "reconfigure_successful"
+    assert (entry.data["precip_station"], entry.data["precip_station_name"]) == ("", "")
+
+
+async def test_reconfigure_with_a_precipitation_station_no_longer_on_offer(
+    hass: HomeAssistant, enable_custom_integrations, fake_lists
+) -> None:
+    entry = entry_at_zurich(hass, precip_station="OLD")
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_RECONFIGURE, "entry_id": entry.entry_id}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"location": {"latitude": 47.3769, "longitude": 8.5417}, "search": ""}
+    )
+    # the usual rule decides: the weather station is nearer than any gauge
+    assert offered(result, "precip_station") == ["WAG", "BEP", "none"]
+    assert defaults(result)["precip_station"] == "none"
+
+
+async def test_options_with_a_precipitation_station(hass: HomeAssistant, enable_custom_integrations, fake_lists) -> None:
+    entry = entry_at_zurich(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**OPTIONS, "station": "SMA", "precip_station": "WAG", "pollen_station": "PZH"}
+    )
+    chosen = result["data"]
+    assert (chosen["precip_station"], chosen["precip_station_name"]) == ("WAG", "Waldegg")
+    assert (chosen["station"], chosen["pollen_station"]) == ("SMA", "PZH")
+    assert entry.options["precip_station"] == "WAG"
+
+    # the dialog opens with the gauge, and "–" switches it off again
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert defaults(result)["precip_station"] == "WAG"
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**OPTIONS, "station": "SMA", "precip_station": "none", "pollen_station": "PZH"}
+    )
+    assert (result["data"]["precip_station"], result["data"]["precip_station_name"]) == ("", "")
+
+
+async def test_options_keep_a_precipitation_station_that_left_the_lists(
+    hass: HomeAssistant, enable_custom_integrations, fake_lists
+) -> None:
+    entry = entry_at_zurich(hass, precip_station="OLD")
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert offered(result, "precip_station") == ["OLD", "WAG", "BEP", "none"]
+    assert defaults(result)["precip_station"] == "OLD"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**OPTIONS, "station": "SMA", "precip_station": "OLD", "pollen_station": "PZH"}
+    )
+    # not in the list any more: the abbreviation stands in for the name
+    assert (result["data"]["precip_station"], result["data"]["precip_station_name"]) == ("OLD", "OLD")
+
+
+async def test_options_without_the_precipitation_list(hass: HomeAssistant, enable_custom_integrations, fake_lists) -> None:
+    entry = entry_at_zurich(hass, precip_station="WAG", precip_station_name="Waldegg")
+    with patch(FLOW + "async_fetch_precip_stations", side_effect=OgdError("HTTP 503")):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert result["errors"] == {"base": "cannot_connect"}
+        # what was read before the failure is offered, the current choices stay selectable
+        assert offered(result, "station") == ["SMA", "BER", "none"]
+        assert offered(result, "precip_station") == ["WAG", "none"]
+        assert offered(result, "pollen_station") == ["PZH", "none"]
+
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {**OPTIONS, "station": "SMA", "precip_station": "WAG", "pollen_station": "PZH"}
+        )
+    chosen = result["data"]
+    assert (chosen["station_name"], chosen["pollen_station_name"]) == ("Zürich / Fluntern", "Zürich")
+    assert (chosen["precip_station"], chosen["precip_station_name"]) == ("WAG", "WAG")

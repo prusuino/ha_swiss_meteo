@@ -132,6 +132,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "pollen_forecast_mugwort": {"de": "Pollenprognose Beifuss", "en": "Pollen Forecast Mugwort", "fr": "Prévision pollen armoise", "it": "Previsione polline artemisia"},
     "pollen_forecast_olive": {"de": "Pollenprognose Olive", "en": "Pollen Forecast Olive", "fr": "Prévision pollen olivier", "it": "Previsione polline olivo"},
     "pollen_forecast_ragweed": {"de": "Pollenprognose Ambrosia", "en": "Pollen Forecast Ragweed", "fr": "Prévision pollen ambroisie", "it": "Previsione polline ambrosia"},
+    "model_precip": {"de": "{station}, Niederschlag {precip}", "en": "{station}, precipitation {precip}", "fr": "{station}, précipitations {precip}", "it": "{station}, precipitazioni {precip}"},
     "model_pollen": {"de": "{station}, Pollen {pollen}", "en": "{station}, pollen {pollen}", "fr": "{station}, pollen {pollen}", "it": "{station}, pollini {pollen}"},
 }
 

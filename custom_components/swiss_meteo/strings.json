@@ -23,7 +23,11 @@
         "data": {
           "point": "Forecast point",
           "station": "Weather station (live values)",
+          "precip_station": "Precipitation station (rain gauge, optional)",
           "pollen_station": "Pollen station"
+        },
+        "data_description": {
+          "precip_station": "MeteoSwiss runs a denser network of automatic rain gauges besides the weather stations. With a gauge chosen here, the measured precipitation comes from it; temperature, wind, pressure and all other values still come from the weather station. One is suggested when it is nearer than the weather station. \"–\" keeps the precipitation of the weather station."
         }
       },
       "search": {
@@ -54,7 +58,11 @@
         "data": {
           "point": "Forecast point",
           "station": "Weather station (live values)",
+          "precip_station": "Precipitation station (rain gauge, optional)",
           "pollen_station": "Pollen station"
+        },
+        "data_description": {
+          "precip_station": "MeteoSwiss runs a denser network of automatic rain gauges besides the weather stations. With a gauge chosen here, the measured precipitation comes from it; temperature, wind, pressure and all other values still come from the weather station. One is suggested when it is nearer than the weather station. \"–\" keeps the precipitation of the weather station."
         }
       }
     },
@@ -71,11 +79,12 @@
     "step": {
       "init": {
         "title": "Swiss Meteo settings",
-        "description": "Switch the hourly forecast, the extended values or the official warnings on or off, or pick another weather station (the eight nearest to the forecast point are listed) or pollen station. Changing a setting reloads the entry; entity ids and history are kept.",
+        "description": "Switch the hourly forecast, the extended values or the official warnings on or off, or pick another weather station (the eight nearest to the forecast point are listed), precipitation station or pollen station. Changing a setting reloads the entry; entity ids and history are kept.",
         "data": {
           "hourly": "Hourly forecast",
           "extended": "Extended hourly values (uncertainty range, cloud layers, zero-degree level)",
           "station": "Weather station (live values)",
+          "precip_station": "Precipitation station (rain gauge, optional)",
           "pollen_station": "Pollen station",
           "warnings": "Official warnings (MeteoSwiss via MeteoAlarm)",
           "radar": "Radar nowcast (rain now, nearest rain, rain in N minutes; about 8 MB a day)",
@@ -83,6 +92,7 @@
           "open_meteo": "Air quality, UV index and pollen forecast from Open-Meteo (not official MeteoSwiss data)"
         },
         "data_description": {
+          "precip_station": "A rain gauge of the MeteoSwiss precipitation network (the eight nearest to the forecast point are listed). The measured precipitation then comes from it, all other values still from the weather station. \"–\" keeps the precipitation of the weather station.",
           "open_meteo": "Optional. Adds modelled values from the free Open-Meteo API (Copernicus CAMS, a grid of about 11 km) as a separate device. They are neither measurements nor official MeteoSwiss data. While switched on, the coordinates of the forecast point (rounded to about a kilometre) are sent to open-meteo.com once an hour."
         }
       }
@@ -326,7 +336,7 @@
   "services": {
     "import_history": {
       "name": "Import station history",
-      "description": "Reads the station's measurement archive from MeteoSwiss (hourly values since 1980, daily values since the station's start) and writes it into Home Assistant's long-term statistics: mean, minimum and maximum of the station sensors, plus precipitation, sunshine, evaporation and heating degree days as separate statistics (swiss_meteo:…). Run it once; running it again replaces the same period.",
+      "description": "Reads the station's measurement archive from MeteoSwiss (hourly values since 1980, daily values since the station's start) and writes it into Home Assistant's long-term statistics: mean, minimum and maximum of the station sensors, plus precipitation, sunshine, evaporation and heating degree days as separate statistics (swiss_meteo:…). With a precipitation station, the precipitation comes from that station's archive. Run it once; running it again replaces the same period.",
       "fields": {
         "entry": {
           "name": "Swiss Meteo entry",
@@ -404,7 +414,7 @@
       "message": "The Swiss Meteo entry is not loaded."
     },
     "no_station": {
-      "message": "The entry has no weather station; the history import needs one (Configure dialog)."
+      "message": "The entry has neither a weather station nor a precipitation station; the history import needs one of them (Configure dialog)."
     },
     "hourly_years": {
       "message": "Hourly values are limited to 20 years per import; run the action again for earlier years, or choose daily values."
@@ -452,6 +462,10 @@
     "station_unreadable": {
       "title": "Swiss Meteo: weather station {station} not readable",
       "description": "The live values of station {station} could not be read for an hour ({error}). If this persists for days, MeteoSwiss may have discontinued the station or changed its abbreviation: pick another station in the entry's Configure dialog. The station sensors stay unavailable until then; this notice disappears with the next successful refresh."
+    },
+    "precip_station_unreadable": {
+      "title": "Swiss Meteo: precipitation station {station} not readable",
+      "description": "The precipitation of station {station} could not be read for an hour ({error}). If this persists for days, MeteoSwiss may have discontinued the station or changed its abbreviation: pick another precipitation station, or none, in the entry's Configure dialog. The precipitation sensor stays unavailable until then; this notice disappears with the next successful refresh."
     },
     "pollen_unreadable": {
       "title": "Swiss Meteo: pollen station {station} not readable",

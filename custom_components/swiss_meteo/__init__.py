@@ -15,8 +15,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 
 from .issues import async_clear_entry_issues
-from .const import CONF_OPEN_METEO, CONF_POLLEN_STATION, CONF_RADAR, CONF_STATION, CONF_WARNINGS, DOMAIN, STATION_PARAMS
-from .coordinator import EntryData, ForecastCoordinator, StationCoordinator
+from .const import CONF_OPEN_METEO, CONF_POLLEN_STATION, CONF_PRECIP_STATION, CONF_RADAR, CONF_STATION, CONF_WARNINGS, DOMAIN, STATION_PARAMS
+from .coordinator import EntryData, ForecastCoordinator, PrecipCoordinator, StationCoordinator
 
 type SwissMeteoConfigEntry = ConfigEntry[EntryData]
 from .device import entry_suffix, open_meteo_identifier
@@ -63,7 +63,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         data: EntryData | None = getattr(entry, "runtime_data", None) if entry else None
         if entry is None or data is None:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="entry_not_loaded")
-        if data.station is None:
+        if data.station is None and data.precip is None:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_station")
         if call.data["resolution"] == "hourly" and call.data["years"] > HOURLY_MAX_YEARS:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="hourly_years")
@@ -79,7 +79,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         try:
             return await async_import_history(
                 hass,
-                station=data.station.station,
+                station=data.station.station if data.station else "",
+                precip_station=data.precip.station if data.precip else "",
                 entry_id=entry.entry_id,
                 statistic_prefix=entry_suffix(entry),
                 units=units,
@@ -136,6 +137,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: SwissMeteoConfigEntry) -
         if not station.last_update_success:
             _LOGGER.warning("Entry %s: station %s not readable yet, its sensors start unavailable", entry_suffix(entry), station.station)
 
+    precip: PrecipCoordinator | None = None
+    if entry.options.get(CONF_PRECIP_STATION, entry.data.get(CONF_PRECIP_STATION)):
+        precip = PrecipCoordinator(hass, entry)
+        await precip.async_refresh()
+        if not precip.last_update_success:
+            _LOGGER.warning("Entry %s: precipitation station %s not readable yet, its sensor starts unavailable", entry_suffix(entry), precip.station)
+
     pollen: PollenCoordinator | None = None
     if entry.options.get(CONF_POLLEN_STATION, entry.data.get(CONF_POLLEN_STATION)):
         pollen = PollenCoordinator(hass, entry)
@@ -179,7 +187,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: SwissMeteoConfigEntry) -
             if identifier in device.identifiers:
                 devices.async_remove_device(device.id)
 
-    entry.runtime_data = EntryData(forecast=forecast, station=station, pollen=pollen, warnings=warnings, radar=radar, open_meteo=open_meteo)
+    entry.runtime_data = EntryData(forecast=forecast, station=station, precip=precip, pollen=pollen, warnings=warnings, radar=radar, open_meteo=open_meteo)
     await async_serve_frontend(hass)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

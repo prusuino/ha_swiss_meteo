@@ -1,5 +1,6 @@
-"""Data coordinators: the local forecast of one point and the 10-minute
-values of one SwissMetNet station.
+"""Data coordinators: the local forecast of one point, the 10-minute
+values of one SwissMetNet station and, when one is chosen, the 10-minute
+precipitation of a station of the precipitation network.
 
 The forecast coordinator wakes every 15 minutes but reads only when a new
 model run has appeared (one HEAD request tells). The daily values are
@@ -25,6 +26,7 @@ from .const import (
     CONF_HOURLY,
     CONF_POINT_ID,
     CONF_POINT_TYPE,
+    CONF_PRECIP_STATION,
     CONF_STATION,
     DAILY_PARAMS,
     DOMAIN,
@@ -39,6 +41,7 @@ from .ogd import (
     StationReading,
     async_catalogue_latest_run,
     async_fetch_forecast,
+    async_fetch_precip_reading,
     async_fetch_station_reading,
     async_find_latest_run,
 )
@@ -188,24 +191,30 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
 class StationCoordinator(DataUpdateCoordinator[StationReading]):
     """The newest 10-minute values of the entry's station."""
 
+    _conf = CONF_STATION  # the entry key that names the station
+    _issue = "station_unreadable"  # the Repairs notice after an hour of failures
+    _what = "station"
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(
-            hass, _LOGGER, name=f"{DOMAIN} station", update_interval=timedelta(minutes=STATION_INTERVAL_MINUTES), config_entry=entry
+            hass, _LOGGER, name=f"{DOMAIN} {self._what}", update_interval=timedelta(minutes=STATION_INTERVAL_MINUTES), config_entry=entry
         )
         self.entry = entry
-        self.station = str(entry.options.get(CONF_STATION, entry.data.get(CONF_STATION, "")))
+        self.station = str(entry.options.get(self._conf, entry.data.get(self._conf, "")))
         self.issues = IssueReporter(hass, entry.entry_id)
 
+    async def _async_read(self) -> StationReading:
+        return await async_fetch_station_reading(async_get_clientsession(self.hass), self.station)
+
     async def _async_update_data(self) -> StationReading:
-        session = async_get_clientsession(self.hass)
         try:
-            reading = await async_fetch_station_reading(session, self.station)
+            reading = await self._async_read()
         except OgdError as err:
             # An hour of failures (six 10-minute refreshes): the station file
             # is gone or the station was discontinued, say so under Repairs.
-            self.issues.failure("station_unreadable", {"station": self.station, "error": str(err)}, after=6)
+            self.issues.failure(self._issue, {"station": self.station, "error": str(err)}, after=6)
             raise UpdateFailed(str(err)) from err
-        self.issues.clear("station_unreadable")
+        self.issues.clear(self._issue)
         return reading
 
     @property
@@ -215,10 +224,24 @@ class StationCoordinator(DataUpdateCoordinator[StationReading]):
         return self.data is not None and dt_util.utcnow() - self.data.timestamp <= _STATION_MAX_AGE
 
 
+class PrecipCoordinator(StationCoordinator):
+    """The newest 10-minute precipitation of the entry's precipitation
+    station: a rain gauge of the denser precipitation network, read and
+    judged like a weather station, with a file and a notice of its own."""
+
+    _conf = CONF_PRECIP_STATION
+    _issue = "precip_station_unreadable"
+    _what = "precipitation station"
+
+    async def _async_read(self) -> StationReading:
+        return await async_fetch_precip_reading(async_get_clientsession(self.hass), self.station)
+
+
 @dataclass
 class EntryData:
     forecast: ForecastCoordinator
     station: StationCoordinator | None
+    precip: PrecipCoordinator | None = None
     pollen: "PollenCoordinator | None" = None
     warnings: "WarningsCoordinator | None" = None
     radar: "RadarCoordinator | None" = None

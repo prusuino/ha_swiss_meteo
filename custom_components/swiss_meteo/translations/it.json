@@ -23,7 +23,11 @@
         "data": {
           "point": "Punto di previsione",
           "station": "Stazione meteo (misure)",
+          "precip_station": "Stazione pluviometrica (pluviometro, facoltativa)",
           "pollen_station": "Stazione pollinica"
+        },
+        "data_description": {
+          "precip_station": "Oltre alle stazioni meteo, MeteoSvizzera gestisce una rete più fitta di pluviometri automatici. Se ne viene scelto uno qui, le precipitazioni misurate provengono da esso; temperatura, vento, pressione e tutti gli altri valori continuano a provenire dalla stazione meteo. Ne viene proposto uno quando è più vicino della stazione meteo. «–» mantiene le precipitazioni della stazione meteo."
         }
       },
       "search": {
@@ -54,7 +58,11 @@
         "data": {
           "point": "Punto di previsione",
           "station": "Stazione meteo (misure)",
+          "precip_station": "Stazione pluviometrica (pluviometro, facoltativa)",
           "pollen_station": "Stazione pollinica"
+        },
+        "data_description": {
+          "precip_station": "Oltre alle stazioni meteo, MeteoSvizzera gestisce una rete più fitta di pluviometri automatici. Se ne viene scelto uno qui, le precipitazioni misurate provengono da esso; temperatura, vento, pressione e tutti gli altri valori continuano a provenire dalla stazione meteo. Ne viene proposto uno quando è più vicino della stazione meteo. «–» mantiene le precipitazioni della stazione meteo."
         }
       }
     },
@@ -71,11 +79,12 @@
     "step": {
       "init": {
         "title": "Impostazioni Swiss Meteo",
-        "description": "Attivare o disattivare la previsione oraria, i valori estesi o le allerte ufficiali, oppure scegliere un'altra stazione meteo (sono elencate le otto più vicine al punto di previsione) o stazione pollinica. Una modifica ricarica la voce; gli ID delle entità e la cronologia vengono mantenuti.",
+        "description": "Attivare o disattivare la previsione oraria, i valori estesi o le allerte ufficiali, oppure scegliere un'altra stazione meteo (sono elencate le otto più vicine al punto di previsione), stazione pluviometrica o stazione pollinica. Una modifica ricarica la voce; gli ID delle entità e la cronologia vengono mantenuti.",
         "data": {
           "hourly": "Previsione oraria",
           "extended": "Valori orari estesi (incertezza, strati nuvolosi, isoterma 0 °C)",
           "station": "Stazione meteo (misure)",
+          "precip_station": "Stazione pluviometrica (pluviometro, facoltativa)",
           "pollen_station": "Stazione pollinica",
           "warnings": "Allerte ufficiali (MeteoSvizzera via MeteoAlarm)",
           "radar": "Nowcast radar (pioggia ora, pioggia più vicina, pioggia tra N minuti; circa 8 MB al giorno)",
@@ -83,6 +92,7 @@
           "open_meteo": "Qualità dell'aria, indice UV e previsione dei pollini da Open-Meteo (non sono dati ufficiali di MeteoSvizzera)"
         },
         "data_description": {
+          "precip_station": "Un pluviometro della rete di misura delle precipitazioni di MeteoSvizzera (sono elencati gli otto più vicini al punto di previsione). Le precipitazioni misurate provengono allora da esso, tutti gli altri valori continuano a provenire dalla stazione meteo. «–» mantiene le precipitazioni della stazione meteo.",
           "open_meteo": "Facoltativo. Aggiunge valori modellati dall'API libera Open-Meteo (Copernicus CAMS, griglia di circa 11 km) come dispositivo separato. Non sono né misurazioni né dati ufficiali di MeteoSvizzera. Finché l'opzione è attiva, le coordinate del punto di previsione (arrotondate a circa un chilometro) vengono inviate una volta all'ora a open-meteo.com."
         }
       }
@@ -326,7 +336,7 @@
   "services": {
     "import_history": {
       "name": "Importa storico della stazione",
-      "description": "Legge l'archivio delle misure della stazione da MeteoSvizzera (valori orari dal 1980, valori giornalieri dall'inizio delle misure) e lo scrive nelle statistiche a lungo termine di Home Assistant: media, minimo e massimo dei sensori della stazione, più precipitazioni, soleggiamento, evaporazione e gradi giorno come statistiche separate (swiss_meteo:…). Da eseguire una volta; una nuova esecuzione sostituisce lo stesso periodo.",
+      "description": "Legge l'archivio delle misure della stazione da MeteoSvizzera (valori orari dal 1980, valori giornalieri dall'inizio delle misure) e lo scrive nelle statistiche a lungo termine di Home Assistant: media, minimo e massimo dei sensori della stazione, più precipitazioni, soleggiamento, evaporazione e gradi giorno come statistiche separate (swiss_meteo:…). Con una stazione pluviometrica, le precipitazioni provengono dall'archivio di quella stazione. Da eseguire una volta; una nuova esecuzione sostituisce lo stesso periodo.",
       "fields": {
         "entry": {
           "name": "Voce Swiss Meteo",
@@ -404,7 +414,7 @@
       "message": "La voce Swiss Meteo non è caricata."
     },
     "no_station": {
-      "message": "La voce non ha una stazione meteo; l'importazione dello storico ne richiede una (finestra «Configura»)."
+      "message": "La voce non ha né una stazione meteo né una stazione pluviometrica; l'importazione dello storico richiede una delle due (finestra «Configura»)."
     },
     "hourly_years": {
       "message": "I valori orari sono limitati a 20 anni per importazione; eseguire di nuovo l'azione per gli anni precedenti o scegliere i valori giornalieri."
@@ -452,6 +462,10 @@
     "station_unreadable": {
       "title": "Swiss Meteo: stazione meteo {station} non leggibile",
       "description": "I valori misurati della stazione {station} non hanno potuto essere letti per un'ora ({error}). Se dura per giorni, MeteoSvizzera potrebbe aver dismesso la stazione o cambiato la sua sigla: scegli un'altra stazione nel dialogo «Configura» della voce. I sensori della stazione restano non disponibili fino ad allora; questo avviso scompare con il prossimo aggiornamento riuscito."
+    },
+    "precip_station_unreadable": {
+      "title": "Swiss Meteo: stazione pluviometrica {station} non leggibile",
+      "description": "Le precipitazioni della stazione {station} non hanno potuto essere lette per un'ora ({error}). Se dura per giorni, MeteoSvizzera potrebbe aver dismesso la stazione o cambiato la sua sigla: scegli un'altra stazione pluviometrica, o nessuna, nel dialogo «Configura» della voce. Il sensore delle precipitazioni resta non disponibile fino ad allora; questo avviso scompare con il prossimo aggiornamento riuscito."
     },
     "pollen_unreadable": {
       "title": "Swiss Meteo: stazione pollinica {station} non leggibile",

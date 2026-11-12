@@ -58,11 +58,26 @@ async def test_everything_loaded(hass: HomeAssistant, setup_integration) -> None
     assert "european_aqi" in dump["open_meteo"]["current"]
 
 
+async def test_precipitation_station(hass: HomeAssistant, setup_integration) -> None:
+    entry = await setup_everything(hass, setup_integration, precip_station="WAG", precip_station_name="Waldegg")
+    dump = await async_get_config_entry_diagnostics(hass, entry)
+    assert dump["entry"]["data"]["precip_station"] == "WAG"
+    assert dump["precip_station"] == {
+        "configured": "WAG",
+        "last_update_success": True,
+        "timestamp": "2026-11-08T10:20:00+00:00",
+        "fresh": True,
+        "values": {"rre150z0": 1.4},
+    }
+    assert dump["station"]["configured"] == "SMA"
+
+
 async def test_forecast_alone(hass: HomeAssistant, setup_integration) -> None:
     entry = await setup_integration()
     dump = await async_get_config_entry_diagnostics(hass, entry)
     assert dump["forecast"]["loaded"] is True
     assert dump["station"] == {"configured": None, "last_update_success": None, "timestamp": None, "fresh": None, "values": None}
+    assert dump["precip_station"] == {"configured": None, "last_update_success": None, "timestamp": None, "fresh": None, "values": None}
     assert dump["pollen"]["configured"] is None
     assert dump["warnings"]["enabled"] is False and dump["warnings"]["matching"] is None
     assert dump["radar"]["enabled"] is False and dump["radar"]["frame_time"] is None

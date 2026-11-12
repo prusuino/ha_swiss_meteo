@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0 — 2026-11-12
+
+- **New: optional precipitation station.** MeteoSwiss runs a denser network of automatic rain gauges besides its weather stations, so a gauge is often closer than the next weather station. The setup, Reconfigure and the Configure dialog now offer a fourth choice, **Precipitation station**: with a gauge chosen, the measured precipitation comes from it, while temperature, wind, pressure and all other values still come from the weather station. The precipitation sensor keeps its entity id and names the gauge in its `station` and `station_name` attributes; the weather entity names it as `precipitation_station`.
+- **Nothing changes unless you choose one.** Existing entries keep the precipitation of their weather station. In a new setup a gauge is suggested only when it is nearer than the nearest weather station; "–" keeps the weather station's value.
+- **Station history follows the choice.** With a precipitation station, *Import station history* builds the precipitation total from the archive of that gauge; an entry with a precipitation station alone can import it too.
+- **Repair notice and diagnostics for the new part.** When the gauge could not be read for an hour a notice appears under Settings → Repairs; the diagnostics download lists the state of the precipitation read.
+
 ## 1.6.0 — 2026-11-11
 
 - **New: optional air quality, UV index and pollen forecast from Open-Meteo.** MeteoSwiss publishes none of the three as open data for a point. A new switch in the setup and in the Configure dialog — **off by default** — adds them from the free Open-Meteo air quality API: the European Air Quality Index with its band in words, PM10, PM2.5, nitrogen dioxide, ozone, the UV index with today's maximum, and a four-day pollen forecast for alder, birch, grass, mugwort, olive and ragweed. The values are modelled (Copernicus CAMS, about 11 km), not measured and **not official MeteoSwiss data**; they sit on a device of their own and every sensor says so in its attribution. The measured MeteoSwiss pollen sensors are unchanged.

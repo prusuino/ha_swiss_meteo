@@ -12,6 +12,9 @@ Two kinds of file are read:
   of the first block predicts all the others). Both layouts are stable per
   parameter; the layout is detected on every read anyway.
 * The 10-minute values of a SwissMetNet station: one small CSV per station.
+  The stations of the automatic precipitation network (rain gauges that
+  measure nothing else, about as many again) publish the same kind of
+  file in a collection of their own, with the same station list layout.
 
 The run of a forecast file is part of its name, so the newest run is found
 by probing the current hour and the hours before it with HEAD requests —
@@ -32,10 +35,12 @@ import aiohttp
 
 from .const import (
     COLLECTION_FORECAST,
+    COLLECTION_PRECIP,
     COLLECTION_STATIONS,
     DATA_BASE,
     DATE_MAJOR_PARAMS,
     FORECAST_META_POINTS_URL,
+    PRECIP_STATIONS_META_URL,
     STAC_BASE,
     STATIONS_META_URL,
     USER_AGENT,
@@ -153,9 +158,8 @@ async def async_fetch_points(session: aiohttp.ClientSession) -> list[Point]:
     return points
 
 
-async def async_fetch_stations(session: aiohttp.ClientSession) -> list[Station]:
-    """All SwissMetNet stations with their coordinates."""
-    rows = _parse_csv(await _fetch(session, STATIONS_META_URL))
+async def _async_fetch_station_list(session: aiohttp.ClientSession, url: str) -> list[Station]:
+    rows = _parse_csv(await _fetch(session, url))
     stations: list[Station] = []
     for row in rows:
         try:
@@ -176,6 +180,18 @@ async def async_fetch_stations(session: aiohttp.ClientSession) -> list[Station]:
     return stations
 
 
+async def async_fetch_stations(session: aiohttp.ClientSession) -> list[Station]:
+    """All SwissMetNet stations with their coordinates."""
+    return await _async_fetch_station_list(session, STATIONS_META_URL)
+
+
+async def async_fetch_precip_stations(session: aiohttp.ClientSession) -> list[Station]:
+    """All stations of the automatic precipitation network with their
+    coordinates. Their abbreviations do not occur among the SwissMetNet
+    stations: a weather station is not listed here a second time."""
+    return await _async_fetch_station_list(session, PRECIP_STATIONS_META_URL)
+
+
 def nearest(items, lat: float, lon: float, count: int = 3):
     """The `count` items closest to a location, with their distance in km."""
     ranked = sorted(((distance_km(lat, lon, i.lat, i.lon), i) for i in items), key=lambda x: x[0])
@@ -188,6 +204,11 @@ def nearest(items, lat: float, lon: float, count: int = 3):
 def station_now_url(abbr: str) -> str:
     a = abbr.lower()
     return f"{DATA_BASE}/{COLLECTION_STATIONS}/{a}/ogd-smn_{a}_t_now.csv"
+
+
+def precip_now_url(abbr: str) -> str:
+    a = abbr.lower()
+    return f"{DATA_BASE}/{COLLECTION_PRECIP}/{a}/ogd-smn-precip_{a}_t_now.csv"
 
 
 @dataclass
@@ -204,9 +225,8 @@ def _parse_station_timestamp(value: str) -> datetime:
     return datetime.strptime(value.strip(), "%d.%m.%Y %H:%M").replace(tzinfo=UTC)
 
 
-async def async_fetch_station_reading(session: aiohttp.ClientSession, abbr: str) -> StationReading:
-    """The last complete row of the station's 10-minute file (today's values)."""
-    rows = _parse_csv(await _fetch(session, station_now_url(abbr)))
+async def _async_fetch_reading(session: aiohttp.ClientSession, abbr: str, url: str) -> StationReading:
+    rows = _parse_csv(await _fetch(session, url))
     if not rows:
         raise OgdError(f"station file of {abbr} has no rows")
     row = rows[-1]
@@ -216,6 +236,17 @@ async def async_fetch_station_reading(session: aiohttp.ClientSession, abbr: str)
         raise OgdError(f"station file of {abbr}: bad timestamp") from err
     values = {k: _float(v) for k, v in row.items() if k not in ("station_abbr", "reference_timestamp")}
     return StationReading(abbr=abbr, timestamp=ts, values=values)
+
+
+async def async_fetch_station_reading(session: aiohttp.ClientSession, abbr: str) -> StationReading:
+    """The last complete row of the station's 10-minute file (today's values)."""
+    return await _async_fetch_reading(session, abbr, station_now_url(abbr))
+
+
+async def async_fetch_precip_reading(session: aiohttp.ClientSession, abbr: str) -> StationReading:
+    """The last row of a precipitation station's 10-minute file: its one
+    value, the precipitation of the last ten minutes."""
+    return await _async_fetch_reading(session, abbr, precip_now_url(abbr))
 
 
 # --- Forecast runs -----------------------------------------------------------

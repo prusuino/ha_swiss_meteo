@@ -6,7 +6,18 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 
-from .const import CONF_POINT_HEIGHT, CONF_POINT_NAME, CONF_POLLEN_STATION, CONF_POLLEN_STATION_NAME, CONF_STATION, CONF_STATION_NAME, DOMAIN, VERSION
+from .const import (
+    CONF_POINT_HEIGHT,
+    CONF_POINT_NAME,
+    CONF_POLLEN_STATION,
+    CONF_POLLEN_STATION_NAME,
+    CONF_PRECIP_STATION,
+    CONF_PRECIP_STATION_NAME,
+    CONF_STATION,
+    CONF_STATION_NAME,
+    DOMAIN,
+    VERSION,
+)
 from .localization import t
 
 CONFIGURATION_URL = "https://opendatadocs.meteoswiss.ch/e-forecast-data/e4-local-forecast-data"
@@ -24,11 +35,23 @@ def place_name(entry: ConfigEntry) -> str:
     return entry.data.get(CONF_POINT_NAME) or "Swiss Meteo"
 
 
+def station_choice(entry: ConfigEntry, key: str, name_key: str) -> str:
+    """The name of a chosen station (its abbreviation when the name is not
+    known), "" for none. The Configure dialog writes to the options, and
+    they count as a whole: a station switched off there is off, whatever
+    the setup had chosen."""
+    source = entry.options if key in entry.options else entry.data
+    return str(source.get(name_key) or source.get(key) or "")
+
+
 def device_info(hass: HomeAssistant, entry: ConfigEntry) -> DeviceInfo:
-    station = entry.options.get(CONF_STATION_NAME) or entry.data.get(CONF_STATION_NAME) or entry.options.get(CONF_STATION) or entry.data.get(CONF_STATION) or ""
+    station = station_choice(entry, CONF_STATION, CONF_STATION_NAME)
     height = entry.data.get(CONF_POINT_HEIGHT)
     model = t("model", hass, station=station) if station else t("model_no_station", hass)
-    pollen = entry.options.get(CONF_POLLEN_STATION_NAME) or entry.data.get(CONF_POLLEN_STATION_NAME) or entry.options.get(CONF_POLLEN_STATION) or entry.data.get(CONF_POLLEN_STATION) or ""
+    precip = station_choice(entry, CONF_PRECIP_STATION, CONF_PRECIP_STATION_NAME)
+    if precip:
+        model = t("model_precip", hass, station=model, precip=precip)
+    pollen = station_choice(entry, CONF_POLLEN_STATION, CONF_POLLEN_STATION_NAME)
     if pollen:
         model = t("model_pollen", hass, station=model, pollen=pollen)
     if isinstance(height, (int, float)):
