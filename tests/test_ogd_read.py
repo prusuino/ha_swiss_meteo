@@ -55,6 +55,22 @@ NOWHERE = (800101, 2)
 
 EVERYWHERE = [(1, 1), (300, 1), (100100, 2), ZURICH, (849600, 2), (1, 3), (300, 3)]
 
+# Station numbers of one to five digits, listed the way some files list
+# them: as text (1, 10, 100, 1000, 10000, 10001 … 1001, 10010 …).
+NUMBERS = [*range(1, 400), *range(1000, 1100), *range(10000, 11200)]
+AS_TEXT = sorted(((number, 1) for number in NUMBERS), key=lambda point: str(point[0]))
+MOUNTAINS_AS_TEXT = sorted(MOUNTAINS, key=lambda point: str(point[0]))
+
+# The other way files list them: by number, stations and mountain spots
+# mixed (a number can be both), the postal codes after them, and at the
+# very end three spots the list has out of order.
+OUT_OF_ORDER = [(230, 3), (242, 3), (213, 3)]
+BY_NUMBER = (
+    sorted([*((number, 1) for number in NUMBERS), *((number, 3) for number in range(150, 1100) if (number, 3) not in OUT_OF_ORDER)])
+    + POSTAL
+    + OUT_OF_ORDER
+)
+
 
 def stamps(count: int, step: timedelta = HOUR) -> list[datetime]:
     return [RUN + step * index for index in range(count)]
@@ -81,6 +97,7 @@ def date_major(
     times: list[datetime],
     padding: dict[int, int] | None = None,
     until: dict[tuple[int, int], int] | None = None,
+    points: list[tuple[int, int]] | None = None,
 ) -> bytes:
     """All points of a timestamp together. `padding` puts that many rows of
     an unrelated type at the start of a block (the block gets longer than
@@ -89,7 +106,7 @@ def date_major(
     for index, when in enumerate(times):
         for number in range((padding or {}).get(index, 0)):
             parts.append(f"{number};9;{when:%Y%m%d%H%M};0.0\n".encode())
-        for point in POINTS:
+        for point in points or POINTS:
             if until and index >= until.get(point, len(times)):
                 continue
             parts.append(row(point, when, index))
@@ -379,6 +396,97 @@ async def test_rows_grouped_by_point_without_the_point() -> None:
         await read(hourly_by_point(), NOWHERE, "rre150h0")
 
 
+@pytest.mark.parametrize(
+    "point", [(1, 1), (11, 1), (103, 1), (399, 1), (1024, 1), (10239, 1), (10778, 1), (11199, 1), ZURICH, (1, 3), (31, 3), (300, 3)]
+)
+async def test_rows_grouped_by_point_with_the_numbers_sorted_as_text(point: tuple[int, int]) -> None:
+    """The daily precipitation files list the station points as text. A
+    search by number misses many of them there; the search by text finds
+    every one, with a handful of requests."""
+    times = stamps(9, DAY)
+    body = point_major(times, AS_TEXT + POSTAL + MOUNTAINS_AS_TEXT)
+    assert len(body) > ogd._SMALL_FILE
+    rows, stats = await read(body, point, "rka150p0")
+    assert rows == expected(point, times)
+    assert stats.requests < 80
+    assert stats.bytes < len(body) / 5
+
+
+async def test_rows_sorted_as_text_without_the_point() -> None:
+    body = point_major(stamps(9, DAY), AS_TEXT + POSTAL + MOUNTAINS_AS_TEXT)
+    with pytest.raises(OgdError):
+        await read(body, (5000, 1), "rka150p0")
+
+
+MIXED = [(1, 1), (150, 1), (150, 3), (399, 1), (1099, 3), (10778, 1), (11199, 1), (100100, 2), ZURICH, (849600, 2)]
+
+
+@pytest.mark.parametrize("point", MIXED)
+async def test_rows_grouped_by_point_with_the_types_mixed(point: tuple[int, int]) -> None:
+    """Other files list the points by number, whatever their type: a
+    station and a mountain spot stand next to each other, the postal
+    codes follow because their numbers are the longest."""
+    times = stamps(9, DAY)
+    body = point_major(times, BY_NUMBER)
+    assert ogd._SMALL_FILE < len(body) <= ogd._DAILY_FILE
+    rows, stats = await read(body, point, "jp2000d0")
+    assert rows == expected(point, times)
+    assert stats.requests < 80
+    assert stats.bytes < len(body) / 5
+
+
+@pytest.mark.parametrize("point", OUT_OF_ORDER)
+async def test_a_point_out_of_order_is_found_by_reading_the_daily_file(point: tuple[int, int]) -> None:
+    """No search finds a point that is not where the order puts it; a
+    file of daily values is small enough to be read whole instead."""
+    times = stamps(9, DAY)
+    body = point_major(times, BY_NUMBER)
+    rows, stats = await read(body, point, "jp2000d0")
+    assert rows == expected(point, times)
+    assert len(body) <= stats.bytes < 2 * len(body)
+    assert stats.requests < 80
+
+
+async def test_a_point_out_of_order_in_a_large_file_is_given_up(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A file of hourly values has 30 MB and is never read whole: the
+    parameter is missing for that point, after a bounded number of
+    requests."""
+    monkeypatch.setattr(ogd, "_DAILY_FILE", ogd._SMALL_FILE)
+    body = point_major(stamps(9, DAY), BY_NUMBER)
+    url = forecast_file_url(RUN, "jww003i0")
+    stats = ReadStats()
+    with pytest.raises(OgdError):
+        await async_read_point(FakeSession({url: body}), url, OUT_OF_ORDER[0], "jww003i0", stats)
+    assert stats.requests < 150
+    assert stats.bytes < len(body)
+
+
+@pytest.mark.parametrize("point", [(1, 1), (120, 1), (10778, 1)])
+async def test_block_reader_ends_on_a_file_grouped_by_point(point: tuple[int, int]) -> None:
+    """The reader for files grouped by date is the second try on a file
+    grouped by point. Every row is a block of its own there and the
+    windows keep covering the rows already found: it must return them
+    once and stop, not ask for the same bytes for ever."""
+    times = stamps(9, DAY)
+    rf = range_file(point_major(times, AS_TEXT + POSTAL))
+    rows = await ogd._read_date_major(rf, point)
+    assert ogd._parse_rows(rows) == expected(point, times)
+    assert len(rows) == len(times)
+    assert rf.stats.requests < 40
+
+
+async def test_a_read_has_a_request_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Whatever a search does, one read of a file stops asking after a
+    fixed number of requests."""
+    monkeypatch.setattr(ogd, "_MAX_READS", 3)
+    rf = range_file(bytes(4096))
+    for start in (0, 100, 200):
+        await rf.read(start, 10)
+    with pytest.raises(OgdError, match="too many requests for file.csv"):
+        await rf.read(300, 10)
+    assert rf.stats.requests == 3
+
+
 @pytest.mark.parametrize("point", [(104, 2), (130, 2), (158, 2)])
 async def test_block_longer_than_the_first_window(point: tuple[int, int]) -> None:
     """A point with more rows than one read holds: the window is widened."""
@@ -396,6 +504,40 @@ async def test_daily_rows_grouped_by_date(point: tuple[int, int]) -> None:
     rows, stats = await read(body, point, "tre200px")
     assert rows == expected(point, stamps(8, DAY))
     assert stats.bytes < len(body) / 2
+
+
+@pytest.mark.parametrize("point", MIXED)
+async def test_daily_rows_grouped_by_date_with_the_types_mixed(point: tuple[int, int]) -> None:
+    """The daily temperature files: one block per day, the points of a
+    block listed by number with the types mixed."""
+    times = stamps(9, DAY)
+    body = date_major(times, points=BY_NUMBER)
+    assert ogd._SMALL_FILE < len(body) <= ogd._DAILY_FILE
+    rows, stats = await read(body, point, "tre200px")
+    assert rows == expected(point, times)
+    assert stats.bytes < len(body) / 2
+
+
+@pytest.mark.parametrize("point", OUT_OF_ORDER)
+async def test_daily_rows_of_a_point_out_of_order(point: tuple[int, int]) -> None:
+    """The spots at the end of every block, out of order: the search in
+    the first block finds nothing and the file is read whole."""
+    times = stamps(9, DAY)
+    body = date_major(times, points=BY_NUMBER)
+    rows, stats = await read(body, point, "tre200px")
+    assert rows == expected(point, times)
+    assert stats.requests < 80
+
+
+async def test_daily_rows_of_the_last_point_with_a_shorter_last_block() -> None:
+    """The last block is shorter than the one before: for the last point
+    of a block the predicted place lies past the end of the file. The
+    last day must not be lost for that."""
+    times = stamps(9, DAY)
+    last = POINTS[-1]
+    body = date_major(times, until={point: 8 for point in STATIONS[:40]})
+    rows, _stats = await read(body, last, "tre200px")
+    assert rows == expected(last, times)
 
 
 async def test_daily_rows_with_a_block_out_of_step() -> None:
