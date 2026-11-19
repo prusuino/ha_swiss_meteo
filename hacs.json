@@ -1,5 +1,6 @@
 {
   "name": "Swiss Meteo (MeteoSwiss Open Data)",
+  "country": "CH",
   "zip_release": true,
   "filename": "swiss_meteo.zip",
   "render_readme": true,

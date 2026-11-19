@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1 — 2026-11-19
+
+- The Home Assistant Marketplace lists the integration under *Weather & alerts → Forecasts*. The repository is marked as made for Switzerland. Nothing changes in how the integration works.
+
 ## 1.7.0 — 2026-11-12
 
 - **New: optional precipitation station.** Besides its weather stations, MeteoSwiss runs about 140 automatic rain gauges at other places, so in some regions a gauge is closer than the next weather station. The setup, Reconfigure and the Configure dialog now offer a fourth choice, **Precipitation station**: with a gauge chosen, the measured precipitation comes from it, while temperature, wind, pressure and all other values still come from the weather station. The precipitation sensor keeps its entity id and names the gauge in its `station` and `station_name` attributes; the weather entity names it as `precipitation_station`.

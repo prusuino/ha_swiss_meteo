@@ -1,6 +1,7 @@
 {
   "domain": "swiss_meteo",
   "name": "Swiss Meteo (MeteoSwiss Open Data)",
+  "categories": ["weather_alerts.forecasts"],
   "codeowners": [
     "@prusuino"
   ],
@@ -16,5 +17,5 @@
   "issue_tracker": "https://github.com/prusuino/ha_swiss_meteo/issues",
   "quality_scale": "silver",
   "requirements": [],
-  "version": "1.7.0"
+  "version": "1.7.1"
 }
