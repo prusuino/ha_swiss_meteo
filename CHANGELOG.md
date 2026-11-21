@@ -1,9 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.8.0 — 2026-11-21
 
 - **Quality scale: Gold.** Entity names, icons and error messages now come from Home Assistant's translation files instead of the integration's own code, in German, English, French and Italian. Entity ids, unique ids and history stay as they are, and the names read as before.
-- **Icons can be changed per state in the usual way.** The icons are no longer fixed in code; the warning level still shows the outlined icon while no warning is in force.
+- **Icons come from the icon file.** They look as before, and the warning level still shows the outlined icon while no warning is in force. The entities no longer carry an `icon` state attribute; a template or card that read it gets nothing now. An icon you set for an entity yourself stays.
 - **Translated errors.** When the station history cannot be imported, the error the action shows is translated like the other action errors; the errors of a failed read carry a translation as well.
 - **README: troubleshooting.** A new section lists what to check when a sensor is unknown, unavailable or missing.
 
