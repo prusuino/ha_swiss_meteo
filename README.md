@@ -347,7 +347,7 @@ Each entry is one place; add the integration again for another postal code or a 
 - **The forecast looks old.** `sensor.swiss_meteo_<id>_forecast_run` shows when the run in use was issued and, in its attributes, which parameters were read and which were missing. MeteoSwiss publishes a run every hour; the integration looks for a new one every 15 minutes.
 - **No hourly forecast, no "rain expected".** The hourly forecast is a switch in the setup and in the Configure dialog; the sensors that need it exist only while it is on.
 - **Names are in the wrong language.** Entity and device names follow the language of the Home Assistant instance (**Settings → System → General**), not the language of your user profile. German, English, French and Italian are available; every other language gets English. A changed language shows after a restart.
-- **Something else.** Switch on debug logging on the integration's page (**Enable debug logging**), reproduce the problem, switch it off again and attach the log together with the **Download diagnostics** file (coordinates and place name are redacted) to an [issue](../../issues).
+- **Something else.** Switch on debug logging on the integration's page (**Enable debug logging**), reproduce the problem, switch it off again and attach the log together with the **Download diagnostics** file (coordinates and place name are redacted) to an [issue](https://github.com/prusuino/ha_swiss_meteo/issues).
 
 ## Quality scale
 
@@ -394,7 +394,7 @@ More Home Assistant integrations from the same author:
 
 ## Support
 
-Questions and bug reports: [Issues](../../issues). Please attach the diagnostics download to a bug report.
+Questions and bug reports: [Issues](https://github.com/prusuino/ha_swiss_meteo/issues). Please attach the diagnostics download to a bug report.
 
 If this integration is useful to you, you can support its development:
 
