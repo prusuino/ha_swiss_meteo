@@ -409,11 +409,12 @@ class RadarCoordinator(DataUpdateCoordinator[RadarData]):
                     self._warned = True
                     _LOGGER.warning("Radar frame not read, keeping the last one: %s", err)
             else:
-                raise UpdateFailed(str(err)) from err
+                raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         else:
             self._warned = False
         if now - self._frames[-1].ts > _MAX_AGE:
-            raise UpdateFailed(f"newest radar frame is from {self._frames[-1].ts:%H:%M} UTC")
+            stamp = f"{self._frames[-1].ts:%H:%M}"
+            raise UpdateFailed(f"newest radar frame is from {stamp} UTC", translation_domain=DOMAIN, translation_key="radar_stale", translation_placeholders={"time": stamp})
         if self._backfill is None or self._backfill.done():
             self._backfill = self.hass.async_create_background_task(self._fill_history(), f"{DOMAIN} radar history")
         # forget 404 slots older than the history window

@@ -63,19 +63,19 @@ rules:
     status: exempt
     comment: No devices; the data covers Switzerland.
   docs-supported-functions: done
-  docs-troubleshooting: todo
+  docs-troubleshooting: done
   docs-use-cases: done
   dynamic-devices:
     status: exempt
     comment: One device per entry.
   entity-category: done
   entity-device-class: done
-  entity-disabled-by-default: todo
-  entity-translations:
-    status: todo
-    comment: Entity names come from the integration's own localization helper, not from translation keys.
-  exception-translations: todo
-  icon-translations: todo
+  entity-disabled-by-default:
+    status: done
+    comment: The station values few stations deliver or few people need (soil and surface temperatures, radiation balance, geopotential, QFF and station pressure, foehn index and others) and the olive pollen forecast start disabled.
+  entity-translations: done
+  exception-translations: done
+  icon-translations: done
   reconfiguration-flow: done
   repair-issues: done
   stale-devices:

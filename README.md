@@ -6,7 +6,7 @@
 [![Validate](https://github.com/prusuino/ha_swiss_meteo/actions/workflows/validate.yml/badge.svg)](https://github.com/prusuino/ha_swiss_meteo/actions/workflows/validate.yml)
 [![Tests](https://github.com/prusuino/ha_swiss_meteo/actions/workflows/tests.yml/badge.svg)](https://github.com/prusuino/ha_swiss_meteo/actions/workflows/tests.yml)
 [![Home Assistant](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fprusuino%2Fha_swiss_meteo%2Fmain%2Fhacs.json&query=%24.homeassistant&label=Home%20Assistant&suffix=%2B&color=41BDF5)](https://www.home-assistant.io/)
-[![Quality scale](https://img.shields.io/badge/Quality%20Scale-Silver-c0c0c0.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
+[![Quality scale](https://img.shields.io/badge/Quality%20Scale-Gold-d4af37.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 <a href="https://www.buymeacoffee.com/prusuino"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="20"></a>
 
 ![Swiss Meteo](readme_header.png)
@@ -338,9 +338,20 @@ Each entry is one place; add the integration again for another postal code or a 
 2. Remove the integration itself in the **Marketplace** (or HACS), then restart Home Assistant. With a manual installation, delete `custom_components/swiss_meteo` instead.
 3. Station history imported with the *Import station history* action stays in the long-term statistics; delete it under **Developer tools → Statistics** if you do not want to keep it.
 
+## Troubleshooting
+
+- **A station sensor shows "unknown".** Not every station measures every value: a station without a snow gauge has no snow depth, most have no soil temperatures. The sensor stays, in case the station delivers the value later; disable it if you do not need it.
+- **A value you expect is missing.** The less common station values and the olive pollen forecast are created disabled. Open the device under **Settings → Devices & services → Swiss Meteo**, choose **+ n disabled entities** and enable what you need.
+- **Sensors are unavailable.** The feed behind them could not be read and the last values are too old to show: station values after 45 minutes, the forecast once its run is older than 12 hours, warnings after two hours, radar once its newest frame is older than 25 minutes. They return on their own with the next successful read. A feed that stays away longer raises a notice under **Settings → Repairs** that names the feed and what to do.
+- **The setup says it cannot connect.** The setup reads the list of forecast points and stations from `data.geo.admin.ch`; check that Home Assistant reaches the internet and that no DNS filter blocks that host.
+- **The forecast looks old.** `sensor.swiss_meteo_<id>_forecast_run` shows when the run in use was issued and, in its attributes, which parameters were read and which were missing. MeteoSwiss publishes a run every hour; the integration looks for a new one every 15 minutes.
+- **No hourly forecast, no "rain expected".** The hourly forecast is a switch in the setup and in the Configure dialog; the sensors that need it exist only while it is on.
+- **Names are in the wrong language.** Entity and device names follow the language of the Home Assistant instance (**Settings → System → General**), not the language of your user profile. German, English, French and Italian are available; every other language gets English. A changed language shows after a restart.
+- **Something else.** Switch on debug logging on the integration's page (**Enable debug logging**), reproduce the problem, switch it off again and attach the log together with the **Download diagnostics** file (coordinates and place name are redacted) to an [issue](../../issues).
+
 ## Quality scale
 
-The integration declares **Silver** on the [Home Assistant integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/). Bronze: a config flow with tests, unique ids for every entity, brand images, installation and removal instructions, a connection check before an entry is created, no duplicate entries, runtime data on the config entry. Silver on top of it: entities turn unavailable when their feed cannot be read and that is logged once, entries unload cleanly, the actions raise an error when they cannot do what was asked, every setup and Configure parameter is documented, parallel updates are declared, and the tests cover more than 95 % of the code (the test workflow fails below that). The tier is self-assessed, as it is for every custom integration; the per-rule status, including what is still open for Gold, is in `custom_components/swiss_meteo/quality_scale.yaml`.
+The integration declares **Gold** on the [Home Assistant integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/). Bronze: a config flow with tests, unique ids for every entity, brand images, installation and removal instructions, a connection check before an entry is created, no duplicate entries, runtime data on the config entry. Silver on top of it: entities turn unavailable when their feed cannot be read and that is logged once, entries unload cleanly, the actions raise an error when they cannot do what was asked, every setup and Configure parameter is documented, parallel updates are declared, and the tests cover more than 95 % of the code (the test workflow fails below that). Gold on top of that: a device per place, a diagnostics download, repair notices, a Reconfigure flow, entity names, icons and error messages from the translation files in German, English, French and Italian, rarely needed entities disabled by default, and documentation of the data updates, use cases, examples, known limitations and troubleshooting. The tier is self-assessed, as it is for every custom integration; the per-rule status is in `custom_components/swiss_meteo/quality_scale.yaml`.
 
 ## Notes
 

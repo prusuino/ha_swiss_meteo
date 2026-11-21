@@ -255,7 +255,6 @@ async def test_warning_level(hass: HomeAssistant, setup_integration) -> None:
     await setup_everything(hass, setup_integration)
     assert state(hass, "warning_level") == "yellow"
     level = attributes(hass, "warning_level")
-    assert level["icon"] == "mdi:alert"
     assert level["options"] == ["none", "yellow", "orange", "red"]
     assert (level["count"], level["upcoming"], level["highest_upcoming"]) == (1, 1, "red")
     assert level["next_onset"] == "2026-11-08T18:00:00+00:00"
@@ -271,7 +270,6 @@ async def test_no_warning(hass: HomeAssistant, setup_integration) -> None:
     await setup_everything(hass, setup_integration, routes={WARNINGS_URL: FakeResponse(payload={"warnings": []})})
     assert state(hass, "warning_level") == "none"
     level = attributes(hass, "warning_level")
-    assert level["icon"] == "mdi:alert-outline"
     assert (level["count"], level["upcoming"], level["highest_upcoming"], level["next_onset"]) == (0, 0, "none", None)
     assert level["warnings"] == []
 
@@ -344,7 +342,6 @@ async def test_nothing_read_yet(hass: HomeAssistant, swiss_now) -> None:
     time = StationTimeSensor(hass, entry, station)
     assert time.native_value is None
     assert time.extra_state_attributes == {"station": "SMA", "fresh": False}
-    assert WarningLevelSensor(hass, entry, warnings).icon == "mdi:alert-outline"
     # what was read once is not shown as current before the first answer
     assert StationSensor(hass, entry, station, "tre200s0", "temperature").available is False
     assert RadarRateSensor(hass, entry, radar).available is False

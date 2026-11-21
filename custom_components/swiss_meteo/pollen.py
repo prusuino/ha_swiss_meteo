@@ -156,7 +156,7 @@ class PollenCoordinator(DataUpdateCoordinator[PollenReading]):
             reading = await async_fetch_pollen_reading(async_get_clientsession(self.hass), self.station)
         except OgdError as err:
             self.issues.failure("pollen_unreadable", {"station": self.station, "error": str(err)})
-            raise UpdateFailed(str(err)) from err
+            raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         self.issues.clear("pollen_unreadable")
         return reading
 

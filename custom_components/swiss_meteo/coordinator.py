@@ -138,13 +138,13 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
             if self._usable(snap, now):
                 _LOGGER.debug("Run check failed, keeping run %s: %s", snap.run, err)
                 return snap
-            raise UpdateFailed(str(err)) from err
+            raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         # One probe per check; a HEAD costs no payload.
         self._account(snap, 1, 0)
         if run is None:
             if self._usable(snap, now):
                 return snap
-            raise UpdateFailed("MeteoSwiss has published no local forecast run for the last hours")
+            raise UpdateFailed("MeteoSwiss has published no local forecast run for the last hours", translation_domain=DOMAIN, translation_key="no_forecast_run")
 
         new_run = run != snap.run
         need_daily = (
@@ -178,9 +178,9 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
                 else:
                     _LOGGER.debug("Forecast run %s still not read: %s", run, err)
                 return snap
-            raise UpdateFailed(str(err)) from err
+            raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         except OgdError as err:
-            raise UpdateFailed(str(err)) from err
+            raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         snap.run = run
         snap.missing = missing
         if missing:
@@ -213,7 +213,7 @@ class StationCoordinator(DataUpdateCoordinator[StationReading]):
             # An hour of failures (six 10-minute refreshes): the station file
             # is gone or the station was discontinued, say so under Repairs.
             self.issues.failure(self._issue, {"station": self.station, "error": str(err)}, after=6)
-            raise UpdateFailed(str(err)) from err
+            raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         self.issues.clear(self._issue)
         return reading
 

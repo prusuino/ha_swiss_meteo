@@ -63,42 +63,41 @@ from .derived import (
     window_sum,
 )
 from .forecast import daily_values
-from .localization import t
 from .meteoalarm import LEVELS as WARNING_LEVELS, WarningsCoordinator
 from .open_meteo import AQI_LEVELS, POLLEN_SPECIES, OpenMeteoCoordinator, aqi_level
 from .radar import RadarCoordinator
 from .pollen import LEVELS, SPECIES, PollenCoordinator
 
-# key -> (device class, unit, state class, enabled by default, icon)
+# key -> (device class, unit, state class, enabled by default)
 _STATION_META: dict[str, tuple] = {
-    "temperature": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, True, None),
-    "temperature_5cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False, None),
-    "dew_point": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, True, "mdi:water-thermometer"),
-    "humidity": (SensorDeviceClass.HUMIDITY, PERCENTAGE, SensorStateClass.MEASUREMENT, True, None),
-    "pressure_qnh": (SensorDeviceClass.ATMOSPHERIC_PRESSURE, UnitOfPressure.HPA, SensorStateClass.MEASUREMENT, True, None),
-    "pressure_qff": (SensorDeviceClass.ATMOSPHERIC_PRESSURE, UnitOfPressure.HPA, SensorStateClass.MEASUREMENT, False, None),
-    "pressure_station": (SensorDeviceClass.PRESSURE, UnitOfPressure.HPA, SensorStateClass.MEASUREMENT, False, None),
-    "wind_speed": (SensorDeviceClass.WIND_SPEED, UnitOfSpeed.KILOMETERS_PER_HOUR, SensorStateClass.MEASUREMENT, True, None),
-    "wind_gust": (SensorDeviceClass.WIND_SPEED, UnitOfSpeed.KILOMETERS_PER_HOUR, SensorStateClass.MEASUREMENT, True, "mdi:weather-windy"),
-    "wind_direction": (None, DEGREE, SensorStateClass.MEASUREMENT, True, "mdi:compass-outline"),
-    "precipitation": (SensorDeviceClass.PRECIPITATION, UnitOfPrecipitationDepth.MILLIMETERS, SensorStateClass.MEASUREMENT, True, None),
-    "sunshine": (SensorDeviceClass.DURATION, UnitOfTime.MINUTES, SensorStateClass.MEASUREMENT, True, "mdi:white-balance-sunny"),
-    "global_radiation": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, True, None),
-    "diffuse_radiation": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False, None),
-    "snow_depth": (SensorDeviceClass.DISTANCE, UnitOfLength.CENTIMETERS, SensorStateClass.MEASUREMENT, False, "mdi:snowflake"),
-    "wind_chill": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False, "mdi:snowflake-thermometer"),
-    "soil_temperature_5cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False, "mdi:thermometer-lines"),
-    "soil_temperature_10cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False, "mdi:thermometer-lines"),
-    "soil_temperature_20cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False, "mdi:thermometer-lines"),
-    "surface_temperature": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False, "mdi:thermometer-low"),
-    "vapour_pressure": (SensorDeviceClass.PRESSURE, UnitOfPressure.HPA, SensorStateClass.MEASUREMENT, False, "mdi:water-percent"),
-    "wind_gust_3s": (SensorDeviceClass.WIND_SPEED, UnitOfSpeed.KILOMETERS_PER_HOUR, SensorStateClass.MEASUREMENT, False, "mdi:weather-windy"),
-    "geopotential_850": (None, "gpm", SensorStateClass.MEASUREMENT, False, "mdi:altimeter"),
-    "geopotential_700": (None, "gpm", SensorStateClass.MEASUREMENT, False, "mdi:altimeter"),
-    "longwave_incoming": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False, "mdi:radiator"),
-    "longwave_outgoing": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False, "mdi:radiator-disabled"),
-    "reflected_radiation": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False, "mdi:white-balance-sunny"),
-    "foehn_index": (None, None, SensorStateClass.MEASUREMENT, False, "mdi:weather-windy-variant"),
+    "temperature": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, True),
+    "temperature_5cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False),
+    "dew_point": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, True),
+    "humidity": (SensorDeviceClass.HUMIDITY, PERCENTAGE, SensorStateClass.MEASUREMENT, True),
+    "pressure_qnh": (SensorDeviceClass.ATMOSPHERIC_PRESSURE, UnitOfPressure.HPA, SensorStateClass.MEASUREMENT, True),
+    "pressure_qff": (SensorDeviceClass.ATMOSPHERIC_PRESSURE, UnitOfPressure.HPA, SensorStateClass.MEASUREMENT, False),
+    "pressure_station": (SensorDeviceClass.PRESSURE, UnitOfPressure.HPA, SensorStateClass.MEASUREMENT, False),
+    "wind_speed": (SensorDeviceClass.WIND_SPEED, UnitOfSpeed.KILOMETERS_PER_HOUR, SensorStateClass.MEASUREMENT, True),
+    "wind_gust": (SensorDeviceClass.WIND_SPEED, UnitOfSpeed.KILOMETERS_PER_HOUR, SensorStateClass.MEASUREMENT, True),
+    "wind_direction": (None, DEGREE, SensorStateClass.MEASUREMENT, True),
+    "precipitation": (SensorDeviceClass.PRECIPITATION, UnitOfPrecipitationDepth.MILLIMETERS, SensorStateClass.MEASUREMENT, True),
+    "sunshine": (SensorDeviceClass.DURATION, UnitOfTime.MINUTES, SensorStateClass.MEASUREMENT, True),
+    "global_radiation": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, True),
+    "diffuse_radiation": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False),
+    "snow_depth": (SensorDeviceClass.DISTANCE, UnitOfLength.CENTIMETERS, SensorStateClass.MEASUREMENT, False),
+    "wind_chill": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False),
+    "soil_temperature_5cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False),
+    "soil_temperature_10cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False),
+    "soil_temperature_20cm": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False),
+    "surface_temperature": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, SensorStateClass.MEASUREMENT, False),
+    "vapour_pressure": (SensorDeviceClass.PRESSURE, UnitOfPressure.HPA, SensorStateClass.MEASUREMENT, False),
+    "wind_gust_3s": (SensorDeviceClass.WIND_SPEED, UnitOfSpeed.KILOMETERS_PER_HOUR, SensorStateClass.MEASUREMENT, False),
+    "geopotential_850": (None, "gpm", SensorStateClass.MEASUREMENT, False),
+    "geopotential_700": (None, "gpm", SensorStateClass.MEASUREMENT, False),
+    "longwave_incoming": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False),
+    "longwave_outgoing": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False),
+    "reflected_radiation": (SensorDeviceClass.IRRADIANCE, UnitOfIrradiance.WATTS_PER_SQUARE_METER, SensorStateClass.MEASUREMENT, False),
+    "foehn_index": (None, None, SensorStateClass.MEASUREMENT, False),
 }
 
 
@@ -151,7 +150,7 @@ class _Base(CoordinatorEntity, SensorEntity):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator, key: str) -> None:
         super().__init__(coordinator)
         self._entry = entry
-        self._attr_name = t(key, hass)
+        self._attr_translation_key = key  # name, icon and state texts: strings.json and icons.json
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_device_info = device_info(hass, entry)
         self.entity_id = f"sensor.{DOMAIN}_{entry_suffix(entry)}_{key}"
@@ -161,14 +160,12 @@ class StationSensor(_Base):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: StationCoordinator, column: str, key: str) -> None:
         super().__init__(hass, entry, coordinator, key)
         self._column = column
-        device_class, unit, state_class, enabled, icon = _STATION_META[key]
+        device_class, unit, state_class, enabled = _STATION_META[key]
         if device_class is not None:
             self._attr_device_class = device_class
         self._attr_native_unit_of_measurement = unit
         self._attr_state_class = state_class
         self._attr_entity_registry_enabled_default = enabled
-        if icon:
-            self._attr_icon = icon
 
     @property
     def available(self) -> bool:
@@ -222,11 +219,9 @@ class DayValueSensor(_Base):
         if what == "precipitation":
             self._attr_device_class = SensorDeviceClass.PRECIPITATION
             self._attr_native_unit_of_measurement = UnitOfPrecipitationDepth.MILLIMETERS
-            self._attr_icon = "mdi:weather-rainy"
         else:
             self._attr_device_class = SensorDeviceClass.TEMPERATURE
             self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
-            self._attr_icon = "mdi:thermometer-chevron-up" if what == "max" else "mdi:thermometer-chevron-down"
 
     @property
     def native_value(self) -> float | None:
@@ -240,18 +235,18 @@ class DayValueSensor(_Base):
         return daily_values(snap, param).get(day)
 
 
-# key -> (device class, unit, icon, enabled by default)
+# key -> (device class, unit, enabled by default)
 _DERIVED_META: dict[str, tuple] = {
-    "today_mean": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, "mdi:thermometer", True),
-    "tomorrow_mean": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, "mdi:thermometer", True),
-    "heating_degree_days_today": (None, "K·d", "mdi:radiator", True),
-    "heating_degree_days_tomorrow": (None, "K·d", "mdi:radiator", True),
-    "radiation_today": (None, "kWh/m²", "mdi:solar-power-variant", True),
-    "radiation_tomorrow": (None, "kWh/m²", "mdi:solar-power-variant", True),
-    "sunshine_today": (SensorDeviceClass.DURATION, UnitOfTime.HOURS, "mdi:white-balance-sunny", True),
-    "sunshine_tomorrow": (SensorDeviceClass.DURATION, UnitOfTime.HOURS, "mdi:white-balance-sunny", True),
-    "precipitation_next_24h": (SensorDeviceClass.PRECIPITATION, UnitOfPrecipitationDepth.MILLIMETERS, "mdi:weather-pouring", True),
-    "next_rain": (SensorDeviceClass.TIMESTAMP, None, "mdi:weather-rainy", True),
+    "today_mean": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, True),
+    "tomorrow_mean": (SensorDeviceClass.TEMPERATURE, UnitOfTemperature.CELSIUS, True),
+    "heating_degree_days_today": (None, "K·d", True),
+    "heating_degree_days_tomorrow": (None, "K·d", True),
+    "radiation_today": (None, "kWh/m²", True),
+    "radiation_tomorrow": (None, "kWh/m²", True),
+    "sunshine_today": (SensorDeviceClass.DURATION, UnitOfTime.HOURS, True),
+    "sunshine_tomorrow": (SensorDeviceClass.DURATION, UnitOfTime.HOURS, True),
+    "precipitation_next_24h": (SensorDeviceClass.PRECIPITATION, UnitOfPrecipitationDepth.MILLIMETERS, True),
+    "next_rain": (SensorDeviceClass.TIMESTAMP, None, True),
 }
 DERIVED_KEYS = tuple(_DERIVED_META)
 # These work from the daily files alone (mean from high and low).
@@ -266,12 +261,11 @@ class DerivedSensor(_Base):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator, key: str) -> None:
         super().__init__(hass, entry, coordinator, key)
         self._key = key
-        device_class, unit, icon, enabled = _DERIVED_META[key]
+        device_class, unit, enabled = _DERIVED_META[key]
         if device_class is not None:
             self._attr_device_class = device_class
         if unit is not None:
             self._attr_native_unit_of_measurement = unit
-        self._attr_icon = icon
         self._attr_entity_registry_enabled_default = enabled
         if device_class != SensorDeviceClass.TIMESTAMP:
             self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -328,7 +322,6 @@ class PollenSensor(_Base):
 
     _attr_native_unit_of_measurement = "pollen/m³"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_icon = "mdi:flower-pollen"
     _attr_suggested_display_precision = 0
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: PollenCoordinator, species: str) -> None:
@@ -363,8 +356,6 @@ class PollenLevelSensor(_Base):
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(LEVELS)
-    _attr_translation_key = "pollen_level"
-    _attr_icon = "mdi:flower-pollen-outline"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: PollenCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "pollen_level")
@@ -389,14 +380,14 @@ class PollenLevelSensor(_Base):
         return attrs
 
 
-# key -> (series, device class, unit, icon, display precision)
+# key -> (series, device class, unit, display precision)
 _OPEN_METEO_META: dict[str, tuple] = {
-    "air_quality_index": ("european_aqi", SensorDeviceClass.AQI, None, None, 0),
-    "pm10": ("pm10", SensorDeviceClass.PM10, _MICROGRAMS_PER_CUBIC_METER, None, 1),
-    "pm2_5": ("pm2_5", SensorDeviceClass.PM25, _MICROGRAMS_PER_CUBIC_METER, None, 1),
-    "nitrogen_dioxide": ("nitrogen_dioxide", SensorDeviceClass.NITROGEN_DIOXIDE, _MICROGRAMS_PER_CUBIC_METER, None, 1),
-    "ozone": ("ozone", SensorDeviceClass.OZONE, _MICROGRAMS_PER_CUBIC_METER, None, 0),
-    "uv_index": ("uv_index", None, UV_INDEX, "mdi:sun-wireless", 1),
+    "air_quality_index": ("european_aqi", SensorDeviceClass.AQI, None, 0),
+    "pm10": ("pm10", SensorDeviceClass.PM10, _MICROGRAMS_PER_CUBIC_METER, 1),
+    "pm2_5": ("pm2_5", SensorDeviceClass.PM25, _MICROGRAMS_PER_CUBIC_METER, 1),
+    "nitrogen_dioxide": ("nitrogen_dioxide", SensorDeviceClass.NITROGEN_DIOXIDE, _MICROGRAMS_PER_CUBIC_METER, 1),
+    "ozone": ("ozone", SensorDeviceClass.OZONE, _MICROGRAMS_PER_CUBIC_METER, 0),
+    "uv_index": ("uv_index", None, UV_INDEX, 1),
 }
 
 
@@ -438,13 +429,11 @@ class OpenMeteoSensor(_OpenMeteoBase):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: OpenMeteoCoordinator, key: str) -> None:
         super().__init__(hass, entry, coordinator, key)
-        self._series, device_class, unit, icon, precision = _OPEN_METEO_META[key]
+        self._series, device_class, unit, precision = _OPEN_METEO_META[key]
         if device_class is not None:
             self._attr_device_class = device_class
         if unit is not None:
             self._attr_native_unit_of_measurement = unit
-        if icon is not None:
-            self._attr_icon = icon
         self._attr_suggested_display_precision = precision
 
     @property
@@ -469,8 +458,6 @@ class AirQualityLevelSensor(_OpenMeteoBase):
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(AQI_LEVELS)
-    _attr_translation_key = "air_quality_level"
-    _attr_icon = "mdi:air-filter"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: OpenMeteoCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "air_quality_level")
@@ -497,7 +484,6 @@ class UvIndexMaxSensor(_OpenMeteoBase):
 
     _attr_native_unit_of_measurement = UV_INDEX
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_icon = "mdi:weather-sunny-alert"
     _attr_suggested_display_precision = 1
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: OpenMeteoCoordinator) -> None:
@@ -527,7 +513,6 @@ class PollenForecastSensor(_OpenMeteoBase):
 
     _attr_native_unit_of_measurement = "grains/m³"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_icon = "mdi:flower-pollen-outline"
     _attr_suggested_display_precision = 0
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: OpenMeteoCoordinator, species: str) -> None:
@@ -560,8 +545,6 @@ class WarningLevelSensor(_Base):
 
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(WARNING_LEVELS)
-    _attr_translation_key = "warning_level"
-    _attr_icon = "mdi:alert-outline"
     _attr_attribution = ATTRIBUTION_WARNINGS
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: WarningsCoordinator) -> None:
@@ -574,11 +557,6 @@ class WarningLevelSensor(_Base):
     @property
     def native_value(self) -> str | None:
         return self.coordinator.data.level() if self.coordinator.data else None
-
-    @property
-    def icon(self) -> str:
-        level = self.native_value
-        return "mdi:alert-outline" if level in (None, "none") else "mdi:alert"
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -624,7 +602,6 @@ class RadarRateSensor(_RadarBase):
     _attr_device_class = SensorDeviceClass.PRECIPITATION_INTENSITY
     _attr_native_unit_of_measurement = UnitOfVolumetricFlux.MILLIMETERS_PER_HOUR
     _attr_suggested_display_precision = 1
-    _attr_icon = "mdi:weather-pouring"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "radar_rain_rate")
@@ -645,7 +622,6 @@ class RadarDistanceSensor(_RadarBase):
     _attr_device_class = SensorDeviceClass.DISTANCE
     _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
     _attr_suggested_display_precision = 0
-    _attr_icon = "mdi:radar"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "radar_rain_distance")
@@ -668,7 +644,6 @@ class RadarEtaSensor(_RadarBase):
     _attr_device_class = SensorDeviceClass.DURATION
     _attr_native_unit_of_measurement = UnitOfTime.MINUTES
     _attr_suggested_display_precision = 0
-    _attr_icon = "mdi:timer-sand"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "radar_rain_eta")
@@ -686,7 +661,6 @@ class RadarEtaSensor(_RadarBase):
 class ForecastRunSensor(_Base):
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:clock-check-outline"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "forecast_run")
@@ -717,7 +691,6 @@ class TrafficSensor(_Base):
     _attr_native_unit_of_measurement = "MB"
     _attr_state_class = SensorStateClass.TOTAL
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:download-network-outline"
     _attr_suggested_display_precision = 2
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator) -> None:

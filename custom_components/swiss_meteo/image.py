@@ -13,7 +13,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import ATTRIBUTION, DOMAIN
 from .coordinator import EntryData
 from .device import device_info, entry_suffix
-from .localization import t
 from .radar import RadarCoordinator
 
 
@@ -31,12 +30,11 @@ class RadarImage(CoordinatorEntity[RadarCoordinator], ImageEntity):
     _attr_has_entity_name = True
     _attr_attribution = ATTRIBUTION
     _attr_content_type = "image/png"
-    _attr_icon = "mdi:radar"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
         CoordinatorEntity.__init__(self, coordinator)
         ImageEntity.__init__(self, hass)
-        self._attr_name = t("radar_image", hass)
+        self._attr_translation_key = "radar_image"
         self._attr_unique_id = f"{entry.entry_id}_radar_image"
         self._attr_device_info = device_info(hass, entry)
         self.entity_id = f"image.{DOMAIN}_{entry_suffix(entry)}_radar"

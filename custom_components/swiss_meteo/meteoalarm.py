@@ -314,7 +314,7 @@ class WarningsCoordinator(DataUpdateCoordinator[WarningsData]):
                     self._warned = True
                     _LOGGER.warning("Warnings feed not read, keeping the last list: %s", err)
                 return self.data
-            raise UpdateFailed(str(err)) from err
+            raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         self._warned = False
         return parse_warnings(payload, self.lat, self.lon, self.hass.config.language, now)
 

@@ -90,7 +90,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                 account=account,
             )
         except HistoryError as err:
-            raise HomeAssistantError(str(err)) from err
+            raise HomeAssistantError(str(err), translation_domain=DOMAIN, translation_key="history_import_failed", translation_placeholders={"error": str(err)}) from err
 
     hass.services.async_register(DOMAIN, SERVICE_IMPORT_HISTORY, _import_history, schema=IMPORT_SCHEMA, supports_response=SupportsResponse.OPTIONAL)
 

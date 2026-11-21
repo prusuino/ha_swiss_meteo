@@ -421,11 +421,189 @@
     },
     "no_hourly": {
       "message": "La voce non ha ancora una previsione oraria; attivarla nel dialogo Configura o attendere il prossimo ciclo."
+    },
+    "read_failed": {
+      "message": "Non è stato possibile leggere i dati: {error}"
+    },
+    "no_forecast_run": {
+      "message": "MeteoSvizzera non ha pubblicato alcun ciclo della previsione locale nelle ultime ore."
+    },
+    "radar_stale": {
+      "message": "L'immagine radar più recente è delle {time} UTC."
+    },
+    "history_import_failed": {
+      "message": "Non è stato possibile importare lo storico della stazione: {error}"
     }
   },
   "entity": {
     "sensor": {
+      "temperature": {
+        "name": "Temperatura"
+      },
+      "temperature_5cm": {
+        "name": "Temperatura 5 cm"
+      },
+      "dew_point": {
+        "name": "Punto di rugiada"
+      },
+      "humidity": {
+        "name": "Umidità"
+      },
+      "pressure_qnh": {
+        "name": "Pressione QNH"
+      },
+      "pressure_qff": {
+        "name": "Pressione QFF"
+      },
+      "pressure_station": {
+        "name": "Pressione stazione"
+      },
+      "wind_speed": {
+        "name": "Vento"
+      },
+      "wind_gust": {
+        "name": "Raffiche"
+      },
+      "wind_direction": {
+        "name": "Direzione del vento"
+      },
+      "precipitation": {
+        "name": "Precipitazioni 10 min"
+      },
+      "sunshine": {
+        "name": "Soleggiamento 10 min"
+      },
+      "global_radiation": {
+        "name": "Radiazione globale"
+      },
+      "diffuse_radiation": {
+        "name": "Radiazione diffusa"
+      },
+      "snow_depth": {
+        "name": "Altezza della neve"
+      },
+      "wind_chill": {
+        "name": "Wind chill"
+      },
+      "soil_temperature_5cm": {
+        "name": "Temperatura del suolo 5 cm"
+      },
+      "soil_temperature_10cm": {
+        "name": "Temperatura del suolo 10 cm"
+      },
+      "soil_temperature_20cm": {
+        "name": "Temperatura del suolo 20 cm"
+      },
+      "surface_temperature": {
+        "name": "Temperatura superficiale"
+      },
+      "vapour_pressure": {
+        "name": "Pressione di vapore"
+      },
+      "wind_gust_3s": {
+        "name": "Raffiche 3 s"
+      },
+      "geopotential_850": {
+        "name": "Geopotenziale 850 hPa"
+      },
+      "geopotential_700": {
+        "name": "Geopotenziale 700 hPa"
+      },
+      "longwave_incoming": {
+        "name": "Radiazione a onda lunga incidente"
+      },
+      "longwave_outgoing": {
+        "name": "Radiazione a onda lunga uscente"
+      },
+      "reflected_radiation": {
+        "name": "Radiazione riflessa"
+      },
+      "foehn_index": {
+        "name": "Indice di favonio"
+      },
+      "today_max": {
+        "name": "Massima oggi"
+      },
+      "today_min": {
+        "name": "Minima oggi"
+      },
+      "today_precipitation": {
+        "name": "Precipitazioni oggi"
+      },
+      "tomorrow_max": {
+        "name": "Massima domani"
+      },
+      "tomorrow_min": {
+        "name": "Minima domani"
+      },
+      "tomorrow_precipitation": {
+        "name": "Precipitazioni domani"
+      },
+      "zero_degree_level": {
+        "name": "Isoterma 0 °C"
+      },
+      "forecast_run": {
+        "name": "Ciclo di previsione"
+      },
+      "station_time": {
+        "name": "Ora di misura stazione"
+      },
+      "traffic_today": {
+        "name": "Traffico dati oggi"
+      },
+      "today_mean": {
+        "name": "Media oggi"
+      },
+      "tomorrow_mean": {
+        "name": "Media domani"
+      },
+      "heating_degree_days_today": {
+        "name": "Gradi giorno riscaldamento oggi"
+      },
+      "heating_degree_days_tomorrow": {
+        "name": "Gradi giorno riscaldamento domani"
+      },
+      "radiation_today": {
+        "name": "Radiazione globale oggi"
+      },
+      "radiation_tomorrow": {
+        "name": "Radiazione globale domani"
+      },
+      "sunshine_today": {
+        "name": "Soleggiamento oggi"
+      },
+      "sunshine_tomorrow": {
+        "name": "Soleggiamento domani"
+      },
+      "precipitation_next_24h": {
+        "name": "Precipitazioni prossime 24 h"
+      },
+      "next_rain": {
+        "name": "Prossima pioggia"
+      },
+      "pollen_birch": {
+        "name": "Polline betulla"
+      },
+      "pollen_grasses": {
+        "name": "Polline graminacee"
+      },
+      "pollen_alder": {
+        "name": "Polline ontano"
+      },
+      "pollen_hazel": {
+        "name": "Polline nocciolo"
+      },
+      "pollen_beech": {
+        "name": "Polline faggio"
+      },
+      "pollen_ash": {
+        "name": "Polline frassino"
+      },
+      "pollen_oak": {
+        "name": "Polline quercia"
+      },
       "pollen_level": {
+        "name": "Carico pollinico",
         "state": {
           "none": "Nullo",
           "low": "Debole",
@@ -435,6 +613,7 @@
         }
       },
       "warning_level": {
+        "name": "Livello di allerta",
         "state": {
           "none": "Nessuno",
           "yellow": "Giallo",
@@ -442,7 +621,20 @@
           "red": "Rosso"
         }
       },
+      "radar_rain_rate": {
+        "name": "Radar intensità di pioggia"
+      },
+      "radar_rain_distance": {
+        "name": "Radar pioggia più vicina"
+      },
+      "radar_rain_eta": {
+        "name": "Radar pioggia tra"
+      },
+      "air_quality_index": {
+        "name": "Indice di qualità dell'aria"
+      },
       "air_quality_level": {
+        "name": "Qualità dell'aria",
         "state": {
           "good": "Buona",
           "fair": "Discreta",
@@ -451,6 +643,67 @@
           "very_poor": "Molto scarsa",
           "extremely_poor": "Estremamente scarsa"
         }
+      },
+      "pm10": {
+        "name": "Polveri fini PM10"
+      },
+      "pm2_5": {
+        "name": "Polveri fini PM2.5"
+      },
+      "nitrogen_dioxide": {
+        "name": "Diossido di azoto"
+      },
+      "ozone": {
+        "name": "Ozono"
+      },
+      "uv_index": {
+        "name": "Indice UV"
+      },
+      "uv_index_max_today": {
+        "name": "Indice UV massimo oggi"
+      },
+      "pollen_forecast_alder": {
+        "name": "Previsione polline ontano"
+      },
+      "pollen_forecast_birch": {
+        "name": "Previsione polline betulla"
+      },
+      "pollen_forecast_grass": {
+        "name": "Previsione polline graminacee"
+      },
+      "pollen_forecast_mugwort": {
+        "name": "Previsione polline artemisia"
+      },
+      "pollen_forecast_olive": {
+        "name": "Previsione polline olivo"
+      },
+      "pollen_forecast_ragweed": {
+        "name": "Previsione polline ambrosia"
+      }
+    },
+    "binary_sensor": {
+      "rain_expected": {
+        "name": "Pioggia prevista"
+      },
+      "frost_tonight": {
+        "name": "Gelo stanotte"
+      },
+      "warning_active": {
+        "name": "Allerta in corso"
+      },
+      "raining": {
+        "name": "Piove"
+      },
+      "strong_wind_expected": {
+        "name": "Vento forte previsto"
+      },
+      "rain_approaching": {
+        "name": "Pioggia in arrivo"
+      }
+    },
+    "image": {
+      "radar_image": {
+        "name": "Immagine radar"
       }
     }
   },

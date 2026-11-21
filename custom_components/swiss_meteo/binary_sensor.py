@@ -20,7 +20,6 @@ from .const import ATTRIBUTION, ATTRIBUTION_WARNINGS, CONF_GUST_THRESHOLD, DEFAU
 from .coordinator import EntryData, ForecastCoordinator
 from .derived import RAIN_THRESHOLD_MM, WIND_WINDOW_HOURS, max_gust, next_rain, night_minimum, window_sum
 from .device import device_info, entry_suffix
-from .localization import t
 from .meteoalarm import WarningsCoordinator
 from .radar import RadarCoordinator
 
@@ -50,7 +49,7 @@ class _Base(CoordinatorEntity[ForecastCoordinator], BinarySensorEntity):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator, key: str) -> None:
         super().__init__(coordinator)
-        self._attr_name = t(key, hass)
+        self._attr_translation_key = key
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_device_info = device_info(hass, entry)
         self.entity_id = f"binary_sensor.{DOMAIN}_{entry_suffix(entry)}_{key}"
@@ -75,7 +74,6 @@ class RainExpectedSensor(_Base):
     next six hours."""
 
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
-    _attr_icon = "mdi:weather-rainy"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "rain_expected")
@@ -114,7 +112,6 @@ class FrostTonightSensor(_Base):
     09:00 of the next morning."""
 
     _attr_device_class = BinarySensorDeviceClass.COLD
-    _attr_icon = "mdi:snowflake-alert"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "frost_tonight")
@@ -147,7 +144,6 @@ class StrongWindExpectedSensor(_Base):
     threshold (60 km/h by default) within the next six hours."""
 
     _attr_device_class = BinarySensorDeviceClass.SAFETY
-    _attr_icon = "mdi:weather-windy"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "strong_wind_expected")
@@ -180,11 +176,10 @@ class WarningActiveSensor(CoordinatorEntity[WarningsCoordinator], BinarySensorEn
     _attr_has_entity_name = True
     _attr_attribution = ATTRIBUTION_WARNINGS
     _attr_device_class = BinarySensorDeviceClass.SAFETY
-    _attr_icon = "mdi:alert-outline"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: WarningsCoordinator) -> None:
         super().__init__(coordinator)
-        self._attr_name = t("warning_active", hass)
+        self._attr_translation_key = "warning_active"
         self._attr_unique_id = f"{entry.entry_id}_warning_active"
         self._attr_device_info = device_info(hass, entry)
         self.entity_id = f"binary_sensor.{DOMAIN}_{entry_suffix(entry)}_warning_active"
@@ -213,7 +208,7 @@ class _RadarBinary(CoordinatorEntity[RadarCoordinator], BinarySensorEntity):
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator, key: str) -> None:
         super().__init__(coordinator)
-        self._attr_name = t(key, hass)
+        self._attr_translation_key = key
         self._attr_unique_id = f"{entry.entry_id}_{key}"
         self._attr_device_info = device_info(hass, entry)
         self.entity_id = f"binary_sensor.{DOMAIN}_{entry_suffix(entry)}_{key}"
@@ -233,7 +228,6 @@ class _RadarBinary(CoordinatorEntity[RadarCoordinator], BinarySensorEntity):
 class RainingSensor(_RadarBinary):
     """On while the radar shows rain at the point (0.1 mm/h or more within 1 km)."""
 
-    _attr_icon = "mdi:weather-rainy"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "raining")
@@ -246,7 +240,6 @@ class RainingSensor(_RadarBinary):
 class RainApproachingSensor(_RadarBinary):
     """On while it rains or rain is estimated to reach the point within 30 minutes."""
 
-    _attr_icon = "mdi:weather-rainy"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: RadarCoordinator) -> None:
         super().__init__(hass, entry, coordinator, "rain_approaching")

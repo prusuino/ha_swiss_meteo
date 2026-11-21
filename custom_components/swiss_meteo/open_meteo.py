@@ -198,7 +198,7 @@ class OpenMeteoCoordinator(DataUpdateCoordinator[OpenMeteoData]):
                     self._warned = True
                     _LOGGER.warning("Open-Meteo not read, keeping the last forecast: %s", err)
                 return self.data
-            raise UpdateFailed(str(err)) from err
+            raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         if self._warned:
             self._warned = False
             _LOGGER.info("Open-Meteo is readable again")

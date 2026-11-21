@@ -421,11 +421,189 @@
     },
     "no_hourly": {
       "message": "Der Eintrag hat noch keine Stundenprognose; im Configure-Dialog einschalten oder den nächsten Lauf abwarten."
+    },
+    "read_failed": {
+      "message": "Die Daten konnten nicht gelesen werden: {error}"
+    },
+    "no_forecast_run": {
+      "message": "MeteoSchweiz hat in den letzten Stunden keinen Lauf der Lokalprognose veröffentlicht."
+    },
+    "radar_stale": {
+      "message": "Das neueste Radarbild ist von {time} UTC."
+    },
+    "history_import_failed": {
+      "message": "Der Stationsverlauf konnte nicht importiert werden: {error}"
     }
   },
   "entity": {
     "sensor": {
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "temperature_5cm": {
+        "name": "Temperatur 5 cm"
+      },
+      "dew_point": {
+        "name": "Taupunkt"
+      },
+      "humidity": {
+        "name": "Luftfeuchtigkeit"
+      },
+      "pressure_qnh": {
+        "name": "Luftdruck QNH"
+      },
+      "pressure_qff": {
+        "name": "Luftdruck QFF"
+      },
+      "pressure_station": {
+        "name": "Luftdruck Station"
+      },
+      "wind_speed": {
+        "name": "Wind"
+      },
+      "wind_gust": {
+        "name": "Böen"
+      },
+      "wind_direction": {
+        "name": "Windrichtung"
+      },
+      "precipitation": {
+        "name": "Niederschlag 10 min"
+      },
+      "sunshine": {
+        "name": "Sonnenschein 10 min"
+      },
+      "global_radiation": {
+        "name": "Globalstrahlung"
+      },
+      "diffuse_radiation": {
+        "name": "Diffusstrahlung"
+      },
+      "snow_depth": {
+        "name": "Schneehöhe"
+      },
+      "wind_chill": {
+        "name": "Windchill"
+      },
+      "soil_temperature_5cm": {
+        "name": "Bodentemperatur 5 cm"
+      },
+      "soil_temperature_10cm": {
+        "name": "Bodentemperatur 10 cm"
+      },
+      "soil_temperature_20cm": {
+        "name": "Bodentemperatur 20 cm"
+      },
+      "surface_temperature": {
+        "name": "Oberflächentemperatur"
+      },
+      "vapour_pressure": {
+        "name": "Dampfdruck"
+      },
+      "wind_gust_3s": {
+        "name": "Böen 3 s"
+      },
+      "geopotential_850": {
+        "name": "Geopotential 850 hPa"
+      },
+      "geopotential_700": {
+        "name": "Geopotential 700 hPa"
+      },
+      "longwave_incoming": {
+        "name": "Langwellenstrahlung einfallend"
+      },
+      "longwave_outgoing": {
+        "name": "Langwellenstrahlung ausgehend"
+      },
+      "reflected_radiation": {
+        "name": "Reflektierte Strahlung"
+      },
+      "foehn_index": {
+        "name": "Föhnindex"
+      },
+      "today_max": {
+        "name": "Heute Höchsttemperatur"
+      },
+      "today_min": {
+        "name": "Heute Tiefsttemperatur"
+      },
+      "today_precipitation": {
+        "name": "Heute Niederschlag"
+      },
+      "tomorrow_max": {
+        "name": "Morgen Höchsttemperatur"
+      },
+      "tomorrow_min": {
+        "name": "Morgen Tiefsttemperatur"
+      },
+      "tomorrow_precipitation": {
+        "name": "Morgen Niederschlag"
+      },
+      "zero_degree_level": {
+        "name": "Nullgradgrenze"
+      },
+      "forecast_run": {
+        "name": "Prognoselauf"
+      },
+      "station_time": {
+        "name": "Messzeit Station"
+      },
+      "traffic_today": {
+        "name": "Datenverkehr heute"
+      },
+      "today_mean": {
+        "name": "Heute Tagesmittel"
+      },
+      "tomorrow_mean": {
+        "name": "Morgen Tagesmittel"
+      },
+      "heating_degree_days_today": {
+        "name": "Heute Heizgradtage"
+      },
+      "heating_degree_days_tomorrow": {
+        "name": "Morgen Heizgradtage"
+      },
+      "radiation_today": {
+        "name": "Heute Globalstrahlung"
+      },
+      "radiation_tomorrow": {
+        "name": "Morgen Globalstrahlung"
+      },
+      "sunshine_today": {
+        "name": "Heute Sonnenschein"
+      },
+      "sunshine_tomorrow": {
+        "name": "Morgen Sonnenschein"
+      },
+      "precipitation_next_24h": {
+        "name": "Niederschlag nächste 24 h"
+      },
+      "next_rain": {
+        "name": "Nächster Regen"
+      },
+      "pollen_birch": {
+        "name": "Pollen Birke"
+      },
+      "pollen_grasses": {
+        "name": "Pollen Gräser"
+      },
+      "pollen_alder": {
+        "name": "Pollen Erle"
+      },
+      "pollen_hazel": {
+        "name": "Pollen Hasel"
+      },
+      "pollen_beech": {
+        "name": "Pollen Buche"
+      },
+      "pollen_ash": {
+        "name": "Pollen Esche"
+      },
+      "pollen_oak": {
+        "name": "Pollen Eiche"
+      },
       "pollen_level": {
+        "name": "Pollenbelastung",
         "state": {
           "none": "Keine",
           "low": "Schwach",
@@ -435,6 +613,7 @@
         }
       },
       "warning_level": {
+        "name": "Warnstufe",
         "state": {
           "none": "Keine",
           "yellow": "Gelb",
@@ -442,7 +621,20 @@
           "red": "Rot"
         }
       },
+      "radar_rain_rate": {
+        "name": "Radar Regenrate"
+      },
+      "radar_rain_distance": {
+        "name": "Radar nächster Regen"
+      },
+      "radar_rain_eta": {
+        "name": "Radar Regen in"
+      },
+      "air_quality_index": {
+        "name": "Luftqualitätsindex"
+      },
       "air_quality_level": {
+        "name": "Luftqualität",
         "state": {
           "good": "Gut",
           "fair": "Ordentlich",
@@ -451,6 +643,67 @@
           "very_poor": "Sehr schlecht",
           "extremely_poor": "Extrem schlecht"
         }
+      },
+      "pm10": {
+        "name": "Feinstaub PM10"
+      },
+      "pm2_5": {
+        "name": "Feinstaub PM2.5"
+      },
+      "nitrogen_dioxide": {
+        "name": "Stickstoffdioxid"
+      },
+      "ozone": {
+        "name": "Ozon"
+      },
+      "uv_index": {
+        "name": "UV-Index"
+      },
+      "uv_index_max_today": {
+        "name": "UV-Index Maximum heute"
+      },
+      "pollen_forecast_alder": {
+        "name": "Pollenprognose Erle"
+      },
+      "pollen_forecast_birch": {
+        "name": "Pollenprognose Birke"
+      },
+      "pollen_forecast_grass": {
+        "name": "Pollenprognose Gräser"
+      },
+      "pollen_forecast_mugwort": {
+        "name": "Pollenprognose Beifuss"
+      },
+      "pollen_forecast_olive": {
+        "name": "Pollenprognose Olive"
+      },
+      "pollen_forecast_ragweed": {
+        "name": "Pollenprognose Ambrosia"
+      }
+    },
+    "binary_sensor": {
+      "rain_expected": {
+        "name": "Regen erwartet"
+      },
+      "frost_tonight": {
+        "name": "Frost heute Nacht"
+      },
+      "warning_active": {
+        "name": "Warnung aktiv"
+      },
+      "raining": {
+        "name": "Es regnet"
+      },
+      "strong_wind_expected": {
+        "name": "Starkwind erwartet"
+      },
+      "rain_approaching": {
+        "name": "Regen zieht auf"
+      }
+    },
+    "image": {
+      "radar_image": {
+        "name": "Radarbild"
       }
     }
   },

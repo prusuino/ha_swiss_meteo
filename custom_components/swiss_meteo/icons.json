@@ -1,4 +1,207 @@
 {
+  "entity": {
+    "sensor": {
+      "dew_point": {
+        "default": "mdi:water-thermometer"
+      },
+      "wind_gust": {
+        "default": "mdi:weather-windy"
+      },
+      "wind_direction": {
+        "default": "mdi:compass-outline"
+      },
+      "sunshine": {
+        "default": "mdi:white-balance-sunny"
+      },
+      "snow_depth": {
+        "default": "mdi:snowflake"
+      },
+      "wind_chill": {
+        "default": "mdi:snowflake-thermometer"
+      },
+      "soil_temperature_5cm": {
+        "default": "mdi:thermometer-lines"
+      },
+      "soil_temperature_10cm": {
+        "default": "mdi:thermometer-lines"
+      },
+      "soil_temperature_20cm": {
+        "default": "mdi:thermometer-lines"
+      },
+      "surface_temperature": {
+        "default": "mdi:thermometer-low"
+      },
+      "vapour_pressure": {
+        "default": "mdi:water-percent"
+      },
+      "wind_gust_3s": {
+        "default": "mdi:weather-windy"
+      },
+      "geopotential_850": {
+        "default": "mdi:altimeter"
+      },
+      "geopotential_700": {
+        "default": "mdi:altimeter"
+      },
+      "longwave_incoming": {
+        "default": "mdi:radiator"
+      },
+      "longwave_outgoing": {
+        "default": "mdi:radiator-disabled"
+      },
+      "reflected_radiation": {
+        "default": "mdi:white-balance-sunny"
+      },
+      "foehn_index": {
+        "default": "mdi:weather-windy-variant"
+      },
+      "today_mean": {
+        "default": "mdi:thermometer"
+      },
+      "tomorrow_mean": {
+        "default": "mdi:thermometer"
+      },
+      "heating_degree_days_today": {
+        "default": "mdi:radiator"
+      },
+      "heating_degree_days_tomorrow": {
+        "default": "mdi:radiator"
+      },
+      "radiation_today": {
+        "default": "mdi:solar-power-variant"
+      },
+      "radiation_tomorrow": {
+        "default": "mdi:solar-power-variant"
+      },
+      "sunshine_today": {
+        "default": "mdi:white-balance-sunny"
+      },
+      "sunshine_tomorrow": {
+        "default": "mdi:white-balance-sunny"
+      },
+      "precipitation_next_24h": {
+        "default": "mdi:weather-pouring"
+      },
+      "next_rain": {
+        "default": "mdi:weather-rainy"
+      },
+      "uv_index": {
+        "default": "mdi:sun-wireless"
+      },
+      "today_max": {
+        "default": "mdi:thermometer-chevron-up"
+      },
+      "today_min": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "today_precipitation": {
+        "default": "mdi:weather-rainy"
+      },
+      "tomorrow_max": {
+        "default": "mdi:thermometer-chevron-up"
+      },
+      "tomorrow_min": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "tomorrow_precipitation": {
+        "default": "mdi:weather-rainy"
+      },
+      "pollen_birch": {
+        "default": "mdi:flower-pollen"
+      },
+      "pollen_grasses": {
+        "default": "mdi:flower-pollen"
+      },
+      "pollen_alder": {
+        "default": "mdi:flower-pollen"
+      },
+      "pollen_hazel": {
+        "default": "mdi:flower-pollen"
+      },
+      "pollen_beech": {
+        "default": "mdi:flower-pollen"
+      },
+      "pollen_ash": {
+        "default": "mdi:flower-pollen"
+      },
+      "pollen_oak": {
+        "default": "mdi:flower-pollen"
+      },
+      "pollen_forecast_alder": {
+        "default": "mdi:flower-pollen-outline"
+      },
+      "pollen_forecast_birch": {
+        "default": "mdi:flower-pollen-outline"
+      },
+      "pollen_forecast_grass": {
+        "default": "mdi:flower-pollen-outline"
+      },
+      "pollen_forecast_mugwort": {
+        "default": "mdi:flower-pollen-outline"
+      },
+      "pollen_forecast_olive": {
+        "default": "mdi:flower-pollen-outline"
+      },
+      "pollen_forecast_ragweed": {
+        "default": "mdi:flower-pollen-outline"
+      },
+      "pollen_level": {
+        "default": "mdi:flower-pollen-outline"
+      },
+      "air_quality_level": {
+        "default": "mdi:air-filter"
+      },
+      "uv_index_max_today": {
+        "default": "mdi:weather-sunny-alert"
+      },
+      "warning_level": {
+        "default": "mdi:alert",
+        "state": {
+          "none": "mdi:alert-outline"
+        }
+      },
+      "radar_rain_rate": {
+        "default": "mdi:weather-pouring"
+      },
+      "radar_rain_distance": {
+        "default": "mdi:radar"
+      },
+      "radar_rain_eta": {
+        "default": "mdi:timer-sand"
+      },
+      "forecast_run": {
+        "default": "mdi:clock-check-outline"
+      },
+      "traffic_today": {
+        "default": "mdi:download-network-outline"
+      }
+    },
+    "binary_sensor": {
+      "rain_expected": {
+        "default": "mdi:weather-rainy"
+      },
+      "frost_tonight": {
+        "default": "mdi:snowflake-alert"
+      },
+      "strong_wind_expected": {
+        "default": "mdi:weather-windy"
+      },
+      "warning_active": {
+        "default": "mdi:alert-outline"
+      },
+      "raining": {
+        "default": "mdi:weather-rainy"
+      },
+      "rain_approaching": {
+        "default": "mdi:weather-rainy"
+      }
+    },
+    "image": {
+      "radar_image": {
+        "default": "mdi:radar"
+      }
+    }
+  },
   "triggers": {
     "rain_expected": {
       "trigger": "mdi:weather-rainy"
