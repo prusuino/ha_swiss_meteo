@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Swiss Meteo",
-        "description": "Für welchen Ort soll die Prognose gelten? Der Standort von Home Assistant ist vorausgefüllt; für einen anderen Ort den Marker verschieben. Die Stundenprognose liest rund 2 MB je Modelllauf (stündlich); die Tagesprognose allein bleibt unter 1 MB. Erweiterte Werte ergänzen die Stundenprognose um Unsicherheitsbereich von Temperatur und Niederschlag, Wolkenschichten und Nullgradgrenze.",
+        "description": "Für welchen Ort soll die Prognose gelten? Der Standort von Home Assistant ist vorausgefüllt; für einen anderen Ort den Marker verschieben. Die Stundenprognose liest rund 2.5 MB je Modelllauf (stündlich, rund 60 MB pro Tag), die erweiterten Werte weitere 7 MB je Lauf; die Tagesprognose allein bleibt unter 3 MB pro Tag. Erweiterte Werte ergänzen die Stundenprognose um Unsicherheitsbereich von Temperatur und Niederschlag, Wolkenschichten und Nullgradgrenze.",
         "data": {
           "location": "Standort",
           "hourly": "Stundenprognose",

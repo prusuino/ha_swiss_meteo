@@ -3,7 +3,6 @@ the lists of points and stations, the run discovery, and the three ways
 one point's rows are read out of a forecast file with byte ranges."""
 from __future__ import annotations
 
-import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 from functools import cache
@@ -152,7 +151,7 @@ async def test_fetch_turns_every_failure_into_unavailable() -> None:
     with pytest.raises(OgdUnavailable, match="ClientError for list.csv"):
         await ogd._fetch(FakeSession({url: aiohttp.ClientError("boom")}), url)
     with pytest.raises(OgdUnavailable, match="TimeoutError for list.csv"):
-        await ogd._fetch(FakeSession({url: asyncio.TimeoutError()}), url)
+        await ogd._fetch(FakeSession({url: TimeoutError()}), url)
 
 
 async def test_points_are_read_and_broken_rows_skipped() -> None:

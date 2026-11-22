@@ -25,7 +25,6 @@ from .const import ATTRIBUTION, CONF_POINT_HEIGHT, CONF_POINT_LAT, CONF_POINT_LO
 from .coordinator import EntryData, ForecastCoordinator
 from .device import device_info, entry_suffix
 from .forecast import daily_forecast, hourly_forecast, value_at
-from .localization import t
 from .symbols import condition_for, meaning_for
 
 

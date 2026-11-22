@@ -21,7 +21,6 @@ from .const import (
     CONF_PRECIP_STATION_NAME,
     CONF_STATION,
     CONF_STATION_NAME,
-    DOMAIN,
     USER_AGENT,
 )
 from .coordinator import EntryData

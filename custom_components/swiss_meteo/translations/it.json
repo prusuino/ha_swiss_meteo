@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Swiss Meteo",
-        "description": "Per quale luogo deve valere la previsione? La posizione di Home Assistant è precompilata; sposta il segnaposto per un altro luogo. La previsione oraria legge circa 2 MB per ciclo del modello (ogni ora); la sola previsione giornaliera resta sotto 1 MB. I valori estesi aggiungono alla previsione oraria il margine di incertezza di temperatura e precipitazioni, gli strati nuvolosi e l'isoterma 0 °C.",
+        "description": "Per quale luogo deve valere la previsione? La posizione di Home Assistant è precompilata; sposta il segnaposto per un altro luogo. La previsione oraria legge circa 2.5 MB per ciclo del modello (ogni ora, circa 60 MB al giorno), i valori estesi altri 7 MB per ciclo; la sola previsione giornaliera resta sotto i 3 MB al giorno. I valori estesi aggiungono alla previsione oraria il margine di incertezza di temperatura e precipitazioni, gli strati nuvolosi e l'isoterma 0 °C.",
         "data": {
           "location": "Posizione",
           "hourly": "Previsione oraria",

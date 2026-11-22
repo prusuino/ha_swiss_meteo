@@ -3,3 +3,21 @@ testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
 filterwarnings = ["ignore::DeprecationWarning"]
+
+# Lint (the "Lint" workflow): mistakes a reader overlooks - unused names,
+# a swallowed exception, an awaited call that blocks, outdated spellings.
+# No formatting rules: the code keeps its long lines.
+[tool.ruff]
+line-length = 200
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B", "ASYNC", "BLE", "PLE", "PIE", "UP", "RUF100"]
+ignore = [
+    "B905",  # zip() without strict=: the pairs are built to equal length right before
+]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest hands fixtures over by name: importing one and naming it as an
+# argument looks like a redefinition to the linter.
+"tests/*" = ["F811"]

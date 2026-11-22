@@ -1,0 +1,30 @@
+name: Smoke test
+
+# The tests work on files kept in the repository; they stay green when
+# MeteoSwiss, MeteoAlarm or Open-Meteo change what they publish. Once a week
+# this reads every source once with the integration's own readers
+# (scripts/smoke_test.py, about 40 requests and 12 MB) and fails when one of
+# them no longer delivers what the integration expects. A failed run is the
+# hint to look, not necessarily a bug: a source can simply be down.
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"  # Mondays 05:23 UTC
+  workflow_dispatch:
+
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install Home Assistant (the readers import it)
+        run: python -m pip install --upgrade pip pytest-homeassistant-custom-component
+
+      - name: Read every source once
+        run: python scripts/smoke_test.py

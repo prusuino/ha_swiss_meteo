@@ -15,13 +15,12 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.swiss_meteo.const import DOMAIN
-from custom_components.swiss_meteo.meteoalarm import WARNINGS_URL
 from custom_components.swiss_meteo.ogd import StationReading
 from custom_components.swiss_meteo.pollen import pollen_now_url
 from custom_components.swiss_meteo.radar import frame_url
 
 from .conftest import NOW, SUFFIX, make_forecast
-from .fakes import FakeResponse, FakeSession
+from .fakes import FakeSession
 from .test_meteoalarm import TWO_WARNINGS
 from .warnfeed import warning_routes
 from .test_pollen import MORNING

@@ -17,8 +17,6 @@ from homeassistant.helpers.typing import ConfigType
 from .issues import async_clear_entry_issues
 from .const import CONF_OPEN_METEO, CONF_POLLEN_STATION, CONF_PRECIP_STATION, CONF_RADAR, CONF_STATION, CONF_WARNINGS, DOMAIN, STATION_PARAMS
 from .coordinator import EntryData, ForecastCoordinator, PrecipCoordinator, StationCoordinator
-
-type SwissMeteoConfigEntry = ConfigEntry[EntryData]
 from .device import entry_suffix, open_meteo_identifier
 from .frontend import async_serve_frontend
 from .derived import best_window
@@ -27,6 +25,8 @@ from .open_meteo import OpenMeteoCoordinator
 from .pollen import PollenCoordinator
 from .meteoalarm import WarningsCoordinator
 from .radar import RadarCoordinator
+
+type SwissMeteoConfigEntry = ConfigEntry[EntryData]
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Swiss Meteo",
-        "description": "Where should the forecast be for? Your Home Assistant location is pre-filled; move the marker for another place. The hourly forecast reads about 2 MB per model run (every hour); the daily forecast alone stays below 1 MB. Extended values add the temperature and precipitation uncertainty range, the cloud layers and the zero-degree level to the hourly forecast.",
+        "description": "Where should the forecast be for? Your Home Assistant location is pre-filled; move the marker for another place. The hourly forecast reads about 2.5 MB per model run (every hour, about 60 MB a day), the extended values another 7 MB per run; the daily forecast alone stays below 3 MB a day. Extended values add the temperature and precipitation uncertainty range, the cloud layers and the zero-degree level to the hourly forecast.",
         "data": {
           "location": "Location",
           "hourly": "Hourly forecast",

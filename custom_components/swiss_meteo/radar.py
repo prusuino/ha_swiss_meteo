@@ -26,7 +26,7 @@ import zlib
 from array import array
 from collections import deque
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
@@ -91,14 +91,14 @@ def pixel_of(lat: float, lon: float) -> tuple[int, int]:
 
 def frame_url(ts: datetime) -> str:
     """URL of the PRECIP frame ending at `ts` (UTC, multiple of 5 min)."""
-    ts = ts.astimezone(timezone.utc)
+    ts = ts.astimezone(UTC)
     return f"{RADAR_BASE}/{ts:%Y%m%d}-ch/rzc{ts:%y}{ts.timetuple().tm_yday:03d}{ts:%H%M}vl.001.h5"
 
 
 def slot(now: datetime) -> datetime:
     """The newest 5-minute slot that is normally published (frames appear
     about a minute after the slot ends)."""
-    now = now.astimezone(timezone.utc) - timedelta(minutes=1)
+    now = now.astimezone(UTC) - timedelta(minutes=1)
     return now.replace(second=0, microsecond=0, minute=now.minute - now.minute % 5)
 
 

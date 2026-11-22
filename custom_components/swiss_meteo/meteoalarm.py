@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from typing import Any
 from xml.etree import ElementTree
 
@@ -146,7 +146,7 @@ def _parse_time(value: Any) -> datetime | None:
         ts = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return None
-    return ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+    return ts if ts.tzinfo else ts.replace(tzinfo=UTC)
 
 
 def parse_polygon(text: str) -> list[tuple[float, float]]:

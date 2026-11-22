@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Swiss Meteo",
-        "description": "Pour quel lieu la prévision doit-elle valoir ? L'emplacement de Home Assistant est prérempli ; déplacez le marqueur pour un autre lieu. La prévision horaire lit environ 2 Mo par cycle de modèle (toutes les heures) ; la prévision journalière seule reste sous 1 Mo. Les valeurs étendues ajoutent à la prévision horaire la marge d'incertitude de la température et des précipitations, les couches nuageuses et l'isotherme 0 °C.",
+        "description": "Pour quel lieu la prévision doit-elle valoir ? L'emplacement de Home Assistant est prérempli ; déplacez le marqueur pour un autre lieu. La prévision horaire lit environ 2.5 Mo par cycle de modèle (toutes les heures, environ 60 Mo par jour), les valeurs étendues 7 Mo de plus par cycle ; la prévision journalière seule reste sous 3 Mo par jour. Les valeurs étendues ajoutent à la prévision horaire la marge d'incertitude de la température et des précipitations, les couches nuageuses et l'isotherme 0 °C.",
         "data": {
           "location": "Lieu",
           "hourly": "Prévision horaire",

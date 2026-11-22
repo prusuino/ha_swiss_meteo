@@ -124,7 +124,7 @@ def best_window(snap: ForecastSnapshot, hours: int, within: int, criterion: str)
     temp = dict(snap.hourly.get("tre200h0") or [])
     first = hour_floor(dt_util.utcnow())
     best: tuple[float, dict] | None = None
-    for offset in range(0, max(1, within)):
+    for offset in range(max(1, within)):
         start = first + timedelta(hours=offset)
         hours_in = [start + timedelta(hours=h) for h in range(hours)]
         if any(h not in rain for h in hours_in):

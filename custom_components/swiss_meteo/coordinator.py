@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -128,7 +128,7 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
         """Whether the kept run is still recent enough to show."""
         if snap.run is None:
             return False
-        run = snap.run if snap.run.tzinfo else snap.run.replace(tzinfo=timezone.utc)
+        run = snap.run if snap.run.tzinfo else snap.run.replace(tzinfo=UTC)
         return now - run <= _FORECAST_MAX_AGE
 
     async def _async_fetch(self) -> ForecastSnapshot:
@@ -256,7 +256,7 @@ class EntryData:
     forecast: ForecastCoordinator
     station: StationCoordinator | None
     precip: PrecipCoordinator | None = None
-    pollen: "PollenCoordinator | None" = None
-    warnings: "WarningsCoordinator | None" = None
-    radar: "RadarCoordinator | None" = None
-    open_meteo: "OpenMeteoCoordinator | None" = None
+    pollen: PollenCoordinator | None = None
+    warnings: WarningsCoordinator | None = None
+    radar: RadarCoordinator | None = None
+    open_meteo: OpenMeteoCoordinator | None = None

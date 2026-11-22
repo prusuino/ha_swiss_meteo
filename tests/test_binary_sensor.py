@@ -18,11 +18,10 @@ from custom_components.swiss_meteo.binary_sensor import (
     WarningActiveSensor,
 )
 from custom_components.swiss_meteo.coordinator import ForecastCoordinator
-from custom_components.swiss_meteo.meteoalarm import WARNINGS_URL, WarningsCoordinator
+from custom_components.swiss_meteo.meteoalarm import WarningsCoordinator
 from custom_components.swiss_meteo.radar import RadarCoordinator, frame_url
 
 from .conftest import NOW, make_entry
-from .fakes import FakeResponse
 from .feeds import EVERYTHING, entity, forecast_with, setup_everything
 from .warnfeed import warning_routes
 from .test_radar import COLS, ROWS, T

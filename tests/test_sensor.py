@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from custom_components.swiss_meteo.coordinator import ForecastCoordinator, PrecipCoordinator, StationCoordinator
-from custom_components.swiss_meteo.meteoalarm import WARNINGS_URL, WarningsCoordinator
+from custom_components.swiss_meteo.meteoalarm import WarningsCoordinator
 from custom_components.swiss_meteo.open_meteo import OpenMeteoCoordinator
 from custom_components.swiss_meteo.pollen import PollenCoordinator
 from custom_components.swiss_meteo.radar import RadarCoordinator
@@ -33,7 +33,6 @@ from custom_components.swiss_meteo.sensor import (
 )
 
 from .conftest import NOW, RUN, find_device, make_entry
-from .fakes import FakeResponse
 from .feeds import EVERYTHING, entity, forecast_with, precip_reading, setup_everything, station_reading
 from .warnfeed import warning_routes
 

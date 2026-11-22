@@ -151,7 +151,7 @@ async def _fetch(session: aiohttp.ClientSession, url: str) -> bytes:
             body = await resp.read()
             note(1, transferred(resp.headers, body))
             return body
-    except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+    except (TimeoutError, aiohttp.ClientError) as err:
         raise OgdUnavailable(f"{type(err).__name__} for {url.rsplit('/', 1)[-1]}") from err
 
 
@@ -304,7 +304,7 @@ async def _head_size(session: aiohttp.ClientSession, url: str) -> int | None:
             if resp.status == 200 and resp.headers.get("Content-Length"):
                 return int(resp.headers["Content-Length"])
             raise OgdUnavailable(f"no size for {name} (HTTP {resp.status})")
-    except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+    except (TimeoutError, aiohttp.ClientError) as err:
         raise OgdUnavailable(f"{type(err).__name__} for {name}") from err
 
 
@@ -378,7 +378,7 @@ class _RangeFile:
                     if resp.status not in (200, 206):
                         raise OgdUnavailable(f"HTTP {resp.status} for {self._url.rsplit('/', 1)[-1]}")
                     body = await resp.read()
-            except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+            except (TimeoutError, aiohttp.ClientError) as err:
                 raise OgdUnavailable(f"{type(err).__name__} for {self._url.rsplit('/', 1)[-1]}") from err
         self.stats.requests += 1
         self.stats.bytes += len(body)

@@ -14,7 +14,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from typing import Any
 
 import aiohttp
@@ -134,7 +134,7 @@ def _parse(raw: bytes, since: datetime, shift_hours: int) -> list[dict[str, Any]
         if len(row) < 2:
             continue
         try:
-            ts = datetime.strptime(row[1], _TS_FORMAT).replace(tzinfo=timezone.utc) - timedelta(hours=shift_hours)
+            ts = datetime.strptime(row[1], _TS_FORMAT).replace(tzinfo=UTC) - timedelta(hours=shift_hours)
         except ValueError:
             continue
         if ts < since:
@@ -261,7 +261,7 @@ async def async_import_history(
             prev = last[statistic_id][0]
             prev_start = prev.get("start")
             if isinstance(prev_start, (int, float)):
-                prev_start = datetime.fromtimestamp(prev_start, tz=timezone.utc)
+                prev_start = datetime.fromtimestamp(prev_start, tz=UTC)
             if prev_start is not None and prev_start < first_start and prev.get("sum") is not None:
                 base = float(prev["sum"])
         stats = await hass.async_add_executor_job(_total_stats, source, column, base)
