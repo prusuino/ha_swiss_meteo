@@ -416,6 +416,18 @@ async def test_newest_slot_not_published_yet(hass: HomeAssistant, swiss_now, no_
     assert session.urls().count(frame_url(T)) == 1
 
 
+async def test_newest_slot_refused_instead_of_missing(hass: HomeAssistant, swiss_now, no_wait) -> None:
+    """The open-data host answers 403 for a frame that does not exist yet:
+    that is "not published", the frame before it is read."""
+    session = served(T - 5 * MINUTES)
+    session.routes[frame_url(T)] = FakeResponse(403)
+    coordinator = RadarCoordinator(hass, make_entry(hass))
+    with patch(SESSION, return_value=session):
+        await coordinator.async_refresh()
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert coordinator.last_update_success and coordinator.data.frame_ts == T - 5 * MINUTES
+
+
 async def test_no_frame_at_all(hass: HomeAssistant, swiss_now, no_wait, caplog) -> None:
     coordinator = RadarCoordinator(hass, make_entry(hass))
     with patch(SESSION, return_value=FakeSession()):

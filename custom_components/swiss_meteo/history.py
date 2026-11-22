@@ -111,7 +111,9 @@ def _files(station: str, resolution: str, years: int, now: datetime, collection:
 async def _fetch(session: aiohttp.ClientSession, url: str) -> tuple[bytes, int]:
     try:
         async with session.get(url, headers={"User-Agent": USER_AGENT, "Accept-Encoding": "identity"}, timeout=aiohttp.ClientTimeout(total=120)) as resp:
-            if resp.status == 404:
+            # no such file (a decade before the station existed): 404, or 403
+            # as the open-data host answers for an object that does not exist
+            if resp.status in (403, 404):
                 return b"", 1
             if resp.status != 200:
                 raise HistoryError(f"{url}: HTTP {resp.status}")

@@ -370,7 +370,10 @@ class RadarCoordinator(DataUpdateCoordinator[RadarData]):
 
     async def _fetch(self, session: aiohttp.ClientSession, ts: datetime) -> bytes | None:
         async with session.get(frame_url(ts), headers={"User-Agent": USER_AGENT}, timeout=_TIMEOUT) as resp:
-            if resp.status == 404:
+            # A frame that is not published yet: the open-data host answers
+            # 403 for an object that does not exist (seen 2026-11-22), 404 in
+            # the documentation. Either way the frame before it is tried.
+            if resp.status in (403, 404):
                 return None
             if resp.status != 200:
                 raise RadarError(f"radar answered {resp.status}")

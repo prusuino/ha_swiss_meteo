@@ -111,6 +111,9 @@ async def test_fetch_answers() -> None:
     assert await _fetch(session, "https://host/ok.csv") == (b"data", 1)
     # a file the station does not have is simply empty
     assert await _fetch(session, "https://host/missing.csv") == (b"", 1)
+    # the open-data host answers 403 for a file that does not exist
+    session.routes["https://host/refused.csv"] = FakeResponse(403)
+    assert await _fetch(session, "https://host/refused.csv") == (b"", 1)
     with pytest.raises(HistoryError, match="busy.csv: HTTP 503"):
         await _fetch(session, "https://host/busy.csv")
     with pytest.raises(HistoryError, match="down.csv: connection lost"):
