@@ -116,8 +116,8 @@ async def _fetch(session: aiohttp.ClientSession, url: str) -> tuple[bytes, int]:
             if resp.status != 200:
                 raise HistoryError(f"{url}: HTTP {resp.status}")
             return await resp.read(), 1
-    except aiohttp.ClientError as err:
-        raise HistoryError(f"{url}: {err}") from err
+    except (aiohttp.ClientError, TimeoutError) as err:
+        raise HistoryError(f"{url}: {err or type(err).__name__}") from err
 
 
 def _parse(raw: bytes, since: datetime, shift_hours: int) -> list[dict[str, Any]]:
