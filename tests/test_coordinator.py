@@ -398,3 +398,44 @@ async def test_a_store_that_cannot_be_read_only_costs_a_search(hass: HomeAssista
     with patch.object(coordinator._hints_store, "async_load", side_effect=OSError("disk")):
         await coordinator.async_refresh()
     assert coordinator.last_update_success and coordinator._hints == {}
+
+
+async def test_the_days_traffic_survives_a_restart(hass: HomeAssistant, swiss_now, hass_storage, fake_forecast, freezer) -> None:
+    """What was counted since midnight is written with the file positions
+    and counted on after a restart; a count of another day is not."""
+    key = f"{DOMAIN}.hints_{ENTRY_ID}"
+    entry = make_entry(hass)
+    coordinator = ForecastCoordinator(hass, entry)
+    await coordinator.async_refresh()
+    counted = (coordinator.data.requests_today, coordinator.data.bytes_today)
+    assert counted[0] > 0 and counted[1] > 0
+    freezer.tick(timedelta(minutes=2))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    stored = hass_storage[key]["data"]["traffic"]
+    assert stored == {"day": dt_util.start_of_local_day().isoformat(), "requests": counted[0], "bytes": counted[1]}
+
+    # counting alone schedules one write, a quarter of an hour later, however often it counts
+    coordinator._account(coordinator.data, 2, 500)
+    coordinator._account(coordinator.data, 3, 700)
+    freezer.tick(timedelta(minutes=5))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass_storage[key]["data"]["traffic"]["requests"] == counted[0]
+    freezer.tick(timedelta(minutes=11))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert hass_storage[key]["data"]["traffic"] == {**stored, "requests": counted[0] + 5, "bytes": counted[1] + 1200}
+
+    # after a restart on the same day the count goes on from there
+    again = ForecastCoordinator(hass, entry)
+    await again.async_refresh()
+    assert again.data.requests_today > counted[0] + 5 and again.data.bytes_today > counted[1] + 1200
+
+    # the next day it starts at zero
+    freezer.move_to(NOW + timedelta(days=1))
+    later = ForecastCoordinator(hass, entry)
+    await later.async_refresh()
+    assert later.data.traffic_day == dt_util.start_of_local_day()
+    assert later.data.requests_today < counted[0] + 5
+

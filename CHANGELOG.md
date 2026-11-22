@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.2 — 2026-11-22
+
+- **The traffic sensor keeps counting over a restart.** "Today" meant since midnight or since the last restart of Home Assistant, whichever was later, so the figure was too low on a day with a restart. The count is now stored with the remembered file positions (written at most every quarter of an hour, and when Home Assistant stops) and continued after a restart; at midnight it starts at zero as before.
+- **README:** the snow stations of the SLF (snow depth, new snow, snow temperatures) are part of the sister integration Swiss Avalanche Bulletin; the list of related integrations now says so.
+
 ## 1.8.1 — 2026-11-22
 
 - **The warnings no longer cost gigabytes.** The warnings were read from MeteoAlarm's full JSON feed every ten minutes. That feed carries every alert in five languages with its polygon: 21 MB on a day with many warnings, sent uncompressed, about 3 GB a day, and the traffic sensor did not count it. The list of alerts in force is now read from MeteoAlarm's Atom feed (1.7 MB on the same day), only when its length changed and at least once an hour; the few alerts that cover your point are then read in full, once, for the texts and the level. The warnings shown are the same: both ways were compared for twenty places across Switzerland in four languages.

@@ -93,6 +93,11 @@ _FORECAST_MAX_AGE = timedelta(hours=12)
 # search every file again. Written a while after a read, not at every one.
 HINTS_STORAGE_VERSION = 1
 _HINTS_SAVE_DELAY = 60
+# The same file keeps the day's traffic count, so that "today" still means
+# since midnight after a restart. Counting must not turn into writing: one
+# write is pending at most, this long after the first count since the last
+# write (Home Assistant also writes what is pending when it stops).
+_TRAFFIC_SAVE_DELAY = 900
 
 
 def hints_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
@@ -114,6 +119,7 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
         self._hints: dict[str, Any] = {}  # parameter -> where the point stood in its file
         self._hints_store = hints_store(hass, entry.entry_id)
         self._hints_loaded = False
+        self._save_pending = False
 
     async def _async_load_hints(self) -> None:
         """The hints of the last session, if they are for this point."""
@@ -123,11 +129,32 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
         except Exception as err:  # noqa: BLE001 - a damaged file only costs one search
             _LOGGER.debug("Stored file positions not read: %s", err)
             return
-        if isinstance(stored, dict) and stored.get("point") == list(self.point) and isinstance(stored.get("params"), dict):
+        if not isinstance(stored, dict):
+            return
+        if stored.get("point") == list(self.point) and isinstance(stored.get("params"), dict):
             self._hints = {param: hint for param, hint in stored["params"].items() if isinstance(hint, dict)}
+        # what was counted earlier today, before the restart
+        traffic = stored.get("traffic")
+        today = dt_util.start_of_local_day()
+        if (
+            isinstance(traffic, dict)
+            and traffic.get("day") == today.isoformat()
+            and isinstance(traffic.get("requests"), int)
+            and isinstance(traffic.get("bytes"), int)
+        ):
+            snap = self._snapshot
+            if snap.traffic_day != today:
+                snap.traffic_day, snap.requests_today, snap.bytes_today = today, 0, 0
+            snap.requests_today += traffic["requests"]
+            snap.bytes_today += traffic["bytes"]
 
     def _hints_to_store(self) -> dict[str, Any]:
-        return {"point": list(self.point), "params": self._hints}
+        self._save_pending = False
+        snap = self._snapshot
+        stored: dict[str, Any] = {"point": list(self.point), "params": self._hints}
+        if snap.traffic_day is not None:
+            stored["traffic"] = {"day": snap.traffic_day.isoformat(), "requests": snap.requests_today, "bytes": snap.bytes_today}
+        return stored
 
     async def _async_update_data(self) -> ForecastSnapshot:
         # A kept run is not a failure; only a refresh that leaves the entity
@@ -150,6 +177,9 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
         snap.bytes_today += nbytes
         snap.last_requests = requests
         snap.last_bytes = nbytes
+        if not self._save_pending:
+            self._save_pending = True
+            self._hints_store.async_delay_save(self._hints_to_store, _TRAFFIC_SAVE_DELAY)
 
     @staticmethod
     def _usable(snap: ForecastSnapshot, now: datetime) -> bool:
@@ -225,6 +255,7 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
             raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         snap.run = run
         snap.missing = missing
+        self._save_pending = True
         self._hints_store.async_delay_save(self._hints_to_store, _HINTS_SAVE_DELAY)
         if missing:
             _LOGGER.debug("Run %s: parameters not read: %s", run, ", ".join(missing))
