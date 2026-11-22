@@ -16,7 +16,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .issues import async_clear_entry_issues
 from .const import CONF_OPEN_METEO, CONF_POLLEN_STATION, CONF_PRECIP_STATION, CONF_RADAR, CONF_STATION, CONF_WARNINGS, DOMAIN, STATION_PARAMS
-from .coordinator import EntryData, ForecastCoordinator, PrecipCoordinator, StationCoordinator
+from .coordinator import EntryData, ForecastCoordinator, PrecipCoordinator, StationCoordinator, hints_store
 from .device import entry_suffix, open_meteo_identifier
 from .frontend import async_serve_frontend
 from .derived import best_window
@@ -204,3 +204,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: SwissMeteoConfigEntry) 
     if unloaded:
         async_clear_entry_issues(hass, entry.entry_id)
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: SwissMeteoConfigEntry) -> None:
+    """The entry is gone: so is what was remembered about its forecast files."""
+    await hints_store(hass, entry.entry_id).async_remove()
+

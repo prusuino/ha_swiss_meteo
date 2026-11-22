@@ -307,3 +307,15 @@ async def test_no_radar_frames_without_radar(hass: HomeAssistant, setup_integrat
     answer = await client.receive_json()
     assert answer["success"] is False
     assert answer["error"]["code"] == "not_found"
+
+
+async def test_removing_the_entry_removes_what_was_remembered(hass: HomeAssistant, setup_integration, hass_storage) -> None:
+    """The stored file positions belong to the entry and go with it."""
+    entry = await setup_integration()
+    key = f"{DOMAIN}.hints_{entry.entry_id}"
+    await entry.runtime_data.forecast._hints_store.async_save({"point": [800100, 2], "params": {}})
+    assert key in hass_storage
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert key not in hass_storage
+

@@ -10,7 +10,10 @@ Two kinds of file are read:
   25 small requests, about 40 KB in all) and by timestamp in a few (the
   point's row sits at a fixed position inside every block, so the position
   of the first block predicts all the others). Both layouts are stable per
-  parameter; the layout is detected on every read anyway.
+  parameter; the layout is detected on every read anyway. Where the point
+  stood is remembered per parameter (a "hint"): the files of the next run
+  are laid out the same way, so the next read goes straight there and
+  falls back to the search only when the place no longer fits.
 * The 10-minute values of a SwissMetNet station: one small CSV per station.
   The stations of the automatic precipitation network (rain gauges that
   measure nothing else, about as many again) publish the same kind of
@@ -62,6 +65,22 @@ _MAX_PARALLEL = 6  # concurrent Range requests against one file
 _MAX_PARALLEL_FILES = 3  # forecast files read at once (each with up to _MAX_PARALLEL ranges)
 _MAX_READS = 1000  # Range requests one read of a file may take (the largest take a few hundred)
 _DAILY_FILE = 3 * 1024 * 1024  # a file of daily values has 1.3 MB, one of hourly values 30 MB
+# Reading at a remembered place. A point's block moves a little from run to
+# run (the values before it are written with more or fewer digits): the
+# window reaches this far to either side of where the block stood.
+_HINT_MARGIN = 8 * 1024
+# In a date-major file the point's row sits at nearly the same place in every
+# block, and the distance from one block's row to the next changes slowly
+# (values gain or lose a digit as the day goes on). Predicted from the two
+# distances before it, a row was found within 50 bytes in half of the blocks,
+# within 550 bytes in 99 % and within 700 bytes in all (three hourly files of
+# 2026-11-22, 220 blocks each). So the first window is 1 KB; the wider ones
+# are for the rows it misses.
+_ROW_WINDOWS = (1024, 4 * 1024, 64 * 1024)
+_ROW_WIDTH = 24  # a row is 20 to 27 bytes: aim the window at its middle
+# A read at a remembered place that returns this many rows fewer than last
+# time is not trusted: the point is searched for from scratch.
+_HINT_ROW_TOLERANCE = 3
 
 # How the published files order their points: by number with the types
 # mixed, grouped by type with the numbers compared as text (1, 10, 100,
@@ -447,6 +466,46 @@ async def _read_point_major(rf: _RangeFile, point: tuple[int, int], lo: int = 0,
     return [line for _off, line in await _find_point_block(rf, point, lo, hi)]
 
 
+def _block_hint(rows: list[tuple[int, bytes]], size: int) -> dict[str, int]:
+    """Where a point's block stood: offset, length, file size, row count."""
+    first, (last_off, last_line) = rows[0][0], rows[-1]
+    return {"o": first, "n": last_off + len(last_line) + 1 - first, "s": size, "c": len(rows)}
+
+
+def _hint_ok(hint: Any, *keys: str) -> bool:
+    return isinstance(hint, dict) and all(isinstance(hint.get(key), int) and hint[key] >= 0 for key in keys) and hint.get("s", 0) > 0
+
+
+async def _read_hinted_block(rf: _RangeFile, point: tuple[int, int], hint: dict[str, int]) -> list[tuple[int, bytes]]:
+    """The point's rows in a point-major file, read at the place they had in
+    the last run (moved in proportion when the file has another size).
+    Empty when they are not there or fewer than last time."""
+    centre = hint["o"] * rf.size // hint["s"]
+    start = max(0, centre - _HINT_MARGIN)
+    length = hint["n"] + 2 * _HINT_MARGIN
+    rows: list[tuple[int, bytes]] = []
+    for _ in range(4):
+        chunk = await rf.read(start, length)
+        rows = _rows_of(chunk, start, point, start == 0)
+        if not rows:
+            return []
+        first_off, last_off = rows[0][0], rows[-1][0]
+        touches_start = start > 0 and first_off - start < 64
+        touches_end = start + length < rf.size and start + length - last_off < 128
+        if not touches_start and not touches_end:
+            break
+        if touches_start:
+            start = max(0, start - _HINT_MARGIN)
+            length += _HINT_MARGIN
+        if touches_end:
+            length += _HINT_MARGIN
+    else:
+        return []  # still at the edge of the window: let the search settle it
+    if len(rows) < hint["c"] - _HINT_ROW_TOLERANCE:
+        return []
+    return rows
+
+
 async def _find_point_block(
     rf: _RangeFile, point: tuple[int, int], lo: int = 0, hi: int | None = None
 ) -> list[tuple[int, bytes]]:
@@ -623,22 +682,17 @@ async def _read_block_search(rf: _RangeFile, point: tuple[int, int]) -> list[byt
     return rows
 
 
-async def _read_date_major(rf: _RangeFile, point: tuple[int, int]) -> list[bytes]:
-    """Date-major file with many blocks (the hourly files): read the first
-    half megabyte whole, which gives the point's position inside a block
-    and the block length, then read a small window around the predicted
-    position in every later block — a few blocks per round, the window
-    growing with the distance from the last confirmed row, the step
-    re-measured from every hit. The first block can be short (a run
-    starts with a partial hour), so the step is taken from a later pair."""
+async def _date_major_start(rf: _RangeFile, point: tuple[int, int]) -> tuple[list[tuple[int, bytes]], int]:
+    """Read the first half megabyte whole: the point's rows in the first
+    blocks with their offsets, and the block length. The first block can be
+    short (a run starts with a partial hour), so the block length is taken
+    from a later pair."""
     head = await rf.read(0, 512 * 1024)
     lines = head.split(b"\n")
     offset = 0
     block_starts: list[int] = []
     current_date: str | None = None
-    row_pos: int | None = None
-    row_block = -1
-    rows_out: list[bytes] = []
+    found: list[tuple[int, bytes]] = []
     for line in lines[:-1]:
         k = _key(line.rstrip(b"\r"))
         if k:
@@ -646,63 +700,81 @@ async def _read_date_major(rf: _RangeFile, point: tuple[int, int]) -> list[bytes
                 current_date = k[2]
                 block_starts.append(offset)
             if (k[0], k[1]) == point:
-                rows_out.append(line.rstrip(b"\r"))
-                row_pos = offset - block_starts[-1]
-                row_block = len(block_starts) - 1
+                found.append((offset, line.rstrip(b"\r")))
         offset += len(line) + 1
-    if row_pos is None or len(block_starts) < 2:
+    if not found or len(block_starts) < 2:
         raise OgdError("point not found in the first blocks of a date-major file")
     if len(block_starts) >= 3:
         step = block_starts[-1] - block_starts[-2]
     else:
         step = block_starts[1] - block_starts[0]
-    last_hit = block_starts[row_block] + row_pos
-    predicted = last_hit + step
+    return found, step
+
+
+async def _row_near(rf: _RangeFile, point: tuple[int, int], predicted: int, beyond: int) -> tuple[int, bytes] | None:
+    """The point's first row after `beyond` around a predicted offset: a
+    small window first, wider ones when it is not in there."""
+    for window in _ROW_WINDOWS:
+        start = max(0, predicted + _ROW_WIDTH // 2 - window // 2)
+        chunk = await rf.read(start, window)
+        # Only a row beyond the last one counts: a window that still covers
+        # an earlier row must not send the read back to it.
+        found = [r for r in _rows_of(chunk, start, point, start == 0) if r[0] > beyond]
+        if found:
+            return found[0]
+    return None
+
+
+async def _read_date_major(rf: _RangeFile, point: tuple[int, int], hint: dict[str, int] | None = None) -> tuple[list[bytes], dict[str, int]]:
+    """Date-major file with many blocks (the hourly files): one row of the
+    point per block, a block length apart. The rows are read one block at a
+    time, each at the offset the rows before it predict (see `_ROW_WINDOWS`).
+
+    Where to begin comes from the last run (`hint`: the offset of the first
+    row and the first two distances) or from reading the head of the file.
+    Returns the rows and the hint for the next run."""
+    rows: list[tuple[int, bytes]] = []
+    seeds: list[int] = []  # distances to use while the rows read so far cannot predict
+    if hint is not None and hint["o"] < hint["d"] + _ROW_WINDOWS[1]:
+        first = await _row_near(rf, point, hint["o"], -1)
+        # a row found far from where the first one stood belongs to a later block
+        if first is not None and abs(first[0] - hint["o"]) < _ROW_WINDOWS[1]:
+            rows = [first]
+            seeds = [hint["d"], hint["t"]]
+    if not rows:
+        rows, step = await _date_major_start(rf, point)
+        seeds = [step, step, step]
     strikes = 0
-    while predicted < rf.size and strikes < 4:
-        # Measured drift of the predicted position: one block ahead a few
-        # hundred bytes (1.6 KB at most), four ahead up to 11 KB. Three
-        # blocks per round with windows of 4, 8 and 12 KB cover that.
-        targets = [predicted + i * step for i in range(3) if predicted + i * step < rf.size]
-        if not targets:
-            break
-        windows = [4 * 1024 * (i + 1) for i in range(len(targets))]
-        chunks = await asyncio.gather(*(rf.read(t - w // 2, w) for t, w in zip(targets, windows)))
-        hits: list[int] = []
-        for t, w, chunk in zip(targets, windows, chunks):
-            start = max(0, t - w // 2)
-            # Only a row beyond the last one counts. A window that still
-            # covers an earlier row must not send the search back to it:
-            # the step would become zero and the loop would never end.
-            beyond = hits[-1] if hits else last_hit
-            found = [r for r in _rows_of(chunk, start, point, start == 0) if r[0] > beyond]
-            if not found:
-                break
-            hits.append(found[0][0])
-            rows_out.append(found[0][1])
-        if hits:
-            if len(hits) >= 2:
-                step = round((hits[-1] - hits[0]) / (len(hits) - 1))
-            else:
-                step = hits[0] - last_hit
-            last_hit = hits[-1]
-            predicted = last_hit + step
-            strikes = 0 if len(hits) == len(targets) else strikes + 1
+    virtual = rows[-1][0]  # where the read stands; runs ahead of the last row after a miss
+    while strikes < 4:
+        n = len(rows)
+        if strikes == 0 and n >= 4:
+            # the last distance, corrected by how the distance changed
+            last, before = rows[-1][0] - rows[-2][0], rows[-2][0] - rows[-3][0]
+            step = 2 * last - before
+        elif strikes == 0 and n - 1 < len(seeds):
+            step = seeds[n - 1]
+        elif n >= 2 and (n >= 3 or len(seeds) < 2):
+            step = rows[-1][0] - rows[-2][0]
         else:
-            t = targets[0]
-            start = max(0, t - 32 * 1024)
-            chunk = await rf.read(start, 64 * 1024)
-            found = [r for r in _rows_of(chunk, start, point, start == 0) if r[0] > last_hit]
-            if found:
-                rows_out.append(found[0][1])
-                step = found[0][0] - last_hit
-                last_hit = found[0][0]
-                predicted = last_hit + step
-                strikes = 0
-            else:
-                strikes += 1
-                predicted += step
-    return rows_out
+            step = seeds[-1]
+        predicted = virtual + step
+        if step <= 0 or predicted >= rf.size:
+            break
+        hit = await _row_near(rf, point, predicted, rows[-1][0])
+        if hit is None:
+            # a block without the point, or the end of what the file holds
+            strikes += 1
+            virtual = predicted
+            continue
+        strikes = 0
+        rows.append(hit)
+        virtual = hit[0]
+    offsets = [off for off, _line in rows]
+    distance = offsets[1] - offsets[0] if len(offsets) > 1 else seeds[0]
+    regular = offsets[2] - offsets[1] if len(offsets) > 2 else seeds[-1]
+    new_hint = {"o": offsets[0], "d": distance, "t": regular, "s": rf.size, "c": len(rows)}
+    return [line for _off, line in rows], new_hint
 
 
 async def _read_whole(rf: _RangeFile, point: tuple[int, int]) -> list[bytes]:
@@ -726,14 +798,25 @@ def _parse_rows(rows: list[bytes]) -> list[tuple[datetime, float | None]]:
 
 
 async def async_read_point(
-    session: aiohttp.ClientSession, url: str, point: tuple[int, int], param: str, stats: ReadStats
+    session: aiohttp.ClientSession,
+    url: str,
+    point: tuple[int, int],
+    param: str,
+    stats: ReadStats,
+    hints: dict[str, Any] | None = None,
 ) -> list[tuple[datetime, float | None]]:
-    """The (timestamp, value) rows of one point in one forecast file."""
+    """The (timestamp, value) rows of one point in one forecast file.
+
+    `hints` maps a parameter to where the point stood in its file the last
+    time (see the module text). A fitting entry is used and renewed; one
+    that no longer fits is replaced by what the search finds."""
     size = await _head_size(session, url)
     stats.requests += 1
     if size is None:
         raise OgdUnavailable(f"missing file {url.rsplit('/', 1)[-1]}")
     rf = _RangeFile(session, url, size, stats)
+    hint = hints.get(param) if hints is not None else None
+    new_hint: dict[str, int] | None = None
     if size <= _SMALL_FILE:
         rows = await _read_whole(rf, point)
     elif param in DATE_MAJOR_PARAMS:
@@ -741,9 +824,18 @@ async def async_read_point(
         if size <= _DAILY_FILE:
             rows = await _read_date_major_small(rf, point) or await _read_whole(rf, point)
         else:
-            rows = await _read_date_major(rf, point)
+            trusted = hint if _hint_ok(hint, "o", "d", "t", "c") else None
+            rows, new_hint = await _read_date_major(rf, point, trusted)
+            if trusted is not None and len(rows) < trusted["c"] - _HINT_ROW_TOLERANCE:
+                # fewer rows than last time from the remembered place: read from scratch
+                rows, new_hint = await _read_date_major(rf, point)
     else:
-        rows = await _read_point_major(rf, point)
+        found = await _read_hinted_block(rf, point, hint) if _hint_ok(hint, "o", "n", "c") else []
+        if not found:
+            found = await _find_point_block(rf, point)
+        rows = [line for _off, line in found]
+        if found:
+            new_hint = _block_hint(found, size)
         if not rows and size <= _DAILY_FILE:
             # Not where the file's order puts it — a point listed out of
             # order, or a layout that has changed: a file this small is
@@ -751,9 +843,14 @@ async def async_read_point(
             rows = await _read_whole(rf, point)
         elif not rows:
             # The layout may have changed: try the other strategy once.
-            rows = await _read_date_major(rf, point)
+            rows, new_hint = await _read_date_major(rf, point)
     if not rows:
         raise OgdError(f"point {point[1]}/{point[0]} not in {url.rsplit('/', 1)[-1]}")
+    if hints is not None:
+        if new_hint is not None:
+            hints[param] = new_hint
+        else:
+            hints.pop(param, None)
     return _parse_rows(rows)
 
 
@@ -769,18 +866,24 @@ class ForecastData:
 
 
 async def async_fetch_forecast(
-    session: aiohttp.ClientSession, run: datetime, point: tuple[int, int], params: tuple[str, ...]
+    session: aiohttp.ClientSession,
+    run: datetime,
+    point: tuple[int, int],
+    params: tuple[str, ...],
+    hints: dict[str, Any] | None = None,
 ) -> ForecastData:
     """All requested parameters of a run for a point. A parameter whose
     file is missing or unreadable is listed in `missing` rather than
-    failing the whole fetch; the entities then show what there is."""
+    failing the whole fetch; the entities then show what there is.
+    `hints` is the caller's memory of where the point stood (see
+    `async_read_point`); it is updated in place."""
     data = ForecastData(run=run, point=point)
     limit = asyncio.Semaphore(_MAX_PARALLEL_FILES)
 
     async def one(param: str) -> None:
         try:
             async with limit:
-                data.series[param] = await async_read_point(session, forecast_file_url(run, param), point, param, data.stats)
+                data.series[param] = await async_read_point(session, forecast_file_url(run, param), point, param, data.stats, hints)
         except OgdError as err:
             _LOGGER.debug("Forecast %s for %s not read: %s", param, point, err)
             data.missing.append(param)

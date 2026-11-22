@@ -9,7 +9,7 @@ the hourly values with every new run; what a read cost is kept for the
 diagnostics entities, so the traffic stays visible."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import logging
 from dataclasses import dataclass, field
@@ -18,6 +18,7 @@ from datetime import datetime, timedelta, UTC
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -87,6 +88,16 @@ class ForecastSnapshot:
 # A kept run older than this is no forecast any more: the entities go unavailable.
 _FORECAST_MAX_AGE = timedelta(hours=12)
 
+# Where the point stood in each forecast file (the reader's hints, see ogd.py),
+# kept in .storage so that the first read after a restart does not have to
+# search every file again. Written a while after a read, not at every one.
+HINTS_STORAGE_VERSION = 1
+_HINTS_SAVE_DELAY = 60
+
+
+def hints_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
+    return Store(hass, HINTS_STORAGE_VERSION, f"{DOMAIN}.hints_{entry_id}")
+
 
 class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
     """The local forecast of the entry's point."""
@@ -100,6 +111,23 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
         self.extended_enabled = bool(entry.options.get(CONF_EXTENDED, entry.data.get(CONF_EXTENDED, False)))
         self._snapshot = ForecastSnapshot()
         self.issues = IssueReporter(hass, entry.entry_id)
+        self._hints: dict[str, Any] = {}  # parameter -> where the point stood in its file
+        self._hints_store = hints_store(hass, entry.entry_id)
+        self._hints_loaded = False
+
+    async def _async_load_hints(self) -> None:
+        """The hints of the last session, if they are for this point."""
+        self._hints_loaded = True
+        try:
+            stored = await self._hints_store.async_load()
+        except Exception as err:  # noqa: BLE001 - a damaged file only costs one search
+            _LOGGER.debug("Stored file positions not read: %s", err)
+            return
+        if isinstance(stored, dict) and stored.get("point") == list(self.point) and isinstance(stored.get("params"), dict):
+            self._hints = {param: hint for param, hint in stored["params"].items() if isinstance(hint, dict)}
+
+    def _hints_to_store(self) -> dict[str, Any]:
+        return {"point": list(self.point), "params": self._hints}
 
     async def _async_update_data(self) -> ForecastSnapshot:
         # A kept run is not a failure; only a refresh that leaves the entity
@@ -133,6 +161,8 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
 
     async def _async_fetch(self) -> ForecastSnapshot:
         session = async_get_clientsession(self.hass)
+        if not self._hints_loaded:
+            await self._async_load_hints()
         snap = self._snapshot
         now = dt_util.utcnow()
         try:
@@ -163,7 +193,7 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
         missing: list[str] = []
         try:
             if need_daily:
-                data = await async_fetch_forecast(session, run, self.point, DAILY_PARAMS)
+                data = await async_fetch_forecast(session, run, self.point, DAILY_PARAMS, self._hints)
                 snap.daily = data.series
                 snap.daily_fetched = now
                 missing += data.missing
@@ -171,13 +201,13 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
                 if self.hourly_enabled:
                     snap.companions = {}
                 else:
-                    data = await async_fetch_forecast(session, run, self.point, DAILY_COMPANION_PARAMS)
+                    data = await async_fetch_forecast(session, run, self.point, DAILY_COMPANION_PARAMS, self._hints)
                     snap.companions = data.series
                     missing += data.missing
                     self._account(snap, data.stats.requests, data.stats.bytes)
             if need_hourly:
                 params = HOURLY_PARAMS + (EXTENDED_PARAMS if self.extended_enabled else ())
-                data = await async_fetch_forecast(session, run, self.point, params)
+                data = await async_fetch_forecast(session, run, self.point, params, self._hints)
                 snap.hourly = data.series
                 snap.hourly_fetched = now
                 missing += data.missing
@@ -195,6 +225,7 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
             raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         snap.run = run
         snap.missing = missing
+        self._hints_store.async_delay_save(self._hints_to_store, _HINTS_SAVE_DELAY)
         if missing:
             _LOGGER.debug("Run %s: parameters not read: %s", run, ", ".join(missing))
         return snap

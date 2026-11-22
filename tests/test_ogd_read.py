@@ -468,7 +468,7 @@ async def test_block_reader_ends_on_a_file_grouped_by_point(point: tuple[int, in
     once and stop, not ask for the same bytes for ever."""
     times = stamps(9, DAY)
     rf = range_file(point_major(times, AS_TEXT + POSTAL))
-    rows = await ogd._read_date_major(rf, point)
+    rows, _hint = await ogd._read_date_major(rf, point)
     assert ogd._parse_rows(rows) == expected(point, times)
     assert len(rows) == len(times)
     assert rf.stats.requests < 40
@@ -619,3 +619,143 @@ async def test_forecast_lists_what_could_not_be_read() -> None:
 
     with pytest.raises(OgdUnavailable, match="no forecast file of run 2026-11-08 09:00"):
         await async_fetch_forecast(FakeSession(), RUN, ZURICH, ("rre150h0", "fu3010h0"))
+
+
+# --- remembered places ---------------------------------------------------------
+
+
+async def read_with(body: bytes, point: tuple[int, int], param: str, hints: dict):
+    url = forecast_file_url(RUN, param)
+    stats = ReadStats()
+    rows = await async_read_point(FakeSession({url: body}), url, point, param, stats, hints)
+    return rows, stats
+
+
+@pytest.mark.parametrize("point", EVERYWHERE)
+async def test_a_block_is_read_at_its_remembered_place(point: tuple[int, int]) -> None:
+    """Rows grouped by point: the second read goes straight to the block."""
+    body = hourly_by_point()
+    hints: dict = {}
+    first, searched = await read_with(body, point, "rre150h0", hints)
+    assert set(hints["rre150h0"]) == {"o", "n", "s", "c"} and hints["rre150h0"]["c"] == 12
+    again, direct = await read_with(body, point, "rre150h0", hints)
+    assert again == first == expected(point, stamps(12))
+    # the size and one read around the block
+    assert direct.requests == 2 and direct.requests < searched.requests
+    assert direct.bytes <= hints["rre150h0"]["n"] + 2 * ogd._HINT_MARGIN
+
+
+async def test_a_block_that_moved_is_still_found() -> None:
+    """The next run's file is a little longer before the point: the block is
+    read where it should be by proportion, the window reaches it."""
+    times = stamps(12)
+    hints: dict = {}
+    await read_with(point_major(times), ZURICH, "rre150h0", hints)
+    before = dict(hints["rre150h0"])
+    longer = point_major(times, [(number, 0) for number in range(1, 120)] + POINTS)  # 119 more points in front
+    rows, stats = await read_with(longer, ZURICH, "rre150h0", hints)
+    assert rows == expected(ZURICH, times)
+    assert stats.requests == 2
+    assert hints["rre150h0"]["o"] > before["o"] and hints["rre150h0"]["s"] == len(longer)
+
+
+async def test_a_block_that_is_elsewhere_is_searched_for_again() -> None:
+    """The remembered place holds other points now: back to the search, and
+    the new place is remembered."""
+    times = stamps(12)
+    body = point_major(times)
+    hints: dict = {"rre150h0": {"o": 4000, "n": 300, "s": len(body), "c": 12}}
+    rows, stats = await read_with(body, ZURICH, "rre150h0", hints)
+    assert rows == expected(ZURICH, times)
+    assert stats.requests > 3
+    assert hints["rre150h0"]["o"] > 4000
+    # and one that lost rows since last time is not trusted either
+    true_place = dict(hints["rre150h0"])
+    hints["rre150h0"] = {**true_place, "c": 40}
+    rows, stats = await read_with(body, ZURICH, "rre150h0", hints)
+    assert rows == expected(ZURICH, times) and stats.requests > 3
+    assert hints["rre150h0"]["c"] == 12
+
+
+@pytest.mark.parametrize("hint", [None, "nonsense", {"o": 5}, {"o": -1, "n": 10, "s": 100, "c": 3}, {"o": 5, "n": 10, "s": 0, "c": 3}])
+async def test_a_hint_that_makes_no_sense_is_ignored(hint) -> None:
+    hints: dict = {"rre150h0": hint, "tre200h0": hint}
+    rows, _stats = await read_with(hourly_by_point(), ZURICH, "rre150h0", hints)
+    assert rows == expected(ZURICH, stamps(12))
+    rows, _stats = await read_with(hourly_by_date(), ZURICH, "tre200h0", hints)
+    assert rows == expected(ZURICH, stamps(64))
+    assert set(hints["tre200h0"]) == {"o", "d", "t", "s", "c"}
+
+
+@pytest.mark.parametrize("point", EVERYWHERE)
+async def test_rows_by_date_from_the_remembered_first_row(point: tuple[int, int]) -> None:
+    """Rows grouped by date: the head of the file is not read again."""
+    body = hourly_by_date()
+    hints: dict = {}
+    first, searched = await read_with(body, point, "tre200h0", hints)
+    again, direct = await read_with(body, point, "tre200h0", hints)
+    assert again == first == expected(point, stamps(64))
+    assert direct.bytes < searched.bytes - 400 * 1024  # the half megabyte of the head
+    # one small window per block, plus the windows that find the end of the file
+    assert direct.bytes < 64 * 1024 + 3 * sum(ogd._ROW_WINDOWS)
+    assert hints["tre200h0"]["c"] == 64
+
+
+@pytest.mark.parametrize("padding", [{13: 300}, {2: 300}, {0: 40}, {11: 300, 30: 300}])
+async def test_rows_by_date_from_a_hint_with_blocks_out_of_step(padding: dict[int, int]) -> None:
+    """The file of the next run has longer blocks here and there: the read
+    from the remembered first row finds its way all the same."""
+    times = stamps(64)
+    hints: dict = {}
+    await read_with(date_major(times), ZURICH, "tre200h0", hints)
+    rows, _stats = await read_with(date_major(times, padding=padding), ZURICH, "tre200h0", hints)
+    assert rows == expected(ZURICH, times)
+
+
+async def test_rows_by_date_when_the_first_row_is_gone_from_its_place() -> None:
+    """A file that starts differently (many more rows before the point):
+    the remembered first row is not there, the head is read instead."""
+    times = stamps(64)
+    hints: dict = {}
+    await read_with(date_major(times), ZURICH, "tre200h0", hints)
+    body = date_major(times, padding={0: 3000})
+    rows, stats = await read_with(body, ZURICH, "tre200h0", hints)
+    assert rows == expected(ZURICH, times)
+    assert stats.bytes > 400 * 1024
+    # a remembered row that was not the first block's is not used at all
+    hints["tre200h0"] = {**hints["tre200h0"], "o": hints["tre200h0"]["o"] + 5 * hints["tre200h0"]["t"]}
+    rows, _stats = await read_with(body, ZURICH, "tre200h0", hints)
+    assert rows == expected(ZURICH, times)
+
+
+async def test_rows_by_date_fewer_than_last_time_are_read_from_scratch() -> None:
+    """From the remembered place the read ends early (the hint's distances
+    are wrong): the file is read once more from its head."""
+    times = stamps(64)
+    body = date_major(times)
+    hints: dict = {}
+    await read_with(body, ZURICH, "tre200h0", hints)
+    good = dict(hints["tre200h0"])
+    hints["tre200h0"] = {**good, "d": good["d"] * 7, "t": good["t"] * 7}
+    rows, stats = await read_with(body, ZURICH, "tre200h0", hints)
+    assert rows == expected(ZURICH, times)
+    assert stats.bytes > 400 * 1024
+    assert hints["tre200h0"]["d"] == good["d"]
+
+
+async def test_hints_of_a_whole_run() -> None:
+    """A run read twice: the hints are filled by the first read and used by
+    the second; a parameter that has none (a small file) is left out."""
+    params = ("rre150h0", "fu3010h0", "tre200h0")
+    routes = {
+        forecast_file_url(RUN, "rre150h0"): hourly_by_point(),
+        forecast_file_url(RUN, "fu3010h0"): point_major(stamps(2), POSTAL[:200]),  # small: read whole
+        forecast_file_url(RUN, "tre200h0"): hourly_by_date(),
+    }
+    hints: dict = {"fu3010h0": {"o": 1, "n": 2, "s": 3, "c": 4}}
+    point = POSTAL[100]
+    first = await async_fetch_forecast(FakeSession(routes), RUN, point, params, hints)
+    assert sorted(hints) == ["rre150h0", "tre200h0"]
+    second = await async_fetch_forecast(FakeSession(routes), RUN, point, params, hints)
+    assert second.series == first.series and not second.missing
+    assert second.stats.bytes < first.stats.bytes / 2

@@ -91,7 +91,7 @@ async def swiss_now(hass: HomeAssistant, freezer) -> datetime:
 def fake_forecast():
     """The run discovery and the forecast read, answered from memory."""
 
-    async def _fetch(_session, run, point, params):
+    async def _fetch(_session, run, point, params, _hints=None):
         return make_forecast(run, point, params)
 
     with (

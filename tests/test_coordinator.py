@@ -5,9 +5,12 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
+
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.swiss_meteo.const import DAILY_COMPANION_PARAMS, DAILY_PARAMS, DOMAIN, EXTENDED_PARAMS, HOURLY_PARAMS
 from custom_components.swiss_meteo.coordinator import ForecastCoordinator, ForecastSnapshot, PrecipCoordinator, StationCoordinator
@@ -128,7 +131,7 @@ async def test_options_win_over_the_setup_data(hass: HomeAssistant, swiss_now, f
 async def test_parameters_that_could_not_be_read_are_named(hass: HomeAssistant, swiss_now, fake_forecast) -> None:
     _find, fetch = fake_forecast
 
-    async def gaps(_session, run, point, params):
+    async def gaps(_session, run, point, params, _hints=None):
         data = make_forecast(run, point, params[1:])
         data.missing.append(params[0])
         return data
@@ -325,3 +328,73 @@ async def test_precipitation_station_repair_notice_after_an_hour_of_failures(has
         await coordinator.async_refresh()
     assert coordinator.last_update_success
     assert issue(hass, "precip_station_unreadable") is None
+
+
+# --- remembered file positions -------------------------------------------------
+
+
+async def test_file_positions_are_kept_over_a_restart(hass: HomeAssistant, swiss_now, hass_storage, freezer) -> None:
+    """What the reader learned about the files is handed to the next read
+    and written to .storage, for the first read after a restart."""
+    seen: list[dict] = []
+
+    async def reader(_session, run, point, params, hints=None):
+        seen.append(dict(hints))
+        for param in params:
+            hints[param] = {"o": 100 + len(param), "n": 50, "s": 1000, "c": 9}
+        return make_forecast(run, point, params)
+
+    key = f"{DOMAIN}.hints_{ENTRY_ID}"
+    with (
+        patch("custom_components.swiss_meteo.coordinator.async_find_latest_run", return_value=RUN),
+        patch("custom_components.swiss_meteo.coordinator.async_fetch_forecast", side_effect=reader),
+    ):
+        coordinator = ForecastCoordinator(hass, make_entry(hass))
+        await coordinator.async_refresh()
+        # nothing known for the daily read; the hourly read gets what the daily one learned
+        assert seen[0] == {} and set(seen[1]) == set(DAILY_PARAMS)
+        freezer.tick(timedelta(minutes=2))
+        await hass.async_block_till_done()
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+        stored = hass_storage[key]["data"]
+        assert stored["point"] == [800100, 2]
+        assert set(stored["params"]) == set(DAILY_PARAMS) | set(HOURLY_PARAMS)
+
+        # after a restart: a new coordinator starts from what was stored
+        seen.clear()
+        again = ForecastCoordinator(hass, coordinator.entry)
+        await again.async_refresh()
+        assert set(seen[0]) == set(DAILY_PARAMS) | set(HOURLY_PARAMS)
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [
+        {"point": [120100, 2], "params": {"tre200h0": {"o": 1, "d": 2, "t": 3, "s": 4, "c": 5}}},  # another place
+        {"point": [800100, 2], "params": "nonsense"},
+        "nonsense",
+    ],
+)
+async def test_file_positions_that_do_not_fit_are_not_used(hass: HomeAssistant, swiss_now, hass_storage, stored) -> None:
+    hass_storage[f"{DOMAIN}.hints_{ENTRY_ID}"] = {"version": 1, "minor_version": 1, "key": f"{DOMAIN}.hints_{ENTRY_ID}", "data": stored}
+    seen: list[dict] = []
+
+    async def reader(_session, run, point, params, hints=None):
+        seen.append(dict(hints))
+        return make_forecast(run, point, params)
+
+    with (
+        patch("custom_components.swiss_meteo.coordinator.async_find_latest_run", return_value=RUN),
+        patch("custom_components.swiss_meteo.coordinator.async_fetch_forecast", side_effect=reader),
+    ):
+        coordinator = ForecastCoordinator(hass, make_entry(hass))
+        await coordinator.async_refresh()
+    assert coordinator.last_update_success and seen[0] == {}
+
+
+async def test_a_store_that_cannot_be_read_only_costs_a_search(hass: HomeAssistant, swiss_now, fake_forecast) -> None:
+    coordinator = ForecastCoordinator(hass, make_entry(hass))
+    with patch.object(coordinator._hints_store, "async_load", side_effect=OSError("disk")):
+        await coordinator.async_refresh()
+    assert coordinator.last_update_success and coordinator._hints == {}

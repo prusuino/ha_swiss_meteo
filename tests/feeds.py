@@ -74,7 +74,7 @@ def forecast_with(hours: dict[str, dict[int, float | None]]):
     run: `{"rre150h0": {5: 1.2}}` puts 1.2 mm into the sixth hour. Meant as
     the side effect of the read that `fake_forecast` patches."""
 
-    async def _fetch(_session, run, point, params):
+    async def _fetch(_session, run, point, params, _hints=None):
         data = make_forecast(run, point, params)
         for param, values in hours.items():
             if param not in data.series:
