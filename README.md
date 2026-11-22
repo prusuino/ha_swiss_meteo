@@ -11,16 +11,16 @@
 
 ![Swiss Meteo](readme_header.png)
 
-A Home Assistant custom integration for the **MeteoSwiss** forecast and measurements, from the official open data: the local forecast of your postal code (nine days, hour by hour, with the uncertainty range), the live values of the nearest SwissMetNet station every ten minutes, and a dashboard card with animated icons — read so sparingly that the hourly forecast costs a few megabytes a day, not hundreds.
+A Home Assistant custom integration for the **MeteoSwiss** forecast and measurements, from the official open data: the local forecast of your postal code (nine days, hour by hour, with the uncertainty range), the live values of the nearest SwissMetNet station every ten minutes, and a dashboard card with animated icons — read so sparingly that the hourly forecast costs megabytes a day where the files it lives in would be gigabytes.
 
-> **Open data only.** Everything comes from the files MeteoSwiss publishes under CC BY 4.0 on the federal geodata platform, plus the official warnings from MeteoAlarm (EUMETNET, CC BY 4.0), where MeteoSwiss publishes them. No app backend, no scraping, no API key, no third-party service, no Python dependencies.
+> **Open data only.** Everything comes from the files MeteoSwiss publishes under CC BY 4.0 on the federal geodata platform, plus the official warnings from MeteoAlarm (EUMETNET, CC BY 4.0), where MeteoSwiss publishes them. No app backend, no scraping, no API key, no Python dependencies. The one source besides the federal platform that is on by default is the MeteoAlarm feed for the warnings; Open-Meteo (air quality, UV index, pollen forecast) is off until you switch it on.
 >
 > One exception, opt-in and **off by default**: a switch adds air quality, UV index and a pollen forecast from [Open-Meteo](https://open-meteo.com) — modelled values on a device of their own, labelled as not official MeteoSwiss data. See [Optional: air quality, UV index and pollen forecast](#optional-air-quality-uv-index-and-pollen-forecast).
 
 ## Highlights
 
 - **Everything official, in one device**: the MeteoSwiss local forecast, the live values of a SwissMetNet station, the official warnings and the pollen counts — all from open data, read by one integration.
-- **Reads sparingly**: a forecast parameter costs about 40 KB instead of the 33 MB file it lives in, thanks to range requests; the hourly forecast is a few megabytes a day, and a traffic sensor shows it.
+- **Reads sparingly**: a forecast parameter costs about 40 KB instead of the 33 MB file it lives in, thanks to range requests; the hourly forecast is about 2 MB per model run, and a traffic sensor shows what every feed of the entry really transferred. On a setup with everything switched on (hourly with the extended values, radar, warnings, pollen, air quality) that sensor reads between 25 and 30 MB a day; the files themselves would be several gigabytes.
 - **Built for the automation editor**: triggers (rain expected, rain cleared, frost tonight, new run, warning issued, warning cleared), conditions (rain expected, dry, frost expected, warning in force) and ready-made blueprints — no templates needed.
 - **Figures for heating and solar**: heating degree days, daily mean temperature, global radiation and sunshine sums for today and tomorrow, as sensors.
 - **Rain and frost at a glance**: the next rain as a timestamp, "rain expected" for the coming hours, "frost tonight" for the garden.
@@ -29,7 +29,7 @@ A Home Assistant custom integration for the **MeteoSwiss** forecast and measurem
 - **Rain from a gauge nearby**: besides its weather stations, MeteoSwiss runs about 140 automatic rain gauges at other places. Where one of them is closer to you, pick it and the measured precipitation comes from it, everything else still from the weather station.
 - **Optional: air quality, UV index and pollen forecast**: MeteoSwiss publishes none of the three as open data for a point, so a switch (off by default) adds them from Open-Meteo — modelled CAMS values on a device of their own, clearly labelled as not official MeteoSwiss data.
 - **Decades of station history**: one action imports the station's archive (hourly since 1980, daily since the station started) into the long-term statistics.
-- **Five dashboard cards**: hourly chart with uncertainty bands, nine-day strip, daily list, map of Switzerland, sky card — in the Swiss Meteo palette, your Home Assistant theme or a glass look, in sizes from small to XL, with animated or still icons, all with a visual editor.
+- **Six dashboard cards**: hourly chart with uncertainty bands, nine-day strip, daily list, map of Switzerland, sky card, radar card — in the Swiss Meteo palette, your Home Assistant theme or a glass look, in sizes from small to XL, with animated or still icons, all with a visual editor.
 - **Set up in a minute**: from your Home Assistant location or by typing a place or postal code; German, English, French and Italian; diagnostics download with your location redacted.
 
 ## Screenshots
@@ -144,7 +144,7 @@ On older versions use a state trigger on the binary sensors; they carry the same
 
 ### Blueprints
 
-Two blueprints with an import button:
+Blueprints with an import button:
 
 **Rain is coming** — a notification when rain is expected within six hours (when and how much), plus your own actions when rain is expected and when it is over (close the awning, skip the irrigation). Quiet hours for the notification.
 
@@ -360,7 +360,7 @@ The integration declares **Gold** on the [Home Assistant integration quality sca
 - Daily highs, lows and precipitation count the local calendar day; the daily entries also carry the day's maximum wind and gusts, the chance of rain and the sunshine hours. The hourly list starts with the current hour; past hours of the run are dropped.
 - MeteoSwiss has announced a point API for the local forecast (beta by the end of 2026). The file reader is built behind an interface so the integration can switch to it when it is there — entities and ids will not change.
 - **Official warnings** are not in the MeteoSwiss open-data files; the integration reads them from MeteoAlarm (EUMETNET), where MeteoSwiss publishes them, and matches the warned polygons to the forecast point itself.
-- **Download diagnostics** (entry menu) gives the entry's configuration (coordinates redacted), the parameters read, the newest values and the traffic figures; the coordinates, the place name and the point id are redacted.
+- **Download diagnostics** (entry menu) gives the entry's configuration (place redacted), the parameters read, the newest values and the traffic figures; the coordinates, the altitude, the stations, the place name and the point id are redacted.
 
 ## Disclaimer
 

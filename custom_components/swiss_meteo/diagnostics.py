@@ -9,8 +9,44 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_POINT_ID, CONF_POINT_LAT, CONF_POINT_LON, CONF_POINT_NAME, DOMAIN, USER_AGENT
+from .const import (
+    CONF_POINT_HEIGHT,
+    CONF_POINT_ID,
+    CONF_POINT_LAT,
+    CONF_POINT_LON,
+    CONF_POINT_NAME,
+    CONF_POLLEN_STATION,
+    CONF_POLLEN_STATION_NAME,
+    CONF_PRECIP_STATION,
+    CONF_PRECIP_STATION_NAME,
+    CONF_STATION,
+    CONF_STATION_NAME,
+    DOMAIN,
+    USER_AGENT,
+)
 from .coordinator import EntryData
+
+
+REDACTED = "**REDACTED**"
+# Everything that says where the entry is: the forecast point and the
+# stations chosen for it (an abbreviation or a name gives the area away
+# as surely as the coordinates do).
+_PLACE_KEYS = frozenset({
+    CONF_POINT_LAT, CONF_POINT_LON, CONF_POINT_NAME, CONF_POINT_ID, CONF_POINT_HEIGHT,
+    CONF_STATION, CONF_STATION_NAME,
+    CONF_PRECIP_STATION, CONF_PRECIP_STATION_NAME,
+    CONF_POLLEN_STATION, CONF_POLLEN_STATION_NAME,
+})
+
+
+def _redact(values: dict[str, Any]) -> dict[str, Any]:
+    """The mapping with every place replaced; an empty choice stays empty,
+    so that "no station" can still be told from "a station"."""
+    return {k: (REDACTED if k in _PLACE_KEYS and v not in ("", None) else v) for k, v in values.items()}
+
+
+def _configured(station: str | None) -> str | None:
+    return REDACTED if station else station
 
 
 def _series_summary(series: dict) -> dict[str, Any]:
@@ -63,7 +99,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "current": {key: om.value(key, dt_util.utcnow()) for key in om.series} if om else None,
         },
         "pollen": {
-            "configured": pollen.station if pollen else None,
+            "configured": _configured(pollen.station) if pollen else None,
             "last_update_success": pollen.last_update_success if pollen else None,
             "timestamp": pollen.data.timestamp.isoformat() if pollen and pollen.data else None,
             "current": pollen.data.current if pollen and pollen.data else None,
@@ -71,10 +107,10 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
         },
         "integration": USER_AGENT,
         "entry": {
-            "title": "**REDACTED**",
-            "unique_id": "**REDACTED**" if entry.unique_id else None,
-            "data": {k: ("**REDACTED**" if k in (CONF_POINT_LAT, CONF_POINT_LON, CONF_POINT_NAME, CONF_POINT_ID) else v) for k, v in entry.data.items()},
-            "options": dict(entry.options),
+            "title": REDACTED,
+            "unique_id": REDACTED if entry.unique_id else None,
+            "data": _redact(dict(entry.data)),
+            "options": _redact(dict(entry.options)),
         },
         "forecast": {
             "loaded": data is not None,
@@ -89,14 +125,14 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "hourly": _series_summary(snap.hourly) if snap else None,
         },
         "station": {
-            "configured": station.station if station else None,
+            "configured": _configured(station.station) if station else None,
             "last_update_success": station.last_update_success if station else None,
             "timestamp": station.data.timestamp.isoformat() if station and station.data else None,
             "fresh": station.fresh if station else None,
             "values": station.data.values if station and station.data else None,
         },
         "precip_station": {
-            "configured": precip.station if precip else None,
+            "configured": _configured(precip.station) if precip else None,
             "last_update_success": precip.last_update_success if precip else None,
             "timestamp": precip.data.timestamp.isoformat() if precip and precip.data else None,
             "fresh": precip.fresh if precip else None,

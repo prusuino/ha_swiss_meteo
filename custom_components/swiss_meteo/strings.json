@@ -727,6 +727,14 @@
     "open_meteo_unreachable": {
       "title": "Swiss Meteo: Open-Meteo not readable",
       "description": "The Open-Meteo air quality API could not be read for several hours in a row ({error}). Check your internet connection; if it is fine, the Open-Meteo service is down or has changed. Air quality, UV index and pollen forecast become unavailable once the last forecast has run out and recover on their own; the MeteoSwiss data are not affected. This notice disappears with the next successful refresh."
+    },
+    "warnings_unreachable": {
+      "title": "Swiss Meteo: warnings not readable",
+      "description": "The MeteoAlarm warning feed could not be read for an hour ({error}). Check your internet connection; if it is fine, the MeteoAlarm service is down or has changed. The warning entities become unavailable once the last list is two hours old and recover on their own; the forecast and the station values are not affected. This notice disappears with the next successful refresh."
+    },
+    "radar_unreachable": {
+      "title": "Swiss Meteo: radar not readable",
+      "description": "The MeteoSwiss radar frames could not be read for half an hour ({error}). Check your internet connection; if it is fine, the radar files are delayed or have changed. The radar entities become unavailable once the newest frame is older than 25 minutes and recover on their own; the forecast and the station values are not affected. This notice disappears with the next successful refresh."
     }
   }
 }

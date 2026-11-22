@@ -161,8 +161,12 @@ def test_request_rounds_the_coordinates() -> None:
 class FakeResponse:
     def __init__(self, status: int = 200, payload=None, error: Exception | None = None) -> None:
         self.status = status
+        self.headers: dict[str, str] = {}
         self._payload = payload
         self._error = error
+
+    async def read(self) -> bytes:
+        return b""
 
     async def __aenter__(self):
         return self

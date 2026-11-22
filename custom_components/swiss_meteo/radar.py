@@ -35,6 +35,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .issues import IssueReporter
 from .const import CONF_POINT_LAT, CONF_POINT_LON, DATA_BASE, DOMAIN, USER_AGENT
 
 _LOGGER = logging.getLogger(__name__)
@@ -336,6 +337,10 @@ def render_frames(frames: list[Frame], motion: tuple[float, float] | None, forec
 # --- coordinator ---------------------------------------------------------------
 
 
+# Refreshes in a row without a frame before a Repairs notice (half an hour).
+_ISSUE_AFTER = 6
+
+
 class RadarCoordinator(DataUpdateCoordinator[RadarData]):
     """The newest radar frames around the entry's point."""
 
@@ -347,6 +352,7 @@ class RadarCoordinator(DataUpdateCoordinator[RadarData]):
         self.row, self.col = pixel_of(self.lat, self.lon)
         self._frames: deque[Frame] = deque(maxlen=HISTORY_MINUTES // 5 + 1)
         self._account = account
+        self.issues = IssueReporter(hass, entry.entry_id)
         self._warned = False
         self._missing: set[datetime] = set()  # slots that were 404 (not published)
         self._backfill: asyncio.Task | None = None
@@ -404,6 +410,8 @@ class RadarCoordinator(DataUpdateCoordinator[RadarData]):
             newest = self._frames[-1].ts
             await self._load(session, newest - timedelta(minutes=5))  # for the motion estimate
         except (aiohttp.ClientError, TimeoutError, RadarError) as err:
+            # Half an hour without a frame is worth a word under Repairs.
+            self.issues.failure("radar_unreachable", {"error": str(err) or type(err).__name__}, after=_ISSUE_AFTER)
             if self._frames and now - self._frames[-1].ts <= _MAX_AGE:
                 if not self._warned:
                     self._warned = True
@@ -412,6 +420,7 @@ class RadarCoordinator(DataUpdateCoordinator[RadarData]):
                 raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         else:
             self._warned = False
+            self.issues.clear("radar_unreachable")
         if now - self._frames[-1].ts > _MAX_AGE:
             stamp = f"{self._frames[-1].ts:%H:%M}"
             raise UpdateFailed(f"newest radar frame is from {stamp} UTC", translation_domain=DOMAIN, translation_key="radar_stale", translation_placeholders={"time": stamp})

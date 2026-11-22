@@ -19,6 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .issues import IssueReporter
+from .traffic import Account, metered
 
 from .const import COLLECTION_POLLEN, CONF_POLLEN_STATION, DATA_BASE, DOMAIN
 from .ogd import OgdError, _fetch, _float, _parse_csv, _parse_station_timestamp
@@ -145,15 +146,17 @@ async def async_fetch_pollen_reading(session: aiohttp.ClientSession, abbr: str) 
 class PollenCoordinator(DataUpdateCoordinator[PollenReading]):
     """The pollen station's current day."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, account: Account | None = None) -> None:
         super().__init__(hass, _LOGGER, name=f"{DOMAIN} pollen", update_interval=UPDATE_INTERVAL, config_entry=entry)
         self.entry = entry
         self.station = str(entry.options.get(CONF_POLLEN_STATION, entry.data.get(CONF_POLLEN_STATION, "")))
         self.issues = IssueReporter(hass, entry.entry_id)
+        self._account = account  # the entry's traffic counter
 
     async def _async_update_data(self) -> PollenReading:
         try:
-            reading = await async_fetch_pollen_reading(async_get_clientsession(self.hass), self.station)
+            with metered(self._account):
+                reading = await async_fetch_pollen_reading(async_get_clientsession(self.hass), self.station)
         except OgdError as err:
             self.issues.failure("pollen_unreadable", {"station": self.station, "error": str(err)})
             raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err

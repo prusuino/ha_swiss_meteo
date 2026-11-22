@@ -35,6 +35,7 @@ from .const import (
     STATION_INTERVAL_MINUTES,
 )
 from .issues import IssueReporter
+from .traffic import Account, metered
 from .ogd import (
     OgdError,
     OgdUnavailable,
@@ -195,20 +196,22 @@ class StationCoordinator(DataUpdateCoordinator[StationReading]):
     _issue = "station_unreadable"  # the Repairs notice after an hour of failures
     _what = "station"
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, account: Account | None = None) -> None:
         super().__init__(
             hass, _LOGGER, name=f"{DOMAIN} {self._what}", update_interval=timedelta(minutes=STATION_INTERVAL_MINUTES), config_entry=entry
         )
         self.entry = entry
         self.station = str(entry.options.get(self._conf, entry.data.get(self._conf, "")))
         self.issues = IssueReporter(hass, entry.entry_id)
+        self._account = account  # the entry's traffic counter
 
     async def _async_read(self) -> StationReading:
         return await async_fetch_station_reading(async_get_clientsession(self.hass), self.station)
 
     async def _async_update_data(self) -> StationReading:
         try:
-            reading = await self._async_read()
+            with metered(self._account):
+                reading = await self._async_read()
         except OgdError as err:
             # An hour of failures (six 10-minute refreshes): the station file
             # is gone or the station was discontinued, say so under Repairs.

@@ -27,10 +27,12 @@ async def test_everything_loaded(hass: HomeAssistant, setup_integration) -> None
     assert dump["entry"]["unique_id"] == REDACTED
     data = dump["entry"]["data"]
     assert [data[key] for key in ("point_lat", "point_lon", "point_name", "point_id")] == [REDACTED] * 4
-    assert (data["station"], data["radar"]) == ("SMA", True)
-    # neither the place nor its coordinates are anywhere in the file
+    # the stations give the area away as surely as the coordinates do
+    assert (data["station"], data["pollen_station"], data["radar"]) == (REDACTED, REDACTED, True)
+    assert all(value == REDACTED for key, value in data.items() if key.endswith("_name") and value)
+    # neither the place, its coordinates nor its stations are anywhere in the file
     text = json.dumps(dump, default=str, ensure_ascii=False)
-    for private in ("Zürich", "47.3769", "8.5417", "800100"):
+    for private in ("Zürich", "47.3769", "8.5417", "800100", "SMA", "PZH", "Fluntern"):
         assert private not in text, private
 
     forecast = dump["forecast"]
@@ -42,10 +44,10 @@ async def test_everything_loaded(hass: HomeAssistant, setup_integration) -> None
     assert forecast["hourly"]["tre200h0"]["rows"] == 72
     assert forecast["hourly"]["tre200h0"]["sample"][0] == (RUN.isoformat(), 5.0)
 
-    assert dump["station"]["configured"] == "SMA"
+    assert dump["station"]["configured"] == REDACTED
     assert dump["station"]["fresh"] is True
     assert dump["station"]["values"]["tre200s0"] == 7.5
-    assert dump["pollen"]["configured"] == "PZH"
+    assert dump["pollen"]["configured"] == REDACTED
     assert dump["pollen"]["current"] == {"birch": 30.0, "grasses": 2.0}
     assert dump["warnings"]["enabled"] is True
     assert dump["warnings"]["feed_alerts"] == 2
@@ -61,21 +63,25 @@ async def test_everything_loaded(hass: HomeAssistant, setup_integration) -> None
 async def test_precipitation_station(hass: HomeAssistant, setup_integration) -> None:
     entry = await setup_everything(hass, setup_integration, precip_station="WAG", precip_station_name="Waldegg")
     dump = await async_get_config_entry_diagnostics(hass, entry)
-    assert dump["entry"]["data"]["precip_station"] == "WAG"
+    assert dump["entry"]["data"]["precip_station"] == REDACTED
+    assert dump["entry"]["data"]["precip_station_name"] == REDACTED
+    assert "WAG" not in json.dumps(dump, default=str) and "Waldegg" not in json.dumps(dump, default=str)
     assert dump["precip_station"] == {
-        "configured": "WAG",
+        "configured": REDACTED,
         "last_update_success": True,
         "timestamp": "2026-11-08T10:20:00+00:00",
         "fresh": True,
         "values": {"rre150z0": 1.4},
     }
-    assert dump["station"]["configured"] == "SMA"
+    assert dump["station"]["configured"] == REDACTED
 
 
 async def test_forecast_alone(hass: HomeAssistant, setup_integration) -> None:
     entry = await setup_integration()
     dump = await async_get_config_entry_diagnostics(hass, entry)
     assert dump["forecast"]["loaded"] is True
+    # an empty choice stays empty: "no station" can be told from "a station"
+    assert dump["entry"]["data"].get("station", "") in ("", None)
     assert dump["station"] == {"configured": None, "last_update_success": None, "timestamp": None, "fresh": None, "values": None}
     assert dump["precip_station"] == {"configured": None, "last_update_success": None, "timestamp": None, "fresh": None, "values": None}
     assert dump["pollen"]["configured"] is None

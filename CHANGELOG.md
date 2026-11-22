@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.1 — 2026-11-22
+
+- **The traffic sensor counts every feed.** Until now it showed what the forecast, the radar and a history import transferred. The station, the rain gauge, the pollen station, the warnings and Open-Meteo are counted now as well, so the figure is what the entry really costs. Expect it to read higher than before; nothing more is transferred, more of it is shown.
+- **Honest figures in the README.** The hourly forecast is megabytes a day where the files would be gigabytes, not "a few megabytes a day": on a setup with everything switched on the sensor reads between 25 and 30 MB a day. The README also names MeteoAlarm as the one source besides the federal platform that is on by default, and counts six cards and the blueprints correctly.
+- **Repairs notices for warnings and radar.** A warning feed that cannot be read for an hour, or radar frames that stay away for half an hour, now raise a notice under *Settings → Repairs*, as the forecast, the stations, pollen and Open-Meteo already did. It disappears with the next successful read.
+- **Diagnostics without your stations.** The download already left out the coordinates and the place name. The abbreviations and names of the weather, precipitation and pollen stations and the altitude of the forecast point are redacted now too, since they give the area away just as well.
+- **Fixed: a slow server during a history import.** A request that timed out while importing the station history ended the action with an unexpected error instead of the translated "could not be read" message.
+
 ## 1.8.0 — 2026-11-21
 
 - **Quality scale: Gold.** Entity names, icons and error messages now come from Home Assistant's translation files instead of the integration's own code, in German, English, French and Italian. Entity ids, unique ids and history stay as they are, and the names read as before.

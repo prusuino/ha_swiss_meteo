@@ -22,6 +22,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .issues import IssueReporter
+from .traffic import Account, transferred
 from .const import CONF_POINT_LAT, CONF_POINT_LON, DOMAIN, USER_AGENT
 
 _LOGGER = logging.getLogger(__name__)
@@ -288,14 +290,20 @@ def parse_warnings(payload: dict, lat: float, lon: float, language: str, now: da
 # --- coordinator ---------------------------------------------------------------
 
 
+# Refreshes in a row without the feed before a Repairs notice (an hour).
+_ISSUE_AFTER = 6
+
+
 class WarningsCoordinator(DataUpdateCoordinator[WarningsData]):
     """The warnings in force or announced for the entry's point."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, account: Account | None = None) -> None:
         super().__init__(hass, _LOGGER, name=f"{DOMAIN} warnings", update_interval=UPDATE_INTERVAL, config_entry=entry)
         self.entry = entry
         self.lat = float(entry.data[CONF_POINT_LAT])
         self.lon = float(entry.data[CONF_POINT_LON])
+        self.issues = IssueReporter(hass, entry.entry_id)
+        self._account = account  # the entry's traffic counter
         self._warned = False
 
     async def _async_update_data(self) -> WarningsData:
@@ -304,11 +312,15 @@ class WarningsCoordinator(DataUpdateCoordinator[WarningsData]):
         try:
             async with session.get(WARNINGS_URL, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, timeout=_TIMEOUT) as resp:
                 if resp.status != 200:
+                    self._count(0)
                     raise WarningsError(f"MeteoAlarm answered {resp.status}")
+                self._count(transferred(resp.headers, await resp.read()))
                 payload = await resp.json(content_type=None)
                 if not isinstance(payload, dict):
                     raise WarningsError("MeteoAlarm feed is not a JSON object")
         except (aiohttp.ClientError, TimeoutError, ValueError, WarningsError) as err:
+            # An hour without the feed is worth a word under Repairs.
+            self.issues.failure("warnings_unreachable", {"error": str(err) or type(err).__name__}, after=_ISSUE_AFTER)
             if self.data is not None and now - self.data.fetched <= _MAX_AGE:
                 if not self._warned:
                     self._warned = True
@@ -316,7 +328,12 @@ class WarningsCoordinator(DataUpdateCoordinator[WarningsData]):
                 return self.data
             raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         self._warned = False
+        self.issues.clear("warnings_unreachable")
         return parse_warnings(payload, self.lat, self.lon, self.hass.config.language, now)
+
+    def _count(self, nbytes: int) -> None:
+        if self._account is not None:
+            self._account(1, nbytes)
 
     @property
     def fresh(self) -> bool:

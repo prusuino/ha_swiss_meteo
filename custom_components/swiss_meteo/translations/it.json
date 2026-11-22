@@ -727,6 +727,14 @@
     "open_meteo_unreachable": {
       "title": "Swiss Meteo: Open-Meteo non leggibile",
       "description": "L'API della qualità dell'aria di Open-Meteo non ha potuto essere letta per diverse ore consecutive ({error}). Controlla la connessione internet; se funziona, il servizio Open-Meteo è guasto o è cambiato. Qualità dell'aria, indice UV e previsione dei pollini diventano non disponibili una volta scaduta l'ultima previsione e si ripristinano da soli; i dati di MeteoSvizzera non sono interessati. Questo avviso scompare con il prossimo aggiornamento riuscito."
+    },
+    "warnings_unreachable": {
+      "title": "Swiss Meteo: allerte non leggibili",
+      "description": "Il feed delle allerte di MeteoAlarm non è stato letto per un'ora ({error}). Controlla la connessione a Internet; se funziona, il servizio MeteoAlarm è fuori servizio o è cambiato. Le entità delle allerte diventano non disponibili quando l'ultimo elenco ha due ore e si ripristinano da sole; le previsioni e i valori della stazione non sono interessati. Questo avviso scompare al prossimo aggiornamento riuscito."
+    },
+    "radar_unreachable": {
+      "title": "Swiss Meteo: radar non leggibile",
+      "description": "Le immagini radar di MeteoSvizzera non sono state lette per mezz'ora ({error}). Controlla la connessione a Internet; se funziona, i file radar sono in ritardo o sono cambiati. Le entità radar diventano non disponibili quando l'immagine più recente ha più di 25 minuti e si ripristinano da sole; le previsioni e i valori della stazione non sono interessati. Questo avviso scompare al prossimo aggiornamento riuscito."
     }
   }
 }

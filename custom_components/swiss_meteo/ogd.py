@@ -35,6 +35,7 @@ from typing import Any
 
 import aiohttp
 
+from .traffic import note
 from .const import (
     COLLECTION_FORECAST,
     COLLECTION_PRECIP,
@@ -141,8 +142,11 @@ async def _fetch(session: aiohttp.ClientSession, url: str) -> bytes:
     try:
         async with session.get(url, headers=_HEADERS, timeout=_TIMEOUT) as resp:
             if resp.status != 200:
+                note(1, 0)
                 raise OgdUnavailable(f"HTTP {resp.status} for {url.rsplit('/', 1)[-1]}")
-            return await resp.read()
+            body = await resp.read()
+            note(1, len(body))
+            return body
     except (aiohttp.ClientError, asyncio.TimeoutError) as err:
         raise OgdUnavailable(f"{type(err).__name__} for {url.rsplit('/', 1)[-1]}") from err
 

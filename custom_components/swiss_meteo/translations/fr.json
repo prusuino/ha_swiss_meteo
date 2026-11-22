@@ -727,6 +727,14 @@
     "open_meteo_unreachable": {
       "title": "Swiss Meteo : Open-Meteo illisible",
       "description": "L'API de qualité de l'air d'Open-Meteo n'a pas pu être lue pendant plusieurs heures consécutives ({error}). Vérifie ta connexion internet ; si elle fonctionne, le service Open-Meteo est en panne ou a changé. La qualité de l'air, l'indice UV et la prévision pollinique deviennent indisponibles une fois la dernière prévision écoulée et se rétablissent d'eux-mêmes ; les données de MétéoSuisse ne sont pas concernées. Cet avis disparaît à la prochaine actualisation réussie."
+    },
+    "warnings_unreachable": {
+      "title": "Swiss Meteo : alertes illisibles",
+      "description": "Le flux d'alertes de MeteoAlarm n'a pas pu être lu pendant une heure ({error}). Vérifiez votre connexion Internet ; si elle fonctionne, le service MeteoAlarm est en panne ou a changé. Les entités d'alerte deviennent indisponibles dès que la dernière liste a deux heures et se rétablissent d'elles-mêmes ; les prévisions et les valeurs de station ne sont pas concernées. Cet avis disparaît à la prochaine actualisation réussie."
+    },
+    "radar_unreachable": {
+      "title": "Swiss Meteo : radar illisible",
+      "description": "Les images radar de MétéoSuisse n'ont pas pu être lues pendant une demi-heure ({error}). Vérifiez votre connexion Internet ; si elle fonctionne, les fichiers radar sont en retard ou ont changé. Les entités radar deviennent indisponibles dès que l'image la plus récente a plus de 25 minutes et se rétablissent d'elles-mêmes ; les prévisions et les valeurs de station ne sont pas concernées. Cet avis disparaît à la prochaine actualisation réussie."
     }
   }
 }

@@ -129,9 +129,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: SwissMeteoConfigEntry) -
     forecast = ForecastCoordinator(hass, entry)
     await forecast.async_config_entry_first_refresh()
 
+    def _account(requests: int, nbytes: int) -> None:
+        """What a feed of this entry transferred, for the traffic sensor."""
+        if forecast.data is not None:
+            forecast._account(forecast.data, requests, nbytes)
+
     station: StationCoordinator | None = None
     if entry.options.get(CONF_STATION, entry.data.get(CONF_STATION)):
-        station = StationCoordinator(hass, entry)
+        station = StationCoordinator(hass, entry, _account)
         # A station outage must not block the forecast: refresh without raising.
         await station.async_refresh()
         if not station.last_update_success:
@@ -139,33 +144,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: SwissMeteoConfigEntry) -
 
     precip: PrecipCoordinator | None = None
     if entry.options.get(CONF_PRECIP_STATION, entry.data.get(CONF_PRECIP_STATION)):
-        precip = PrecipCoordinator(hass, entry)
+        precip = PrecipCoordinator(hass, entry, _account)
         await precip.async_refresh()
         if not precip.last_update_success:
             _LOGGER.warning("Entry %s: precipitation station %s not readable yet, its sensor starts unavailable", entry_suffix(entry), precip.station)
 
     pollen: PollenCoordinator | None = None
     if entry.options.get(CONF_POLLEN_STATION, entry.data.get(CONF_POLLEN_STATION)):
-        pollen = PollenCoordinator(hass, entry)
+        pollen = PollenCoordinator(hass, entry, _account)
         await pollen.async_refresh()
         if not pollen.last_update_success:
             _LOGGER.warning("Entry %s: pollen station %s not readable yet, its sensors start unavailable", entry_suffix(entry), pollen.station)
 
     warnings: WarningsCoordinator | None = None
     if entry.options.get(CONF_WARNINGS, entry.data.get(CONF_WARNINGS, True)):
-        warnings = WarningsCoordinator(hass, entry)
+        warnings = WarningsCoordinator(hass, entry, _account)
         await warnings.async_refresh()
         if not warnings.last_update_success:
             _LOGGER.warning("Entry %s: warnings feed not readable yet, the warning entities start unavailable", entry_suffix(entry))
 
     radar: RadarCoordinator | None = None
     if entry.options.get(CONF_RADAR, entry.data.get(CONF_RADAR, True)):
-        def _account_radar(requests: int, nbytes: int) -> None:
-            if forecast.data is not None:
-                forecast._account(forecast.data, requests, nbytes)
-
         try:
-            radar = RadarCoordinator(hass, entry, _account_radar)
+            radar = RadarCoordinator(hass, entry, _account)
         except ValueError:
             _LOGGER.warning("Entry %s: point outside the radar composite, radar disabled", entry_suffix(entry))
         else:
@@ -175,7 +176,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: SwissMeteoConfigEntry) -
 
     open_meteo: OpenMeteoCoordinator | None = None
     if entry.options.get(CONF_OPEN_METEO, entry.data.get(CONF_OPEN_METEO, False)):
-        open_meteo = OpenMeteoCoordinator(hass, entry)
+        open_meteo = OpenMeteoCoordinator(hass, entry, _account)
         await open_meteo.async_refresh()
         if not open_meteo.last_update_success:
             _LOGGER.warning("Entry %s: Open-Meteo not readable yet, its sensors start unavailable", entry_suffix(entry))

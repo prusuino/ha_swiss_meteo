@@ -28,6 +28,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import CONF_POINT_LAT, CONF_POINT_LON, DOMAIN, USER_AGENT
 from .issues import IssueReporter
+from .traffic import Account, metered, note, transferred
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -169,7 +170,9 @@ async def async_fetch_open_meteo(session: aiohttp.ClientSession, lat: float, lon
             timeout=_TIMEOUT,
         ) as resp:
             if resp.status != 200:
+                note(1, 0)
                 raise OpenMeteoError(f"Open-Meteo answered {resp.status}")
+            note(1, transferred(resp.headers, await resp.read()))
             payload = await resp.json(content_type=None)
     except (aiohttp.ClientError, TimeoutError, ValueError) as err:
         raise OpenMeteoError(str(err) or type(err).__name__) from err
@@ -179,17 +182,19 @@ async def async_fetch_open_meteo(session: aiohttp.ClientSession, lat: float, lon
 class OpenMeteoCoordinator(DataUpdateCoordinator[OpenMeteoData]):
     """Air quality, UV index and pollen forecast for the entry's point."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, account: Account | None = None) -> None:
         super().__init__(hass, _LOGGER, name=f"{DOMAIN} open-meteo", update_interval=UPDATE_INTERVAL, config_entry=entry)
         self.entry = entry
         self.lat = float(entry.data[CONF_POINT_LAT])
         self.lon = float(entry.data[CONF_POINT_LON])
         self.issues = IssueReporter(hass, entry.entry_id)
+        self._account = account  # the entry's traffic counter
         self._warned = False
 
     async def _async_update_data(self) -> OpenMeteoData:
         try:
-            data = await async_fetch_open_meteo(async_get_clientsession(self.hass), self.lat, self.lon)
+            with metered(self._account):
+                data = await async_fetch_open_meteo(async_get_clientsession(self.hass), self.lat, self.lon)
         except OpenMeteoError as err:
             self.issues.failure("open_meteo_unreachable", {"error": str(err)}, after=_ISSUE_AFTER)
             if self.data is not None and dt_util.utcnow() - self.data.fetched <= _MAX_AGE:
