@@ -90,6 +90,17 @@ HOURLY_PARAMS = (
     "sre000h0",  # sunshine duration, hourly total
 )
 
+# What the daily forecast takes from hourly values: the day's highest rain
+# probability, wind and gust, and its sunshine. With the hourly forecast
+# switched off, just these four are read, and only as often as the daily
+# values, so that a day still says more than temperature and rain amount.
+DAILY_COMPANION_PARAMS = (
+    "rp0003i0",  # probability of precipitation, 3 hours
+    "fu3010h0",  # wind speed, hourly mean
+    "fu3010h1",  # gust peak, hourly maximum
+    "sre000h0",  # sunshine duration, hourly total
+)
+
 # Hourly values added by the "extended" option.
 EXTENDED_PARAMS = (
     "treq10h0",  # temperature 10 % quantile

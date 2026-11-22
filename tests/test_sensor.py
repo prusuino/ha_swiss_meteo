@@ -35,6 +35,7 @@ from custom_components.swiss_meteo.sensor import (
 from .conftest import NOW, RUN, find_device, make_entry
 from .fakes import FakeResponse
 from .feeds import EVERYTHING, entity, forecast_with, precip_reading, setup_everything, station_reading
+from .warnfeed import warning_routes
 
 
 def state(hass: HomeAssistant, key: str) -> str:
@@ -267,7 +268,7 @@ async def test_warning_level(hass: HomeAssistant, setup_integration) -> None:
 
 
 async def test_no_warning(hass: HomeAssistant, setup_integration) -> None:
-    await setup_everything(hass, setup_integration, routes={WARNINGS_URL: FakeResponse(payload={"warnings": []})})
+    await setup_everything(hass, setup_integration, routes=warning_routes({"warnings": []}))
     assert state(hass, "warning_level") == "none"
     level = attributes(hass, "warning_level")
     assert (level["count"], level["upcoming"], level["highest_upcoming"], level["next_onset"]) == (0, 0, "none", None)

@@ -24,6 +24,7 @@ from custom_components.swiss_meteo.radar import RadarCoordinator, frame_url
 from .conftest import NOW, make_entry
 from .fakes import FakeResponse
 from .feeds import EVERYTHING, entity, forecast_with, setup_everything
+from .warnfeed import warning_routes
 from .test_radar import COLS, ROWS, T
 
 
@@ -141,7 +142,7 @@ async def test_warning_in_force(hass: HomeAssistant, setup_integration) -> None:
 
 
 async def test_no_warning(hass: HomeAssistant, setup_integration) -> None:
-    await setup_everything(hass, setup_integration, routes={WARNINGS_URL: FakeResponse(payload={"warnings": []})})
+    await setup_everything(hass, setup_integration, routes=warning_routes({"warnings": []}))
     assert state(hass, "warning_active") == "off"
     warning = attributes(hass, "warning_active")
     assert (warning["level"], warning["count"], warning["upcoming"], warning["warnings"]) == ("none", 0, 0, [])

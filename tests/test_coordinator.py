@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
 
-from custom_components.swiss_meteo.const import DAILY_PARAMS, DOMAIN, EXTENDED_PARAMS, HOURLY_PARAMS
+from custom_components.swiss_meteo.const import DAILY_COMPANION_PARAMS, DAILY_PARAMS, DOMAIN, EXTENDED_PARAMS, HOURLY_PARAMS
 from custom_components.swiss_meteo.coordinator import ForecastCoordinator, ForecastSnapshot, PrecipCoordinator, StationCoordinator
 from custom_components.swiss_meteo.ogd import OgdError, OgdUnavailable, StationReading
 
@@ -107,8 +107,11 @@ async def test_hours_can_be_switched_off(hass: HomeAssistant, swiss_now, fake_fo
     coordinator = ForecastCoordinator(hass, make_entry(hass, {"hourly": False}))
     assert coordinator.hourly_enabled is False
     await coordinator.async_refresh()
-    assert fetched(fetch) == [DAILY_PARAMS]
+    # no hourly forecast, but the four series a day is completed from
+    assert fetched(fetch) == [DAILY_PARAMS, DAILY_COMPANION_PARAMS]
     assert coordinator.data.hourly == {} and coordinator.data.hourly_fetched is None
+    assert set(coordinator.data.companions) == set(DAILY_COMPANION_PARAMS)
+    assert coordinator.data.requests_today == 1 + DAILY + len(DAILY_COMPANION_PARAMS)
 
 
 async def test_options_win_over_the_setup_data(hass: HomeAssistant, swiss_now, fake_forecast) -> None:
@@ -118,6 +121,8 @@ async def test_options_win_over_the_setup_data(hass: HomeAssistant, swiss_now, f
     await coordinator.async_refresh()
     assert fetched(fetch) == [DAILY_PARAMS, HOURLY_PARAMS + EXTENDED_PARAMS]
     assert "nprolohs" in coordinator.data.hourly
+    # with the hourly forecast on, nothing is read twice for the days
+    assert coordinator.data.companions == {}
 
 
 async def test_parameters_that_could_not_be_read_are_named(hass: HomeAssistant, swiss_now, fake_forecast) -> None:

@@ -4,7 +4,8 @@ MeteoSwiss publishes its warnings through MeteoAlarm, the EUMETNET
 warning service, in the Common Alerting Protocol. Switzerland's alerts
 carry the warned area as polygons, so the alerts that matter for an entry
 are found by testing the forecast point against them: no region list,
-no API key, one small public JSON feed read every ten minutes.
+no API key. The list of alerts in force is read from MeteoAlarm's Atom
+feed; the few alerts that cover the point are then read in full.
 
 Levels are MeteoAlarm's three colours: yellow (moderate), orange
 (severe), red (extreme)."""
@@ -14,6 +15,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from xml.etree import ElementTree
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
@@ -28,10 +30,14 @@ from .const import CONF_POINT_LAT, CONF_POINT_LON, DOMAIN, USER_AGENT
 
 _LOGGER = logging.getLogger(__name__)
 
-WARNINGS_URL = "https://feeds.meteoalarm.org/api/v1/warnings/feeds-switzerland"
-UPDATE_INTERVAL = timedelta(minutes=10)
+# The alerts in force for Switzerland, one entry each (see "the feed" below).
+WARNINGS_URL = "https://feeds.meteoalarm.org/feeds/meteoalarm-legacy-atom-switzerland"
+UPDATE_INTERVAL = timedelta(minutes=10)  # how often the feed's length is asked
+FULL_MAX_AGE = timedelta(minutes=60)  # the feed is read again at the latest after this
 _MAX_AGE = timedelta(hours=2)  # a failed read keeps the last list this long
-_TIMEOUT = aiohttp.ClientTimeout(total=30, sock_connect=10)
+_TIMEOUT = aiohttp.ClientTimeout(total=60, sock_connect=10)
+# No Accept header: asked for XML types by name, the server answers with something else.
+_HEADERS = {"User-Agent": USER_AGENT}
 
 LEVELS = ("none", "yellow", "orange", "red")
 LEVEL_BY_CODE = {2: "yellow", 3: "orange", 4: "red"}
@@ -287,8 +293,130 @@ def parse_warnings(payload: dict, lat: float, lon: float, language: str, now: da
     return data
 
 
-# --- coordinator ---------------------------------------------------------------
+# --- the feed ------------------------------------------------------------------
+#
+# MeteoAlarm serves the Swiss alerts twice. The JSON feed carries every alert
+# in full, five languages each with its polygon: 21 MB on a day with many
+# warnings, uncompressed, with no way to ask for less. The Atom feed lists the
+# alerts in force with one polygon each and a link to the alert itself: 1.7 MB
+# on the same day, and it selected the same alerts for twenty places across
+# Switzerland (compared on 2026-11-22). So the Atom feed says which alerts
+# cover the point, and only those few are then read in full (about 45 KB each),
+# once, for the texts in the instance language and the awareness level.
+#
+# Neither feed answers a conditional or a range request. A HEAD states the
+# length, which changes with nearly every change of the list, so the feed is
+# read again when its length changed and in any case after FULL_MAX_AGE (an
+# alert replaced by one of exactly the same length would otherwise be missed).
 
+
+@dataclass
+class FeedEntry:
+    """One alert of the Atom feed: enough to tell whether it covers a point."""
+
+    identifier: str
+    cap_url: str
+    expires: datetime | None
+    actual: bool
+    rings: list[list[tuple[float, float]]]
+
+
+def _local(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def parse_feed(body: bytes) -> list[FeedEntry]:
+    """The entries of the Atom feed. Raises WarningsError for anything that
+    is not such a feed."""
+    try:
+        root = ElementTree.fromstring(body)
+    except ElementTree.ParseError as err:
+        raise WarningsError(f"MeteoAlarm feed is not XML ({err})") from err
+    if _local(root.tag) != "feed":
+        raise WarningsError("MeteoAlarm feed is not an Atom feed")
+    entries: list[FeedEntry] = []
+    for node in root:
+        if _local(node.tag) != "entry":
+            continue
+        fields: dict[str, str] = {}
+        rings: list[list[tuple[float, float]]] = []
+        cap_url = ""
+        for child in node:
+            name = _local(child.tag)
+            if name == "polygon":
+                ring = parse_polygon(child.text or "")
+                if len(ring) >= 3:
+                    rings.append(ring)
+            elif name == "link":
+                if "cap" in (child.get("type") or ""):
+                    cap_url = child.get("href") or ""
+            else:
+                fields[name] = (child.text or "").strip()
+        identifier = fields.get("identifier") or fields.get("id") or ""
+        if not identifier:
+            continue
+        entries.append(
+            FeedEntry(
+                identifier=identifier,
+                cap_url=cap_url,
+                expires=_parse_time(fields.get("expires")),
+                actual=fields.get("status", "Actual").lower() == "actual" and fields.get("message_type", "Alert").lower() != "cancel",
+                rings=rings,
+            )
+        )
+    return entries
+
+
+_INFO_FIELDS = ("language", "event", "headline", "description", "instruction", "senderName", "web", "onset", "effective", "expires")
+_ALERT_FIELDS = ("identifier", "sender", "sent", "status", "msgType", "references")
+
+
+def parse_cap(body: bytes) -> dict[str, Any]:
+    """One CAP alert (XML) as the mapping `parse_warnings` reads."""
+    try:
+        root = ElementTree.fromstring(body)
+    except ElementTree.ParseError as err:
+        raise WarningsError(f"MeteoAlarm alert is not XML ({err})") from err
+    if _local(root.tag) != "alert":
+        raise WarningsError("MeteoAlarm alert is not a CAP alert")
+    alert: dict[str, Any] = {"info": []}
+    for node in root:
+        name = _local(node.tag)
+        if name in _ALERT_FIELDS:
+            alert[name] = (node.text or "").strip()
+        elif name == "info":
+            info: dict[str, Any] = {"parameter": [], "area": []}
+            for child in node:
+                key = _local(child.tag)
+                if key in _INFO_FIELDS:
+                    info[key] = (child.text or "").strip()
+                elif key == "parameter":
+                    pair = {_local(part.tag): (part.text or "").strip() for part in child}
+                    info["parameter"].append({"valueName": pair.get("valueName"), "value": pair.get("value")})
+                elif key == "area":
+                    area: dict[str, Any] = {"polygon": []}
+                    for part in child:
+                        if _local(part.tag) == "areaDesc":
+                            area["areaDesc"] = (part.text or "").strip()
+                        elif _local(part.tag) == "polygon":
+                            area["polygon"].append(part.text or "")
+                    info["area"].append(area)
+            alert["info"].append(info)
+    return alert
+
+
+def covering(entries: list[FeedEntry], lat: float, lon: float, now: datetime) -> list[FeedEntry]:
+    """The entries in force whose area contains the point."""
+    return [
+        entry
+        for entry in entries
+        if entry.actual
+        and (entry.expires is None or entry.expires > now)
+        and any(point_in_ring(lat, lon, ring) for ring in entry.rings)
+    ]
+
+
+# --- coordinator ---------------------------------------------------------------
 
 # Refreshes in a row without the feed before a Repairs notice (an hour).
 _ISSUE_AFTER = 6
@@ -305,19 +433,63 @@ class WarningsCoordinator(DataUpdateCoordinator[WarningsData]):
         self.issues = IssueReporter(hass, entry.entry_id)
         self._account = account  # the entry's traffic counter
         self._warned = False
+        self._entries: list[FeedEntry] | None = None  # the feed as last read
+        self._length: str | None = None  # its length then
+        self._read_at: datetime | None = None
+        self._alerts: dict[str, dict[str, Any]] = {}  # alerts read in full, by identifier
+
+    def _count(self, nbytes: int) -> None:
+        if self._account is not None:
+            self._account(1, nbytes)
+
+    async def _feed_length(self, session: aiohttp.ClientSession) -> str | None:
+        """What the feed weighs now, without reading it."""
+        async with session.head(WARNINGS_URL, headers=_HEADERS, timeout=_TIMEOUT) as resp:
+            self._count(0)
+            if resp.status != 200:
+                raise WarningsError(f"MeteoAlarm answered {resp.status}")
+            return resp.headers.get("Content-Length")
+
+    async def _get(self, session: aiohttp.ClientSession, url: str) -> bytes:
+        async with session.get(url, headers=_HEADERS, timeout=_TIMEOUT) as resp:
+            if resp.status != 200:
+                self._count(0)
+                raise WarningsError(f"MeteoAlarm answered {resp.status}")
+            body = await resp.read()
+            self._count(transferred(resp.headers, body))
+            return body
+
+    async def _async_read(self, now: datetime) -> WarningsData:
+        session = async_get_clientsession(self.hass)
+        due = self._entries is None or self._read_at is None or now - self._read_at >= FULL_MAX_AGE
+        length: str | None = None
+        if not due:
+            length = await self._feed_length(session)
+            due = length is not None and length != self._length
+        if due:
+            body = await self._get(session, WARNINGS_URL)
+            self._entries = await self.hass.async_add_executor_job(parse_feed, body)
+            self._length = length if length is not None else str(len(body))
+            self._read_at = now
+        entries = self._entries or []
+        here = covering(entries, self.lat, self.lon, now)
+        for entry in here:
+            if entry.identifier not in self._alerts:
+                if not entry.cap_url:
+                    raise WarningsError("MeteoAlarm feed names no alert document")
+                self._alerts[entry.identifier] = parse_cap(await self._get(session, entry.cap_url))
+        listed = {entry.identifier for entry in entries}
+        self._alerts = {identifier: alert for identifier, alert in self._alerts.items() if identifier in listed}
+        payload = {"warnings": [{"alert": self._alerts[entry.identifier]} for entry in here]}
+        data = parse_warnings(payload, self.lat, self.lon, self.hass.config.language, now)
+        data.total = len(entries)
+        data.unlocated = sum(1 for entry in entries if not entry.rings)
+        return data
 
     async def _async_update_data(self) -> WarningsData:
         now = dt_util.utcnow()
-        session = async_get_clientsession(self.hass)
         try:
-            async with session.get(WARNINGS_URL, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, timeout=_TIMEOUT) as resp:
-                if resp.status != 200:
-                    self._count(0)
-                    raise WarningsError(f"MeteoAlarm answered {resp.status}")
-                self._count(transferred(resp.headers, await resp.read()))
-                payload = await resp.json(content_type=None)
-                if not isinstance(payload, dict):
-                    raise WarningsError("MeteoAlarm feed is not a JSON object")
+            data = await self._async_read(now)
         except (aiohttp.ClientError, TimeoutError, ValueError, WarningsError) as err:
             # An hour without the feed is worth a word under Repairs.
             self.issues.failure("warnings_unreachable", {"error": str(err) or type(err).__name__}, after=_ISSUE_AFTER)
@@ -329,11 +501,7 @@ class WarningsCoordinator(DataUpdateCoordinator[WarningsData]):
             raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         self._warned = False
         self.issues.clear("warnings_unreachable")
-        return parse_warnings(payload, self.lat, self.lon, self.hass.config.language, now)
-
-    def _count(self, nbytes: int) -> None:
-        if self._account is not None:
-            self._account(1, nbytes)
+        return data
 
     @property
     def fresh(self) -> bool:

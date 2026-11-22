@@ -28,6 +28,7 @@ from .const import (
     CONF_POINT_TYPE,
     CONF_PRECIP_STATION,
     CONF_STATION,
+    DAILY_COMPANION_PARAMS,
     DAILY_PARAMS,
     DOMAIN,
     EXTENDED_PARAMS,
@@ -69,6 +70,9 @@ class ForecastSnapshot:
     run: datetime | None = None
     daily: dict[str, Series] = field(default_factory=dict)
     hourly: dict[str, Series] = field(default_factory=dict)
+    # the few hourly series the daily forecast is completed from while the
+    # hourly forecast is switched off (DAILY_COMPANION_PARAMS)
+    companions: dict[str, Series] = field(default_factory=dict)
     daily_fetched: datetime | None = None
     hourly_fetched: datetime | None = None
     missing: list[str] = field(default_factory=list)
@@ -164,6 +168,13 @@ class ForecastCoordinator(DataUpdateCoordinator[ForecastSnapshot]):
                 snap.daily_fetched = now
                 missing += data.missing
                 self._account(snap, data.stats.requests, data.stats.bytes)
+                if self.hourly_enabled:
+                    snap.companions = {}
+                else:
+                    data = await async_fetch_forecast(session, run, self.point, DAILY_COMPANION_PARAMS)
+                    snap.companions = data.series
+                    missing += data.missing
+                    self._account(snap, data.stats.requests, data.stats.bytes)
             if need_hourly:
                 params = HOURLY_PARAMS + (EXTENDED_PARAMS if self.extended_enabled else ())
                 data = await async_fetch_forecast(session, run, self.point, params)

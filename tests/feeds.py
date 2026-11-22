@@ -23,6 +23,7 @@ from custom_components.swiss_meteo.radar import frame_url
 from .conftest import NOW, SUFFIX, make_forecast
 from .fakes import FakeResponse, FakeSession
 from .test_meteoalarm import TWO_WARNINGS
+from .warnfeed import warning_routes
 from .test_pollen import MORNING
 from .test_radar import T, radar_file
 
@@ -89,7 +90,7 @@ def forecast_with(hours: dict[str, dict[int, float | None]]):
 def all_routes() -> dict[str, Any]:
     return {
         pollen_now_url("PZH"): MORNING,
-        WARNINGS_URL: FakeResponse(payload=TWO_WARNINGS),
+        **warning_routes(TWO_WARNINGS),
         frame_url(T): radar_file(),
         frame_url(T - timedelta(minutes=5)): radar_file(),
     }

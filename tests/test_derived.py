@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 
 from freezegun import freeze_time
+from homeassistant.util import dt as dt_util
 
 from custom_components.swiss_meteo.coordinator import ForecastSnapshot
 from custom_components.swiss_meteo.derived import (
@@ -251,3 +252,29 @@ def test_hourly_forecast_carries_the_cloud_cover() -> None:
     assert entry["cloud_coverage"] == 20
     assert entry["condition"] is None
     assert "native_precipitation" not in entry
+
+
+@freeze_time(NOW)
+def test_days_are_completed_without_the_hourly_forecast() -> None:
+    """Hourly forecast switched off: the day's rain probability, wind, gust
+    and sunshine come from the four series read for this alone."""
+    day_start = dt_util.start_of_local_day(NOW)
+    hours = [(day_start + timedelta(hours=hour), value) for hour, value in ((9, 10.0), (12, 40.0), (15, 20.0))]
+    snap = ForecastSnapshot(
+        daily={"tre200px": [(day_start, 9.0)], "tre200pn": [(day_start, 2.0)], "jp2000d0": [(day_start, 1.0)]},
+        companions={
+            "rp0003i0": hours,
+            "fu3010h0": [(ts, value / 2) for ts, value in hours],
+            "fu3010h1": [(ts, value + 5) for ts, value in hours],
+            "sre000h0": [(ts, 30.0) for ts, _value in hours],
+        },
+    )
+    (today,) = daily_forecast(snap)
+    assert today["precipitation_probability"] == 40.0
+    assert (today["native_wind_speed"], today["native_wind_gust_speed"]) == (20.0, 45.0)
+    assert today["sunshine_hours"] == 1.5
+    # the hourly forecast, when there is one, is what the days are taken from
+    snap.hourly = {"rp0003i0": [(day_start + timedelta(hours=12), 80.0)]}
+    (today,) = daily_forecast(snap)
+    assert today["precipitation_probability"] == 80.0 and "native_wind_speed" not in today
+

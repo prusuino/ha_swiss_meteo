@@ -35,7 +35,7 @@ from typing import Any
 
 import aiohttp
 
-from .traffic import note
+from .traffic import note, transferred
 from .const import (
     COLLECTION_FORECAST,
     COLLECTION_PRECIP,
@@ -53,6 +53,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # identity: a compressed transfer would make byte ranges meaningless
 _HEADERS = {"User-Agent": USER_AGENT, "Accept-Encoding": "identity"}
+_WHOLE_HEADERS = {"User-Agent": USER_AGENT}  # whole files: let the server compress
 _TIMEOUT = aiohttp.ClientTimeout(total=60, sock_connect=15)
 _PROBE = 1024  # bytes read per binary-search probe
 _WINDOW = 3 * 1024  # bytes read around a predicted row in a date-major file
@@ -139,13 +140,16 @@ def _parse_csv(body: bytes) -> list[dict[str, str]]:
 
 
 async def _fetch(session: aiohttp.ClientSession, url: str) -> bytes:
+    """A whole small file. Unlike the range reads it may come compressed (a
+    station file is 16 KB plain, 4 KB on the wire); the size reported to the
+    traffic counter is what was transferred."""
     try:
-        async with session.get(url, headers=_HEADERS, timeout=_TIMEOUT) as resp:
+        async with session.get(url, headers=_WHOLE_HEADERS, timeout=_TIMEOUT) as resp:
             if resp.status != 200:
                 note(1, 0)
                 raise OgdUnavailable(f"HTTP {resp.status} for {url.rsplit('/', 1)[-1]}")
             body = await resp.read()
-            note(1, len(body))
+            note(1, transferred(resp.headers, body))
             return body
     except (aiohttp.ClientError, asyncio.TimeoutError) as err:
         raise OgdUnavailable(f"{type(err).__name__} for {url.rsplit('/', 1)[-1]}") from err

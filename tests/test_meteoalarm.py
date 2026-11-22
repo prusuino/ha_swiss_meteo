@@ -11,10 +11,16 @@ import pytest
 from freezegun import freeze_time
 from homeassistant.core import HomeAssistant
 
+from homeassistant.util import dt as dt_util
+
 from custom_components.swiss_meteo.meteoalarm import (
     WARNINGS_URL,
     WarningsCoordinator,
     WarningsData,
+    WarningsError,
+    covering,
+    parse_cap,
+    parse_feed,
     _code,
     _param,
     _parse_time,
@@ -27,6 +33,7 @@ from custom_components.swiss_meteo.meteoalarm import (
 
 from .conftest import NOW, make_entry
 from .fakes import FakeResponse, FakeSession
+from .warnfeed import atom_feed, cap_url, cap_xml, warning_routes
 
 SESSION = "custom_components.swiss_meteo.meteoalarm.async_get_clientsession"
 
@@ -278,11 +285,99 @@ def test_lists_are_capped_at_ten() -> None:
     assert listed[0]["areas"] == [f"Area {number}" for number in range(10)]
 
 
+# --- the feed and the single alert -------------------------------------------
+
+
+def test_feed_entries() -> None:
+    quiet = info(polygon=None)
+    payload = {
+        "warnings": [
+            alert("now"),
+            alert("later", LATER),
+            alert("cancelled", msg_type="Cancel"),
+            alert("exercise", status="Exercise"),
+            alert("nowhere", quiet),
+            alert(None),
+        ]
+    }
+    entries = parse_feed(atom_feed(payload))
+    # an entry without an identifier cannot be read in full and is left out
+    assert [entry.identifier for entry in entries] == ["now", "later", "cancelled", "exercise", "nowhere"]
+    now, later, cancelled, exercise, nowhere = entries
+    assert now.cap_url == cap_url(payload["warnings"][0]) and now.actual
+    assert now.expires == datetime(2026, 11, 8, 20, tzinfo=UTC)
+    assert len(now.rings) == 1 and len(now.rings[0]) == 5
+    assert later.expires == datetime(2026, 11, 9, 6, tzinfo=UTC)
+    assert cancelled.actual is False and exercise.actual is False
+    assert nowhere.rings == [] and nowhere.actual
+
+    morning = datetime(2026, 11, 8, 10, 30, tzinfo=UTC)
+    assert [entry.identifier for entry in covering(entries, LAT, LON, morning)] == ["now", "later"]
+    assert covering(entries, 46.2, 6.2, morning) == []  # Geneva: outside the area
+    night = datetime(2026, 11, 8, 21, tzinfo=UTC)
+    assert [entry.identifier for entry in covering(entries, LAT, LON, night)] == ["later"]
+
+
+def test_feed_without_alert_links_and_with_a_short_polygon() -> None:
+    payload = {"warnings": [alert("thin", info(polygon="47.0,8.0 48.0,9.0"))]}
+    (entry,) = parse_feed(atom_feed(payload, links=False))
+    assert entry.cap_url == "" and entry.rings == []
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (b"{}", "MeteoAlarm feed is not XML"),
+        (b"<rss/>", "MeteoAlarm feed is not an Atom feed"),
+    ],
+)
+def test_what_is_not_a_feed(body: bytes, message: str) -> None:
+    with pytest.raises(WarningsError, match=message):
+        parse_feed(body)
+
+
+def test_alert_document_reads_like_the_feed_entry() -> None:
+    german = info(language="de-DE", headline="Starker Wind", polygon=[AROUND, ELSEWHERE])
+    entry = alert("both", info(), german, references="sender,old,2026-11-08T06:00:00+00:00")
+    read = parse_cap(cap_xml(entry))
+    assert read["identifier"] == "both" and read["msgType"] == "Alert" and read["status"] == "Actual"
+    assert read["references"].split(",")[1] == "old"
+    assert [block["language"] for block in read["info"]] == ["en-GB", "de-DE"]
+    assert read["info"][1]["area"] == [{"areaDesc": "Zürich", "polygon": [AROUND, ELSEWHERE]}]
+    assert read["info"][0]["parameter"] == [
+        {"valueName": "awareness_level", "value": "2; yellow; Moderate"},
+        {"valueName": "awareness_type", "value": "1; Wind"},
+    ]
+    # read back through the alert parser it is the same warning as from the mapping itself
+    at = datetime(2026, 11, 8, 10, 30, tzinfo=UTC)
+    for language in ("en", "de"):
+        direct = parse_warnings({"warnings": [entry]}, LAT, LON, language, at).items
+        through = parse_warnings({"warnings": [{"alert": read}]}, LAT, LON, language, at).items
+        assert [item.as_dict(at) for item in through] == [item.as_dict(at) for item in direct]
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (b"not xml at all", "MeteoAlarm alert is not XML"),
+        (b"<feed/>", "MeteoAlarm alert is not a CAP alert"),
+    ],
+)
+def test_what_is_not_an_alert(body: bytes, message: str) -> None:
+    with pytest.raises(WarningsError, match=message):
+        parse_cap(body)
+
+
 # --- coordinator -------------------------------------------------------------
 
 
+def requests(session: FakeSession) -> list[tuple[str, str]]:
+    """What was asked, as (method, last part of the URL)."""
+    return [(method, url.rsplit("/", 1)[-1]) for method, url, _headers in session.calls]
+
+
 async def test_first_read(hass: HomeAssistant, swiss_now) -> None:
-    session = FakeSession({WARNINGS_URL: FakeResponse(payload=TWO_WARNINGS)})
+    session = FakeSession(warning_routes(TWO_WARNINGS))
     coordinator = WarningsCoordinator(hass, make_entry(hass))
     with patch(SESSION, return_value=session):
         await coordinator.async_refresh()
@@ -290,27 +385,113 @@ async def test_first_read(hass: HomeAssistant, swiss_now) -> None:
     assert coordinator.data.level() == "yellow"
     assert coordinator.data.fetched == NOW
     assert [item.identifier for item in coordinator.data.items] == ["now", "later"]
+    assert (coordinator.data.total, coordinator.data.unlocated) == (2, 0)
+    # the feed, then the two alerts that cover the point
+    assert requests(session) == [("GET", "meteoalarm-legacy-atom-switzerland"), ("GET", "uuid-now"), ("GET", "uuid-later")]
     _method, url, headers = session.calls[0]
     assert url == WARNINGS_URL
-    assert headers["Accept"] == "application/json"
     assert headers["User-Agent"].startswith("SwissMeteo/")
+    assert "Accept" not in headers  # asked for XML by name, the server answers with something else
 
 
 async def test_texts_in_the_language_of_the_instance(hass: HomeAssistant, swiss_now) -> None:
     hass.config.language = "de"
     payload = {"warnings": [alert("bilingual", info(), info(language="de-DE", headline="Starker Wind"))]}
     coordinator = WarningsCoordinator(hass, make_entry(hass))
-    with patch(SESSION, return_value=FakeSession({WARNINGS_URL: FakeResponse(payload=payload)})):
+    with patch(SESSION, return_value=FakeSession(warning_routes(payload))):
         await coordinator.async_refresh()
     assert coordinator.data.items[0].headline == "Starker Wind"
+
+
+async def test_only_what_is_needed_is_read(hass: HomeAssistant, swiss_now, freezer) -> None:
+    """The feed is read again when its length changed or after an hour; an
+    alert is read in full once, and only if it covers the point."""
+    elsewhere = alert("elsewhere", info(polygon=ELSEWHERE))
+    nowhere = alert("nowhere", info(polygon=None))
+    session = FakeSession(warning_routes({"warnings": [alert("now"), elsewhere, nowhere]}))
+    coordinator = WarningsCoordinator(hass, make_entry(hass))
+    with patch(SESSION, return_value=session):
+        await coordinator.async_refresh()
+        assert requests(session) == [("GET", "meteoalarm-legacy-atom-switzerland"), ("GET", "uuid-now")]
+        assert [item.identifier for item in coordinator.data.items] == ["now"]
+        assert (coordinator.data.total, coordinator.data.unlocated) == (3, 1)
+
+        # ten minutes later the feed weighs the same: asked for its length, not read
+        session.calls.clear()
+        freezer.move_to(NOW + timedelta(minutes=10))
+        await coordinator.async_refresh()
+        assert requests(session) == [("HEAD", "meteoalarm-legacy-atom-switzerland")]
+        assert coordinator.data.fetched == NOW + timedelta(minutes=10)
+        assert [item.identifier for item in coordinator.data.items] == ["now"]
+
+        # a new alert changes the length: the feed is read, and only the new alert
+        session.calls.clear()
+        session.routes.update(warning_routes({"warnings": [alert("now"), alert("later", LATER), elsewhere]}))
+        freezer.move_to(NOW + timedelta(minutes=20))
+        await coordinator.async_refresh()
+        assert requests(session) == [
+            ("HEAD", "meteoalarm-legacy-atom-switzerland"),
+            ("GET", "meteoalarm-legacy-atom-switzerland"),
+            ("GET", "uuid-later"),
+        ]
+        assert [item.identifier for item in coordinator.data.items] == ["now", "later"]
+
+        # an alert that left the feed is forgotten: back again, it is read again
+        session.routes.update(warning_routes({"warnings": [alert("later", LATER), elsewhere]}))
+        freezer.move_to(NOW + timedelta(minutes=30))
+        await coordinator.async_refresh()
+        assert [item.identifier for item in coordinator.data.items] == ["later"]
+        session.calls.clear()
+        session.routes.update(warning_routes({"warnings": [alert("now"), alert("later", LATER), elsewhere]}))
+        freezer.move_to(NOW + timedelta(minutes=40))
+        await coordinator.async_refresh()
+        assert ("GET", "uuid-now") in requests(session) and ("GET", "uuid-later") not in requests(session)
+
+        # an hour after the last read the feed is read whatever it weighs
+        session.calls.clear()
+        freezer.move_to(NOW + timedelta(minutes=101))
+        await coordinator.async_refresh()
+        assert requests(session) == [("GET", "meteoalarm-legacy-atom-switzerland")]
+
+
+async def test_a_warning_ends_without_a_new_read(hass: HomeAssistant, swiss_now, freezer) -> None:
+    session = FakeSession(warning_routes(TWO_WARNINGS))
+    coordinator = WarningsCoordinator(hass, make_entry(hass))
+    with patch(SESSION, return_value=session):
+        await coordinator.async_refresh()
+        session.calls.clear()
+        # 20:10: the first warning has expired, the feed still weighs the same
+        freezer.move_to(datetime(2026, 11, 8, 20, 10, tzinfo=UTC))
+        coordinator._read_at = dt_util.utcnow()  # read recently enough
+        await coordinator.async_refresh()
+    assert requests(session) == [("HEAD", "meteoalarm-legacy-atom-switzerland")]
+    assert [item.identifier for item in coordinator.data.items] == ["later"]
+
+
+async def test_a_server_that_states_no_length(hass: HomeAssistant, swiss_now, freezer) -> None:
+    """Without a length to compare, the feed is read once an hour."""
+    session = FakeSession(warning_routes(TWO_WARNINGS), head_length=False)
+    coordinator = WarningsCoordinator(hass, make_entry(hass))
+    with patch(SESSION, return_value=session):
+        await coordinator.async_refresh()
+        session.calls.clear()
+        freezer.move_to(NOW + timedelta(minutes=10))
+        await coordinator.async_refresh()
+        assert requests(session) == [("HEAD", "meteoalarm-legacy-atom-switzerland")]
+        session.calls.clear()
+        freezer.move_to(NOW + timedelta(minutes=61))
+        await coordinator.async_refresh()
+        assert requests(session) == [("GET", "meteoalarm-legacy-atom-switzerland")]
+    assert coordinator.last_update_success
 
 
 @pytest.mark.parametrize(
     ("answer", "message"),
     [
         (FakeResponse(503), "MeteoAlarm answered 503"),
-        (FakeResponse(payload=["no", "object"]), "MeteoAlarm feed is not a JSON object"),
-        (FakeResponse(payload=ValueError("not JSON at all")), "not JSON at all"),
+        (b'{"warnings": []}', "MeteoAlarm feed is not XML"),
+        (b"<rss/>", "MeteoAlarm feed is not an Atom feed"),
+        (atom_feed(TWO_WARNINGS, links=False), "MeteoAlarm feed names no alert document"),
         (aiohttp.ClientError("connection lost"), "connection lost"),
     ],
 )
@@ -323,15 +504,24 @@ async def test_first_read_fails(hass: HomeAssistant, swiss_now, caplog, answer: 
     assert message in caplog.text
 
 
+async def test_an_alert_that_cannot_be_read_fails_the_read(hass: HomeAssistant, swiss_now, caplog) -> None:
+    routes = warning_routes(TWO_WARNINGS)
+    routes[cap_url(TWO_WARNINGS["warnings"][1])] = FakeResponse(500)
+    coordinator = WarningsCoordinator(hass, make_entry(hass))
+    with patch(SESSION, return_value=FakeSession(routes)):
+        await coordinator.async_refresh()
+    assert coordinator.last_update_success is False and "MeteoAlarm answered 500" in caplog.text
+
+
 async def test_failed_reads_keep_the_last_list_for_two_hours(hass: HomeAssistant, swiss_now, freezer, caplog) -> None:
-    session = FakeSession({WARNINGS_URL: FakeResponse(payload=TWO_WARNINGS)})
+    session = FakeSession(warning_routes(TWO_WARNINGS))
     coordinator = WarningsCoordinator(hass, make_entry(hass))
     message = "Warnings feed not read, keeping the last list"
     with patch(SESSION, return_value=session):
         await coordinator.async_refresh()
         first = coordinator.data
 
-        for answer in (FakeResponse(503), FakeResponse(payload=[]), aiohttp.ClientError("down"), TimeoutError()):
+        for answer in (FakeResponse(503), b"<feed", aiohttp.ClientError("down"), TimeoutError()):
             session.routes[WARNINGS_URL] = answer
             await coordinator.async_refresh()
             assert coordinator.last_update_success
@@ -342,7 +532,7 @@ async def test_failed_reads_keep_the_last_list_for_two_hours(hass: HomeAssistant
 
         # a good read in between: the next failure is reported again
         freezer.move_to(NOW + timedelta(minutes=30))
-        session.routes[WARNINGS_URL] = FakeResponse(payload={"warnings": []})
+        session.routes.update(warning_routes({"warnings": []}))
         await coordinator.async_refresh()
         assert coordinator.data is not first and coordinator.data.items == []
         session.routes[WARNINGS_URL] = FakeResponse(500)

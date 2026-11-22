@@ -59,10 +59,12 @@ def daily_forecast(snap: ForecastSnapshot) -> list[dict]:
     precip = daily_values(snap, "rka150p0")
     p10 = daily_values(snap, "rreq10p0")
     p90 = daily_values(snap, "rreq90p0")
-    prob = snap.hourly.get("rp0003i0")
-    wind = snap.hourly.get("fu3010h0")
-    gust = snap.hourly.get("fu3010h1")
-    sunshine = snap.hourly.get("sre000h0")
+    # from the hourly forecast, or from the four series read for this alone
+    hours = snap.hourly or snap.companions
+    prob = hours.get("rp0003i0")
+    wind = hours.get("fu3010h0")
+    gust = hours.get("fu3010h1")
+    sunshine = hours.get("sre000h0")
     today = dt_util.now().date()
     out: list[dict] = []
     for day in sorted(set(symbols) | set(highs) | set(lows)):

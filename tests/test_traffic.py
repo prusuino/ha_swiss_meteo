@@ -25,6 +25,7 @@ from .test_meteoalarm import SESSION as WARNINGS_SESSION
 from .test_meteoalarm import TWO_WARNINGS
 from .test_radar import MINUTES, T, frame_url, no_wait, radar_file, served  # noqa: F401 (no_wait is a fixture)
 from .test_radar import SESSION as RADAR_SESSION
+from .warnfeed import warning_routes
 
 URL = "https://data.geo.admin.ch/some/file.csv"
 
@@ -120,11 +121,14 @@ async def test_the_open_meteo_request_reports_its_size() -> None:
 
 async def test_warnings_are_counted_and_an_hour_without_them_is_reported(hass: HomeAssistant, swiss_now) -> None:
     counter = Counter()
-    session = FakeSession({WARNINGS_URL: FakeResponse(payload=TWO_WARNINGS, body=b"y" * 5000)})
+    routes = warning_routes(TWO_WARNINGS)
+    session = FakeSession(routes)
     coordinator = WarningsCoordinator(hass, make_entry(hass), counter)
     with patch(WARNINGS_SESSION, return_value=session):
         await coordinator.async_refresh()
-        assert counter == [(1, 5000)]
+        # the feed and the two alerts that cover the point, each with its size
+        assert counter == [(1, len(body)) for body in routes.values()]
+        del counter[:]
 
         session.routes[WARNINGS_URL] = FakeResponse(503)
         for _ in range(5):
@@ -135,15 +139,15 @@ async def test_warnings_are_counted_and_an_hour_without_them_is_reported(hass: H
         await coordinator.async_refresh()
         notice = issue(hass, "warnings_unreachable")
         assert notice is not None and notice.translation_placeholders == {"error": "down"}
-        # the failed answers were requests as well; one that never arrived is not
-        assert counter == [(1, 5000)] + [(1, 0)] * 5
+        # the refused requests were made as well; the one that never arrived was not
+        assert counter == [(1, 0)] * 5
 
-        session.routes[WARNINGS_URL] = FakeResponse(payload={"warnings": []})
+        session.routes.update(warning_routes({"warnings": []}))
         await coordinator.async_refresh()
-        assert issue(hass, "warnings_unreachable") is None
+        assert issue(hass, "warnings_unreachable") is None and coordinator.data.items == []
 
     # without a counter the feed is read all the same
-    with patch(WARNINGS_SESSION, return_value=FakeSession({WARNINGS_URL: FakeResponse(payload=TWO_WARNINGS)})):
+    with patch(WARNINGS_SESSION, return_value=FakeSession(warning_routes(TWO_WARNINGS))):
         plain = WarningsCoordinator(hass, make_entry(hass))
         await plain.async_refresh()
     assert plain.last_update_success and len(plain.data.items) == 2
