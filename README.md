@@ -127,6 +127,8 @@ On Home Assistant 2026.10 or newer the integration adds its own entries to the a
 | **Rain started** / **Rain stopped** | the radar shows rain at the point / no longer |
 | **Strong wind expected** / **no longer expected** | gusts at or above your threshold are forecast for the next six hours / not any more |
 
+**After an outage.** Home Assistant ignores a change that comes out of "unavailable", which is what an entity shows while MeteoSwiss cannot be reached. These triggers compare with the state before the outage instead: what began in the meantime still fires, and what was already there does not fire a second time; the "cleared", "stopped" and "no longer expected" triggers fire only when their sensor was on before.
+
 On 2026.11 or newer there are also the conditions **Rain is expected**, **No rain is expected**, **Frost is expected tonight**, **A warning is in force**, **It is raining**, **It is not raining**, **Rain is approaching** and **Strong wind is expected**. Each trigger and condition targets the integration's own entities (pick an entity, a device or an area); the usual *for* duration and *trigger when* / *condition passes if* options apply.
 
 ```yaml
