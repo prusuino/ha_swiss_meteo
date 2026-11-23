@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.3 — 2026-11-23
+
+- **Fixed: the triggers stayed silent for what began during an outage.** While MeteoSwiss cannot be reached the entities are unavailable, and Home Assistant ignores every change out of "unavailable". A warning that came into force, rain or frost that became expected, or strong wind that was forecast in that time switched its sensor from unavailable straight to on, and the trigger did not fire. All eleven triggers now compare with the state before the outage: something new fires, something that was already on does not fire a second time, and the "cleared" and "stopped" triggers fire only when the sensor was on before. *New forecast* fires after an outage when the run differs from the one before it.
+
 ## 1.8.2 — 2026-11-22
 
 - **The traffic sensor keeps counting over a restart.** "Today" meant since midnight or since the last restart of Home Assistant, whichever was later, so the figure was too low on a day with a restart. The count is now stored with the remembered file positions (written at most every quarter of an hour, and when Home Assistant stops) and continued after a restart; at midnight it starts at zero as before.
