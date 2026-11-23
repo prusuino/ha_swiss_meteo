@@ -64,6 +64,7 @@ def without_init(cls: type, hass: HomeAssistant):
     """A trigger or condition as far as its entity filter needs it."""
     item = cls.__new__(cls)
     item._hass = hass
+    item._last_state = {}  # the triggers note what their entities show when they are attached
     return item
 
 

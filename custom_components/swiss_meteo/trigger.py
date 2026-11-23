@@ -74,6 +74,16 @@ else:
             self._last_state: dict[str, str] = {}
             self._previous_state: dict[str, str | None] = {}
 
+        def entity_filter(self, entities: set[str]) -> set[str]:
+            # Start from what the entities show now, so that a gap right
+            # after the automation starts is judged against a known state.
+            kept = super().entity_filter(entities)
+            for entity_id in kept:
+                state = self._hass.states.get(entity_id)
+                if entity_id not in self._last_state and state is not None and state.state not in _GAP:
+                    self._last_state[entity_id] = state.state
+            return kept
+
         def is_valid_state(self, state, report_not_triggered) -> bool:
             self._previous_state[state.entity_id] = self._last_state.get(state.entity_id)
             self._last_state[state.entity_id] = state.state
