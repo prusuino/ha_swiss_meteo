@@ -7,6 +7,7 @@ from datetime import UTC, date, datetime, timedelta
 from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.swiss_meteo.climatology import (
     ClimateCoordinator,
@@ -134,6 +135,7 @@ async def test_archive_is_read_once_and_remembered(hass: HomeAssistant, swiss_no
 
         # after a restart the table comes from the storage
         freezer.tick(timedelta(minutes=2))
+        async_fire_time_changed(hass)
         await hass.async_block_till_done()
         stored = hass_storage[f"swiss_meteo.climate_{ENTRY_ID}"]["data"]
         assert stored["station"] == "SMA" and len(stored["days"]) == 366
@@ -230,8 +232,6 @@ async def test_no_climate_sensors_without_a_station(hass: HomeAssistant, setup_i
 
 
 async def test_the_new_day_asks_for_its_own_figures(hass: HomeAssistant, setup_integration, freezer) -> None:
-    from pytest_homeassistant_custom_component.common import async_fire_time_changed
-
     entry = await setup_everything(hass, setup_integration)
     climate = entry.runtime_data.climate
     assert climate.data.day == TODAY
@@ -246,8 +246,6 @@ async def test_the_new_day_asks_for_its_own_figures(hass: HomeAssistant, setup_i
 
 
 async def test_removing_the_entry_removes_the_table(hass: HomeAssistant, setup_integration, hass_storage, freezer) -> None:
-    from pytest_homeassistant_custom_component.common import async_fire_time_changed
-
     entry = await setup_everything(hass, setup_integration)
     freezer.tick(timedelta(minutes=2))
     async_fire_time_changed(hass)
