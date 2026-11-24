@@ -260,6 +260,9 @@ class StationReading:
     abbr: str
     timestamp: datetime
     values: dict[str, float | None]
+    # the row three hours before the newest one, when the file reaches that far
+    # back (it starts at midnight UTC): what a trend is measured against
+    earlier: dict[str, float | None] | None = None
 
 
 def _parse_station_timestamp(value: str) -> datetime:
@@ -277,7 +280,10 @@ async def _async_fetch_reading(session: aiohttp.ClientSession, abbr: str, url: s
     except (KeyError, ValueError) as err:
         raise OgdError(f"station file of {abbr}: bad timestamp") from err
     values = {k: _float(v) for k, v in row.items() if k not in ("station_abbr", "reference_timestamp")}
-    return StationReading(abbr=abbr, timestamp=ts, values=values)
+    wanted = (ts - timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
+    before = next((r for r in rows if (r.get("reference_timestamp") or "").strip() == wanted), None)
+    earlier = {k: _float(v) for k, v in before.items() if k not in ("station_abbr", "reference_timestamp")} if before else None
+    return StationReading(abbr=abbr, timestamp=ts, values=values, earlier=earlier)
 
 
 async def async_fetch_station_reading(session: aiohttp.ClientSession, abbr: str) -> StationReading:

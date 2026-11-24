@@ -87,6 +87,19 @@ async def swiss_now(hass: HomeAssistant, freezer) -> datetime:
     return NOW
 
 
+@pytest.fixture(autouse=True)
+def climate_files():
+    """The station's daily archive and current year, answered from memory
+    for every test: the climate figures are read whenever an entry has a
+    station."""
+    from .climate_files import climate_routes
+    from .fakes import FakeSession
+
+    session = FakeSession(climate_routes())
+    with patch("custom_components.swiss_meteo.climatology.async_get_clientsession", return_value=session):
+        yield session
+
+
 @pytest.fixture
 def fake_forecast():
     """The run discovery and the forecast read, answered from memory."""

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.0 — 2026-11-24
+
+- **New card: Switzerland.** The whole country on the swisstopo relief with layers to switch between: the forecast of 19 places for nine days, every official warning in force or announced as a coloured area with its details on a tap, and the radar of the last hour as a loop. No extra entries are needed for the places. Zoom with the buttons, two fingers or Ctrl and the mouse wheel; the card fits on one screen. Add it as *Swiss Meteo – Switzerland* (`custom:swiss-meteo-switzerland-card`).
+- **Avalanches, alerts, forest fire, flood and drought on the same card.** More layers appear by themselves when the integration behind them is set up: the avalanche danger of every region with [Swiss Avalanche Bulletin](https://github.com/prusuino/ha_swiss_avalanche_bulletin), and the alerts of the authorities as points with [Swiss Public Alerts](https://github.com/prusuino/ha_swiss_public_alerts), and from its version 1.9.0 on also the danger of forest fire, flood and drought of every region. Nothing is read twice: the card shows what those integrations already hold. Without them the card has its three layers.
+- **New card: climate stripes.** One stripe per year since your station started, blue for colder and red for warmer years than the reference mean (1961–1990 where the station covers it); tap a stripe for the year and its mean. Below it the running month against its normal. Add it as *Swiss Meteo – climate* (`custom:swiss-meteo-climate-card`).
+- **Your station's climate.** Nine new sensors from the station's archive: the normal temperature of the day (1991–2020), yesterday's mean and how far it was from normal, the record high and low of the calendar day with their years, the dates of the season's first frost and first snow, and the running month's temperature and precipitation against the normal. The archive is read once (about 1.7 MB) and kept as a small table.
+- **Everyday sensors.** Four new yes/no sensors from the hourly forecast: *Laundry Weather* (four dry hours in a row today), *Frozen Windscreen Tomorrow Morning* (1 °C or below between 04:00 and 08:00), *Cool Night After Hot Day* and *Watering Needed*. Each shows its thresholds and figures as attributes.
+- **Feels like and pressure trend.** Two new station sensors: the apparent temperature for the whole year (Steadman), and the change of the pressure over three hours with its tendency.
+- The Switzerland card reads only while it is open: about 0.65 MB for the forecast at most every three hours, the radar frames of the last hour for the radar layer, nothing extra for the warnings. It all counts in the traffic sensor.
+- After the update reload the browser once so that the new card file is used.
+
 ## 1.8.4 — 2026-11-24
 
 - **Diagnostics without values.** The diagnostics download no longer contains measured or forecast values, only whether each parameter was read and when. MeteoSwiss publishes the same figures for every station and forecast point, so a few values with their timestamp could name the station or the place although its name and coordinates were redacted. The distance to the nearest rain and the time until it arrives are left out as well. If you posted a diagnostics file publicly, consider removing it.

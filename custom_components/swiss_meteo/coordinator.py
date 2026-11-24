@@ -54,6 +54,7 @@ if TYPE_CHECKING:
     from .pollen import PollenCoordinator
     from .meteoalarm import WarningsCoordinator
     from .radar import RadarCoordinator
+    from .climatology import ClimateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -277,6 +278,7 @@ class StationCoordinator(DataUpdateCoordinator[StationReading]):
         self.station = str(entry.options.get(self._conf, entry.data.get(self._conf, "")))
         self.issues = IssueReporter(hass, entry.entry_id)
         self._account = account  # the entry's traffic counter
+        self._seen: dict[datetime, dict[str, float | None]] = {}  # the rows of the last hours
 
     async def _async_read(self) -> StationReading:
         return await async_fetch_station_reading(async_get_clientsession(self.hass), self.station)
@@ -291,6 +293,12 @@ class StationCoordinator(DataUpdateCoordinator[StationReading]):
             self.issues.failure(self._issue, {"station": self.station, "error": str(err)}, after=6)
             raise UpdateFailed(str(err), translation_domain=DOMAIN, translation_key="read_failed", translation_placeholders={"error": str(err)}) from err
         self.issues.clear(self._issue)
+        # The file starts anew at midnight UTC: for the three hours after it
+        # the row to compare with comes from what was read before.
+        self._seen[reading.timestamp] = reading.values
+        self._seen = {ts: row for ts, row in self._seen.items() if reading.timestamp - ts <= timedelta(hours=3)}
+        if reading.earlier is None:
+            reading.earlier = self._seen.get(reading.timestamp - timedelta(hours=3))
         return reading
 
     @property
@@ -322,3 +330,4 @@ class EntryData:
     warnings: WarningsCoordinator | None = None
     radar: RadarCoordinator | None = None
     open_meteo: OpenMeteoCoordinator | None = None
+    climate: ClimateCoordinator | None = None

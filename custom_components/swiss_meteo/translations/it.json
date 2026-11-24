@@ -19,7 +19,7 @@
       },
       "place": {
         "title": "Punto di previsione e stazione meteo",
-        "description": "I punti di previsione e le stazioni SwissMetNet più vicini alla posizione, il più vicino per primo. Scegli il punto che corrisponde al tuo luogo (centro del codice postale, punto di montagna o stazione) e la stazione le cui misure si adattano meglio – altitudine ed esposizione contano più della distanza. Senza stazione, i valori attuali provengono dalla previsione. La stazione pollinica (le tre più vicine delle 15 stazioni di MeteoSvizzera) aggiunge le concentrazioni orarie di betulla, graminacee, ontano, nocciolo, faggio, frassino e quercia e la classe di carico di MeteoSvizzera.",
+        "description": "I punti di previsione e le stazioni SwissMetNet più vicini alla posizione, il più vicino per primo. Scegli il punto che corrisponde al tuo luogo (centro del codice postale, punto di montagna o stazione) e la stazione le cui misure si adattano meglio – altitudine ed esposizione contano più della distanza. Senza stazione, i valori attuali provengono dalla previsione. La stazione pollinica (le tre più vicine delle 15 stazioni di MeteoSvizzera) aggiunge le concentrazioni orarie di betulla, graminacee, ontano, nocciolo, faggio, frassino e quercia e la classe di carico di MeteoSvizzera.\n\nFacoltativo: la scheda Swiss Meteo – Switzerland mostra altri livelli se è installato anche Swiss Avalanche Bulletin (valanghe) o Swiss Public Alerts (allerte civili, incendi boschivi, piene, siccità).",
         "data": {
           "point": "Punto di previsione",
           "station": "Stazione meteo (misure)",
@@ -679,6 +679,39 @@
       },
       "pollen_forecast_ragweed": {
         "name": "Previsione polline ambrosia"
+      },
+      "apparent_temperature": {
+        "name": "Temperatura percepita"
+      },
+      "pressure_trend": {
+        "name": "Tendenza della pressione (3 h)"
+      },
+      "normal_temperature": {
+        "name": "Temperatura normale"
+      },
+      "yesterday_temperature": {
+        "name": "Temperatura media di ieri"
+      },
+      "temperature_anomaly": {
+        "name": "Ieri rispetto alla norma"
+      },
+      "record_high": {
+        "name": "Record di caldo del giorno"
+      },
+      "record_low": {
+        "name": "Record di freddo del giorno"
+      },
+      "first_frost": {
+        "name": "Primo gelo della stagione"
+      },
+      "first_snow": {
+        "name": "Prima neve della stagione"
+      },
+      "month_temperature": {
+        "name": "Temperatura del mese finora"
+      },
+      "month_precipitation": {
+        "name": "Precipitazioni del mese finora"
       }
     },
     "binary_sensor": {
@@ -699,6 +732,18 @@
       },
       "rain_approaching": {
         "name": "Pioggia in arrivo"
+      },
+      "laundry_weather": {
+        "name": "Tempo da bucato"
+      },
+      "frozen_windscreen": {
+        "name": "Parabrezza ghiacciato domattina"
+      },
+      "cool_night": {
+        "name": "Notte fresca dopo giornata calda"
+      },
+      "watering_needed": {
+        "name": "Irrigazione necessaria"
       }
     },
     "image": {

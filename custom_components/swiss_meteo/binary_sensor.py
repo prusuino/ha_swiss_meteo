@@ -1,6 +1,8 @@
-"""Binary sensors: rain expected within the next hours and frost tonight
-(from the hourly forecast; without it they stay unavailable), and an
-official warning in force (from the MeteoAlarm feed)."""
+"""Binary sensors: rain expected within the next hours, frost tonight and
+the everyday questions — laundry weather, frozen windscreen tomorrow
+morning, cool night after a hot day, watering needed (all from the hourly
+forecast; without it they stay unavailable) — and an official warning in
+force (from the MeteoAlarm feed)."""
 from __future__ import annotations
 
 from datetime import timedelta
@@ -18,7 +20,26 @@ from homeassistant.util import dt as dt_util
 
 from .const import ATTRIBUTION, ATTRIBUTION_WARNINGS, CONF_GUST_THRESHOLD, DEFAULT_GUST_THRESHOLD, DOMAIN
 from .coordinator import EntryData, ForecastCoordinator
-from .derived import RAIN_THRESHOLD_MM, WIND_WINDOW_HOURS, max_gust, next_rain, night_minimum, window_sum
+from .derived import (
+    COOL_NIGHT_MAX,
+    DRYING_HOURS,
+    DRYING_MAX_PROBABILITY,
+    DRYING_MIN_TEMPERATURE,
+    HOT_DAY_MIN,
+    RAIN_THRESHOLD_MM,
+    WATERING_HOURS,
+    WATERING_MAX_RAIN,
+    WATERING_MIN_HIGH,
+    WIND_WINDOW_HOURS,
+    WINDSCREEN_THRESHOLD,
+    drying_window,
+    max_gust,
+    morning_minimum,
+    next_rain,
+    night_minimum,
+    todays_high,
+    window_sum,
+)
 from .device import device_info, entry_suffix
 from .meteoalarm import WarningsCoordinator
 from .radar import RadarCoordinator
@@ -36,6 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     entities: list[BinarySensorEntity] = []
     if data.forecast.hourly_enabled:
         entities += [RainExpectedSensor(hass, entry, data.forecast), FrostTonightSensor(hass, entry, data.forecast), StrongWindExpectedSensor(hass, entry, data.forecast)]
+        entities += [cls(hass, entry, data.forecast) for cls in (LaundryWeatherSensor, FrozenWindscreenSensor, CoolNightSensor, WateringNeededSensor)]
     if data.warnings is not None:
         entities.append(WarningActiveSensor(hass, entry, data.warnings))
     if data.radar is not None:
@@ -247,3 +269,116 @@ class RainApproachingSensor(_RadarBinary):
     @property
     def is_on(self) -> bool | None:
         return self.coordinator.data.approaching if self.coordinator.data else None
+
+
+class LaundryWeatherSensor(_Base):
+    """On while today still has four dry hours in a row between 08:00 and
+    20:00: no precipitation, at most a 30 % chance of rain, 5 °C or more."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "laundry_weather")
+
+    @property
+    def is_on(self) -> bool | None:
+        snap = self.coordinator.data
+        if snap is None:
+            return None
+        window = drying_window(snap)
+        return bool(window and window["hours"] >= DRYING_HOURS)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        snap = self.coordinator.data
+        window = drying_window(snap) if snap else None
+        return {
+            "required_hours": DRYING_HOURS,
+            "max_rain_probability": DRYING_MAX_PROBABILITY,
+            "min_temperature": DRYING_MIN_TEMPERATURE,
+            "dry_hours": window["hours"] if window else 0,
+            "window_start": window["start"] if window else None,
+            "window_end": window["end"] if window else None,
+        }
+
+
+class FrozenWindscreenSensor(_Base):
+    """On when the hourly forecast is at 1 °C or below between 04:00 and
+    08:00 of the coming morning: ice on the windscreen is likely. It has no
+    device class on purpose: the frost trigger and condition pick their
+    entity by the class "cold", which stays the frost sensor's alone."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "frozen_windscreen")
+
+    @property
+    def is_on(self) -> bool | None:
+        snap = self.coordinator.data
+        if snap is None:
+            return None
+        low = morning_minimum(snap)
+        return low is not None and low[1] <= WINDSCREEN_THRESHOLD
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        snap = self.coordinator.data
+        low = morning_minimum(snap) if snap else None
+        return {
+            "threshold": WINDSCREEN_THRESHOLD,
+            "morning_minimum": low[1] if low else None,
+            "morning_minimum_at": dt_util.as_local(low[0]).isoformat() if low else None,
+        }
+
+
+class CoolNightSensor(_Base):
+    """On when a hot day (25 °C or more) is followed by a cool night (17 °C
+    or less before 09:00): airing at night cools the house."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "cool_night")
+
+    @property
+    def is_on(self) -> bool | None:
+        snap = self.coordinator.data
+        if snap is None:
+            return None
+        low, high = night_minimum(snap), todays_high(snap)
+        return low is not None and high is not None and high >= HOT_DAY_MIN and low[1] <= COOL_NIGHT_MAX
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        snap = self.coordinator.data
+        low = night_minimum(snap) if snap else None
+        return {
+            "hot_day_from": HOT_DAY_MIN,
+            "cool_night_up_to": COOL_NIGHT_MAX,
+            "today_high": todays_high(snap) if snap else None,
+            "night_minimum": low[1] if low else None,
+            "night_minimum_at": dt_util.as_local(low[0]).isoformat() if low else None,
+        }
+
+
+class WateringNeededSensor(_Base):
+    """On when today reaches 20 °C or more and less than 2 mm of rain is
+    forecast for the next 48 hours. It looks ahead only: how much it rained
+    before is not known to it."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ForecastCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "watering_needed")
+
+    @property
+    def is_on(self) -> bool | None:
+        snap = self.coordinator.data
+        if snap is None:
+            return None
+        rain, high = window_sum(snap.hourly.get("rre150h0"), WATERING_HOURS), todays_high(snap)
+        return rain is not None and high is not None and high >= WATERING_MIN_HIGH and rain < WATERING_MAX_RAIN
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        snap = self.coordinator.data
+        return {
+            "window_hours": WATERING_HOURS,
+            "max_rain_mm": WATERING_MAX_RAIN,
+            "warm_day_from": WATERING_MIN_HIGH,
+            "precipitation_next_48h": window_sum(snap.hourly.get("rre150h0"), WATERING_HOURS) if snap else None,
+            "today_high": todays_high(snap) if snap else None,
+        }

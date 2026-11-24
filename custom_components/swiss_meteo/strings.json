@@ -19,7 +19,7 @@
       },
       "place": {
         "title": "Forecast point and weather station",
-        "description": "The forecast points and SwissMetNet stations nearest to the location, nearest first. Pick the point that matches your place (a postal code centre, a mountain spot or a station) and the station whose live values suit you best — altitude and exposure matter more than distance. Without a station, the current values come from the forecast. The pollen station (the three nearest of the 15 MeteoSwiss stations) adds the hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak and the MeteoSwiss load class.",
+        "description": "The forecast points and SwissMetNet stations nearest to the location, nearest first. Pick the point that matches your place (a postal code centre, a mountain spot or a station) and the station whose live values suit you best — altitude and exposure matter more than distance. Without a station, the current values come from the forecast. The pollen station (the three nearest of the 15 MeteoSwiss stations) adds the hourly concentrations of birch, grasses, alder, hazel, beech, ash and oak and the MeteoSwiss load class.\n\nOptional: the dashboard card Swiss Meteo – Switzerland shows more layers when Swiss Avalanche Bulletin (avalanches) or Swiss Public Alerts (alerts, forest fire, flood, drought) is installed as well.",
         "data": {
           "point": "Forecast point",
           "station": "Weather station (live values)",
@@ -679,6 +679,39 @@
       },
       "pollen_forecast_ragweed": {
         "name": "Pollen Forecast Ragweed"
+      },
+      "apparent_temperature": {
+        "name": "Feels Like"
+      },
+      "pressure_trend": {
+        "name": "Pressure Trend (3 h)"
+      },
+      "normal_temperature": {
+        "name": "Normal Temperature"
+      },
+      "yesterday_temperature": {
+        "name": "Yesterday Mean Temperature"
+      },
+      "temperature_anomaly": {
+        "name": "Yesterday Against Normal"
+      },
+      "record_high": {
+        "name": "Record High Of The Day"
+      },
+      "record_low": {
+        "name": "Record Low Of The Day"
+      },
+      "first_frost": {
+        "name": "First Frost Of The Season"
+      },
+      "first_snow": {
+        "name": "First Snow Of The Season"
+      },
+      "month_temperature": {
+        "name": "Month So Far Temperature"
+      },
+      "month_precipitation": {
+        "name": "Month So Far Precipitation"
       }
     },
     "binary_sensor": {
@@ -699,6 +732,18 @@
       },
       "rain_approaching": {
         "name": "Rain Approaching"
+      },
+      "laundry_weather": {
+        "name": "Laundry Weather"
+      },
+      "frozen_windscreen": {
+        "name": "Frozen Windscreen Tomorrow Morning"
+      },
+      "cool_night": {
+        "name": "Cool Night After Hot Day"
+      },
+      "watering_needed": {
+        "name": "Watering Needed"
       }
     },
     "image": {

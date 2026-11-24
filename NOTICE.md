@@ -45,6 +45,13 @@ service at wmts.geo.admin.ch; the data is open government data of the
 Federal Office of Topography swisstopo, free to use with the attribution
 "© swisstopo", which the card shows on the map.
 
+The Switzerland card draws the relief shading of swissALTI3D from the
+same service, the national border from swissBOUNDARIES3D (swisstopo) and
+the lakes from the lake data set of the Federal Office for the
+Environment FOEN (ch.bafu.vec25-seen), both simplified to about 150 m
+and bundled in the card; all three are open government data, named on
+the map as "© swisstopo, FOEN".
+
 ## MeteoAlarm
 
 The official warnings come from MeteoAlarm (https://meteoalarm.org), the

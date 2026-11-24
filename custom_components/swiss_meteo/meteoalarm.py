@@ -12,6 +12,7 @@ Levels are MeteoAlarm's three colours: yellow (moderate), orange
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, UTC
 from typing import Any
@@ -319,6 +320,11 @@ class FeedEntry:
     expires: datetime | None
     actual: bool
     rings: list[list[tuple[float, float]]]
+    # for the map of Switzerland
+    level: str = ""  # yellow, orange, red
+    kind: str = ""  # the feed's English word: rain, wind, snow-ice ...
+    area: str = ""
+    onset: datetime | None = None
 
 
 def _local(tag: str) -> str:
@@ -355,6 +361,8 @@ def parse_feed(body: bytes) -> list[FeedEntry]:
         identifier = fields.get("identifier") or fields.get("id") or ""
         if not identifier:
             continue
+        # "Yellow Rain Warning issued for Switzerland - Genève"
+        heading = re.match(r"(yellow|orange|red) (.+?) warning\b", fields.get("title", "").lower())
         entries.append(
             FeedEntry(
                 identifier=identifier,
@@ -362,6 +370,10 @@ def parse_feed(body: bytes) -> list[FeedEntry]:
                 expires=_parse_time(fields.get("expires")),
                 actual=fields.get("status", "Actual").lower() == "actual" and fields.get("message_type", "Alert").lower() != "cancel",
                 rings=rings,
+                level=heading.group(1) if heading else "",
+                kind=heading.group(2) if heading else "",
+                area=fields.get("areaDesc", ""),
+                onset=_parse_time(fields.get("onset")),
             )
         )
     return entries
@@ -441,6 +453,11 @@ class WarningsCoordinator(DataUpdateCoordinator[WarningsData]):
     def _count(self, nbytes: int) -> None:
         if self._account is not None:
             self._account(1, nbytes)
+
+    @property
+    def feed(self) -> list[FeedEntry] | None:
+        """The whole country's alerts as last read; None before the first read."""
+        return self._entries
 
     async def _feed_length(self, session: aiohttp.ClientSession) -> str | None:
         """What the feed weighs now, without reading it."""

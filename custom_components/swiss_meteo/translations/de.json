@@ -19,7 +19,7 @@
       },
       "place": {
         "title": "Prognosepunkt und Wetterstation",
-        "description": "Die dem Standort nächsten Prognosepunkte und SwissMetNet-Stationen, nächste zuerst. Wähle den Punkt, der zu deinem Ort passt (PLZ-Zentrum, Bergpunkt oder Station), und die Station, deren Messwerte am besten passen – Höhe und Lage zählen mehr als die Distanz. Ohne Station kommen die aktuellen Werte aus der Prognose. Die Pollenstation (die drei nächsten der 15 MeteoSchweiz-Stationen) liefert die stündlichen Konzentrationen von Birke, Gräsern, Erle, Hasel, Buche, Esche und Eiche und die Belastungsklasse von MeteoSchweiz.",
+        "description": "Die dem Standort nächsten Prognosepunkte und SwissMetNet-Stationen, nächste zuerst. Wähle den Punkt, der zu deinem Ort passt (PLZ-Zentrum, Bergpunkt oder Station), und die Station, deren Messwerte am besten passen – Höhe und Lage zählen mehr als die Distanz. Ohne Station kommen die aktuellen Werte aus der Prognose. Die Pollenstation (die drei nächsten der 15 MeteoSchweiz-Stationen) liefert die stündlichen Konzentrationen von Birke, Gräsern, Erle, Hasel, Buche, Esche und Eiche und die Belastungsklasse von MeteoSchweiz.\n\nOptional: Die Dashboard-Karte Swiss Meteo – Switzerland zeigt weitere Ebenen, wenn zusätzlich Swiss Avalanche Bulletin (Lawinen) oder Swiss Public Alerts (Meldungen, Waldbrand, Hochwasser, Trockenheit) installiert ist.",
         "data": {
           "point": "Prognosepunkt",
           "station": "Wetterstation (Messwerte)",
@@ -679,6 +679,39 @@
       },
       "pollen_forecast_ragweed": {
         "name": "Pollenprognose Ambrosia"
+      },
+      "apparent_temperature": {
+        "name": "Gefühlte Temperatur"
+      },
+      "pressure_trend": {
+        "name": "Drucktendenz (3 h)"
+      },
+      "normal_temperature": {
+        "name": "Normaltemperatur"
+      },
+      "yesterday_temperature": {
+        "name": "Mitteltemperatur gestern"
+      },
+      "temperature_anomaly": {
+        "name": "Gestern gegenüber Norm"
+      },
+      "record_high": {
+        "name": "Tagesrekord Maximum"
+      },
+      "record_low": {
+        "name": "Tagesrekord Minimum"
+      },
+      "first_frost": {
+        "name": "Erster Frost der Saison"
+      },
+      "first_snow": {
+        "name": "Erster Schnee der Saison"
+      },
+      "month_temperature": {
+        "name": "Monatsmittel bisher"
+      },
+      "month_precipitation": {
+        "name": "Monatsniederschlag bisher"
       }
     },
     "binary_sensor": {
@@ -699,6 +732,18 @@
       },
       "rain_approaching": {
         "name": "Regen zieht auf"
+      },
+      "laundry_weather": {
+        "name": "Wäschewetter"
+      },
+      "frozen_windscreen": {
+        "name": "Scheibe gefroren morgen früh"
+      },
+      "cool_night": {
+        "name": "Kühle Nacht nach heissem Tag"
+      },
+      "watering_needed": {
+        "name": "Giessen nötig"
       }
     },
     "image": {

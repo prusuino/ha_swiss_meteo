@@ -84,6 +84,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
     om = open_meteo.data if open_meteo else None
     warnings = data.warnings if data else None
     radar = data.radar if data else None
+    climate = data.climate if data else None
     return {
         "radar": {
             "enabled": radar is not None,
@@ -117,6 +118,14 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "timestamp": pollen.data.timestamp.isoformat() if pollen and pollen.data else None,
             "current": _read(pollen.data.current) if pollen and pollen.data else None,
             "daily_mean": _read(pollen.data.daily_mean) if pollen and pollen.data else None,
+        },
+        # which figures exist, not the figures: they would name the station
+        "climate": {
+            "enabled": climate is not None,
+            "last_update_success": climate.last_update_success if climate else None,
+            "fetched": climate.data.fetched.isoformat() if climate and climate.data else None,
+            "normal_years": climate.data.normal_years if climate and climate.data else None,
+            "read": _read({k: v for k, v in vars(climate.data).items() if k not in ("fetched", "day", "yesterday_values", "normal_years", "first_year")}) if climate and climate.data else None,
         },
         "integration": USER_AGENT,
         "entry": {

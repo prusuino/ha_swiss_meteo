@@ -50,16 +50,24 @@ try:  # the enum of newer releases; the plain constant is deprecated there
 except (ImportError, AttributeError):  # pragma: no cover - older Home Assistant
     from homeassistant.const import CONCENTRATION_MICROGRAMS_PER_CUBIC_METER as _MICROGRAMS_PER_CUBIC_METER
 
+from .climatology import HIGH as CLIMATE_HIGH
+from .climatology import LOW as CLIMATE_LOW
+from .climatology import MEAN as CLIMATE_MEAN
+from .climatology import NORMAL_PERIOD, ClimateCoordinator
+from .climatology import RAIN as CLIMATE_RAIN
+from .climatology import SUN as CLIMATE_SUN
 from .coordinator import EntryData, ForecastCoordinator, PrecipCoordinator, StationCoordinator
 from .device import device_info, entry_suffix, open_meteo_device_info, station_choice
 from .derived import (
     HDD_BASE,
     HDD_THRESHOLD,
+    apparent_temperature,
     day_mean,
     day_sum,
     heating_degree_days,
     hours_covered,
     next_rain,
+    pressure_trend,
     window_sum,
 )
 from .forecast import daily_values
@@ -113,7 +121,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             if column == PRECIP_COLUMN and data.precip is not None:
                 continue  # measured by the precipitation station instead
             entities.append(StationSensor(hass, entry, data.station, column, key))
+        entities += [ApparentTemperatureSensor(hass, entry, data.station), PressureTrendSensor(hass, entry, data.station)]
         entities.append(StationTimeSensor(hass, entry, data.station))
+    if data.climate is not None:
+        entities += [ClimateSensor(hass, entry, data.climate, key) for key in CLIMATE_KEYS]
     if data.precip is not None:
         entities.append(PrecipSensor(hass, entry, data.precip))
     for day_key in ("today", "tomorrow"):
@@ -711,3 +722,142 @@ class TrafficSensor(_Base):
             "last_read_requests": snap.last_requests,
             "last_read_bytes": snap.last_bytes,
         }
+
+
+class ApparentTemperatureSensor(_Base):
+    """What the station's air feels like in the shade, all year (Steadman's
+    apparent temperature from temperature, humidity and wind)."""
+
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 1
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: StationCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "apparent_temperature")
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.fresh
+
+    @property
+    def native_value(self) -> float | None:
+        if self.coordinator.data is None:
+            return None
+        values = self.coordinator.data.values
+        return apparent_temperature(values.get("tre200s0"), values.get("ure200s0"), values.get("fu3010z0"))
+
+
+class PressureTrendSensor(_Base):
+    """The change of the station's air pressure over three hours, with a
+    word for it (rising, steady, falling) as an attribute."""
+
+    _attr_native_unit_of_measurement = UnitOfPressure.HPA
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 1
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: StationCoordinator) -> None:
+        super().__init__(hass, entry, coordinator, "pressure_trend")
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.coordinator.fresh
+
+    def _trend(self) -> tuple[float, str] | None:
+        reading = self.coordinator.data
+        return pressure_trend(reading.values, reading.earlier) if reading else None
+
+    @property
+    def native_value(self) -> float | None:
+        trend = self._trend()
+        return trend[0] if trend else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        trend = self._trend()
+        return {"tendency": trend[1] if trend else None, "hours": 3}
+
+
+# key -> (unit, device class, state class)
+_CLIMATE_META: dict[str, tuple] = {
+    "normal_temperature": (UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT),
+    "yesterday_temperature": (UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT),
+    "temperature_anomaly": ("K", None, SensorStateClass.MEASUREMENT),
+    "record_high": (UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, None),
+    "record_low": (UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, None),
+    "first_frost": (None, SensorDeviceClass.DATE, None),
+    "first_snow": (None, SensorDeviceClass.DATE, None),
+    "month_temperature": (UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, None),
+    "month_precipitation": (UnitOfPrecipitationDepth.MILLIMETERS, SensorDeviceClass.PRECIPITATION, None),
+}
+CLIMATE_KEYS = tuple(_CLIMATE_META)
+
+
+class ClimateSensor(_Base):
+    """A figure from the station's archive: the normal of the calendar day
+    (1991–2020), yesterday's mean and how far it was from its normal, the
+    day's records since the station started, and the first frost and the
+    first snow on the ground of the season (from 1 July), and the running
+    month: its mean against the normal of the same days and its
+    precipitation against the normal of the whole month."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, coordinator: ClimateCoordinator, key: str) -> None:
+        super().__init__(hass, entry, coordinator, key)
+        self._key = key
+        unit, device_class, state_class = _CLIMATE_META[key]
+        if unit is not None:
+            self._attr_native_unit_of_measurement = unit
+            self._attr_suggested_display_precision = 1
+        if device_class is not None:
+            self._attr_device_class = device_class
+        if state_class is not None:
+            self._attr_state_class = state_class
+
+    @property
+    def native_value(self):
+        c = self.coordinator.data
+        if c is None:
+            return None
+        return {
+            "normal_temperature": c.normal_mean,
+            "yesterday_temperature": c.yesterday_values.get(CLIMATE_MEAN),
+            "temperature_anomaly": c.anomaly,
+            "record_high": c.record_high,
+            "record_low": c.record_low,
+            "first_frost": c.first_frost,
+            "first_snow": c.first_snow,
+            "month_temperature": c.month_mean,
+            "month_precipitation": c.month_precipitation,
+        }[self._key]
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        c = self.coordinator.data
+        if c is None:
+            return {}
+        key = self._key
+        if key == "normal_temperature":
+            return {"normal_high": c.normal_high, "normal_low": c.normal_low, "period": f"{NORMAL_PERIOD[0]}-{NORMAL_PERIOD[1]}", "years": c.normal_years, "day": c.day.isoformat()}
+        if key in ("yesterday_temperature", "temperature_anomaly"):
+            v = c.yesterday_values
+            sunshine = v.get(CLIMATE_SUN)
+            return {
+                "date": c.yesterday.isoformat() if c.yesterday else None,
+                "high": v.get(CLIMATE_HIGH),
+                "low": v.get(CLIMATE_LOW),
+                "precipitation": v.get(CLIMATE_RAIN),
+                "sunshine_hours": round(sunshine / 60, 1) if sunshine is not None else None,
+                "anomaly": c.anomaly,
+            }
+        if key == "record_high":
+            return {"year": c.record_high_year, "since": c.first_year, "day": c.day.isoformat()}
+        if key == "record_low":
+            return {"year": c.record_low_year, "since": c.first_year, "day": c.day.isoformat()}
+        if key == "month_temperature":
+            anomaly = round(c.month_mean - c.month_normal, 1) if c.month_mean is not None and c.month_normal is not None else None
+            return {"days": c.month_days, "normal_of_these_days": c.month_normal, "anomaly": anomaly, "month": c.day.strftime("%Y-%m")}
+        if key == "month_precipitation":
+            normal = c.month_precipitation_normal
+            share = round(c.month_precipitation / normal * 100) if c.month_precipitation is not None and normal else None
+            return {"days": c.month_days, "normal_of_the_month": normal, "percent_of_normal": share, "month": c.day.strftime("%Y-%m")}
+        return {"season_from": f"{c.day.year if c.day.month >= 7 else c.day.year - 1}-07-01"}

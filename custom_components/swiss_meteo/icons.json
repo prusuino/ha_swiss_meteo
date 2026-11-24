@@ -174,6 +174,39 @@
       },
       "traffic_today": {
         "default": "mdi:download-network-outline"
+      },
+      "apparent_temperature": {
+        "default": "mdi:thermometer-lines"
+      },
+      "pressure_trend": {
+        "default": "mdi:gauge"
+      },
+      "normal_temperature": {
+        "default": "mdi:thermometer-check"
+      },
+      "yesterday_temperature": {
+        "default": "mdi:thermometer"
+      },
+      "temperature_anomaly": {
+        "default": "mdi:plus-minus-variant"
+      },
+      "record_high": {
+        "default": "mdi:thermometer-chevron-up"
+      },
+      "record_low": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "first_frost": {
+        "default": "mdi:snowflake-thermometer"
+      },
+      "first_snow": {
+        "default": "mdi:snowflake"
+      },
+      "month_temperature": {
+        "default": "mdi:calendar-month"
+      },
+      "month_precipitation": {
+        "default": "mdi:calendar-month-outline"
       }
     },
     "binary_sensor": {
@@ -194,6 +227,18 @@
       },
       "rain_approaching": {
         "default": "mdi:weather-rainy"
+      },
+      "laundry_weather": {
+        "default": "mdi:hanger"
+      },
+      "frozen_windscreen": {
+        "default": "mdi:car-defrost-front"
+      },
+      "cool_night": {
+        "default": "mdi:weather-night"
+      },
+      "watering_needed": {
+        "default": "mdi:watering-can-outline"
       }
     },
     "image": {

@@ -1,8 +1,11 @@
 """Figures derived from the forecast series: daily means and heating
 degree days, radiation and sunshine sums, the coming rain, the night
-minimum. Used by the sensors and the binary sensors."""
+minimum, and the everyday questions (laundry, windscreen, airing at
+night, watering). From the station: the feels-like temperature and the
+pressure trend. Used by the sensors and the binary sensors."""
 from __future__ import annotations
 
+import math
 from datetime import date, datetime, timedelta
 
 from homeassistant.util import dt as dt_util
@@ -151,3 +154,115 @@ def best_window(snap: ForecastSnapshot, hours: int, within: int, criterion: str)
                 "criterion": criterion,
             })
     return best[1] if best else None
+
+
+# --- everyday questions --------------------------------------------------------
+
+# Laundry dries outside: this many dry hours in a row between 08:00 and 20:00.
+DRYING_HOURS = 4
+DRYING_MAX_PROBABILITY = 30  # % chance of rain in an hour of the window
+DRYING_MIN_TEMPERATURE = 5.0
+# A windscreen cools below the air temperature under a clear sky: ice is
+# likely from an air temperature of 1 °C between 04:00 and 08:00.
+WINDSCREEN_THRESHOLD = 1.0
+WINDSCREEN_HOURS = (4, 8)
+# Airing at night pays after a hot day when the night gets cool.
+COOL_NIGHT_MAX = 17.0
+HOT_DAY_MIN = 25.0
+# Watering: a warm day and next to no rain in the coming two days.
+WATERING_HOURS = 48
+WATERING_MAX_RAIN = 2.0
+WATERING_MIN_HIGH = 20.0
+
+
+def drying_window(snap: ForecastSnapshot) -> dict | None:
+    """The longest run of dry hours left today between 08:00 and 20:00:
+    no precipitation, a low chance of rain and not too cold. None when the
+    forecast has no hours left in that part of the day."""
+    rain = dict(snap.hourly.get("rre150h0") or [])
+    prob = dict(snap.hourly.get("rp0003i0") or [])
+    temp = dict(snap.hourly.get("tre200h0") or [])
+    now = dt_util.now()
+    hour = hour_floor(dt_util.utcnow())
+    hours: list[datetime] = []
+    while dt_util.as_local(hour).date() == now.date():
+        if 8 <= dt_util.as_local(hour).hour < 20 and hour in rain:
+            hours.append(hour)
+        hour += timedelta(hours=1)
+    if not hours:
+        return None
+    best: list[datetime] = []
+    run: list[datetime] = []
+    for h in hours:
+        dry = (rain.get(h) or 0.0) < RAIN_THRESHOLD_MM and (prob.get(h) is None or prob[h] <= DRYING_MAX_PROBABILITY)
+        warm = temp.get(h) is not None and temp[h] >= DRYING_MIN_TEMPERATURE
+        if dry and warm and (not run or h - run[-1] == timedelta(hours=1)):
+            run.append(h)
+        else:
+            run = [h] if dry and warm else []
+        if len(run) > len(best):
+            best = list(run)
+    return {
+        "hours": len(best),
+        "start": dt_util.as_local(best[0]).isoformat() if best else None,
+        "end": dt_util.as_local(best[-1] + timedelta(hours=1)).isoformat() if best else None,
+    }
+
+
+def morning_minimum(snap: ForecastSnapshot) -> tuple[datetime, float] | None:
+    """The lowest hourly temperature of the coming early morning (04:00 to
+    08:00 local; today's while it is not 08:00 yet): (hour, temperature)."""
+    temps = snap.hourly.get("tre200h0")
+    if not temps:
+        return None
+    now = dt_util.now()
+    day = now.date() if now.hour < WINDSCREEN_HOURS[1] else now.date() + timedelta(days=1)
+    start = hour_floor(dt_util.utcnow())
+    best: tuple[datetime, float] | None = None
+    for ts, v in temps:
+        local = dt_util.as_local(ts)
+        if v is None or ts < start or local.date() != day or not WINDSCREEN_HOURS[0] <= local.hour <= WINDSCREEN_HOURS[1]:
+            continue
+        if best is None or v < best[1]:
+            best = (ts, v)
+    return best
+
+
+def todays_high(snap: ForecastSnapshot) -> float | None:
+    return daily_values(snap, "tre200px").get(dt_util.now().date())
+
+
+# --- from the station ----------------------------------------------------------
+
+
+def apparent_temperature(temperature: float | None, humidity: float | None, wind_kmh: float | None) -> float | None:
+    """What the air feels like in the shade, all year: the apparent
+    temperature of Steadman as the Australian Bureau of Meteorology
+    computes it, from air temperature, humidity and wind (no sunshine term).
+    AT = T + 0.33 e - 0.70 v - 4.00, e in hPa, v in m/s."""
+    if temperature is None or humidity is None or wind_kmh is None:
+        return None
+    vapour = humidity / 100 * 6.105 * math.exp(17.27 * temperature / (237.7 + temperature))
+    return round(temperature + 0.33 * vapour - 0.70 * (wind_kmh / 3.6) - 4.0, 1)
+
+
+PRESSURE_COLUMNS = ("pp0qffs0", "pp0qnhs0", "prestas0")  # the first the station reports
+PRESSURE_STEADY = 1.0  # hPa in three hours
+PRESSURE_FAST = 3.0
+
+
+def pressure_trend(values: dict, earlier: dict | None) -> tuple[float, str] | None:
+    """The change of the air pressure over three hours and a word for it:
+    (hPa, rising_fast | rising | steady | falling | falling_fast)."""
+    if not earlier:
+        return None
+    for column in PRESSURE_COLUMNS:
+        now, before = values.get(column), earlier.get(column)
+        if now is not None and before is not None:
+            change = round(now - before, 1)
+            size = abs(change)
+            if size < PRESSURE_STEADY:
+                return change, "steady"
+            word = "rising" if change > 0 else "falling"
+            return change, f"{word}_fast" if size >= PRESSURE_FAST else word
+    return None

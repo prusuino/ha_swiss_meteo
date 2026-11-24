@@ -24,13 +24,16 @@ A Home Assistant custom integration for the **MeteoSwiss** forecast and measurem
 - **Reads sparingly, and says what it reads**: a forecast file is 30 to 34 MB for all of Switzerland; range requests fetch only the rows of your point, and the integration remembers where they stood, so the next model run is read at the known place instead of searched for. Measured on 2026-11-22: the hourly forecast costs about 0.4 MB per model run (MeteoSwiss publishes one every hour, so about 10 MB a day), the extended hourly values another 0.8 MB per run (about 20 MB a day), the radar 30 to 160 KB per frame depending on how much rain there is (8 to 45 MB a day), the daily forecast alone about 2 MB a day. The very first read, before anything is remembered, costs about 4 MB. The warnings cost what the MeteoAlarm feed weighs, 1.7 MB on a day with 200 alerts in force, read when it changed and at least once an hour. A traffic sensor shows what the entry transferred since midnight; the count is kept over a restart of Home Assistant.
 - **Built for the automation editor**: triggers (rain expected, rain cleared, frost tonight, new run, warning issued, warning cleared), conditions (rain expected, dry, frost expected, warning in force) and ready-made blueprints — no templates needed.
 - **Figures for heating and solar**: heating degree days, daily mean temperature, global radiation and sunshine sums for today and tomorrow, as sensors.
+- **Everyday answers without templates**: laundry weather, frozen windscreen tomorrow morning, cool night after a hot day, watering needed — plus what the air feels like and where the pressure is going.
+- **Your station's climate**: the normal of the day (1991–2020), yesterday against its normal, the day's records back to the station's first year, the first frost and the first snow of the season.
 - **Rain and frost at a glance**: the next rain as a timestamp, "rain expected" for the coming hours, "frost tonight" for the garden.
 - **Official warnings matched to your place**: the MeteoSwiss warnings (via MeteoAlarm) are tested against your forecast point itself, with a banner on the cards.
 - **Pollen with the MeteoSwiss load classes**: seven species from the nearest of the 15 pollen stations.
 - **Rain from a gauge nearby**: besides its weather stations, MeteoSwiss runs about 140 automatic rain gauges at other places. Where one of them is closer to you, pick it and the measured precipitation comes from it, everything else still from the weather station.
 - **Optional: air quality, UV index and pollen forecast**: MeteoSwiss publishes none of the three as open data for a point, so a switch (off by default) adds them from Open-Meteo — modelled CAMS values on a device of their own, clearly labelled as not official MeteoSwiss data.
 - **Decades of station history**: one action imports the station's archive (hourly since 1980, daily since the station started) into the long-term statistics.
-- **Six dashboard cards**: hourly chart with uncertainty bands, nine-day strip, daily list, map of Switzerland, sky card, radar card — in the Swiss Meteo palette, your Home Assistant theme or a glass look, in sizes from small to XL, with animated or still icons, all with a visual editor.
+- **Switzerland at a glance**: one card shows the whole country on the swisstopo relief — the forecast of 19 places for nine days, every official warning as a coloured area and the radar of the last hour, without setting up a single extra place.
+- **Eight dashboard cards**: hourly chart with uncertainty bands, nine-day strip, daily list, map of Switzerland, sky card, radar card, Switzerland card, climate stripes — in the Swiss Meteo palette, your Home Assistant theme or a glass look, in sizes from small to XL, with animated or still icons, all with a visual editor.
 - **Set up in a minute**: from your Home Assistant location or by typing a place or postal code; German, English, French and Italian; diagnostics download with your location redacted.
 
 ## Screenshots
@@ -48,6 +51,24 @@ The cards, here for Zürich. The main card in the Swiss Meteo palette, the glass
 | Map of Switzerland | Sky card |
 |---|---|
 | ![Map card](docs/card-map.png) | ![Sky card](docs/card-sky.png) |
+
+The Switzerland card with its forecast layer and its warning layer (a third layer shows the radar):
+
+| Forecast of 19 places, nine days | Official warnings as areas |
+|---|---|
+| ![Switzerland card, forecast](docs/card-switzerland.png) | ![Switzerland card, warnings](docs/card-switzerland-warnings.png) |
+
+With Swiss Avalanche Bulletin set up, the same card shows the avalanche danger of every region:
+
+![Switzerland card with the avalanche danger of the SLF bulletin](docs/card-switzerland-avalanche.png)
+
+And with Swiss Public Alerts 1.9.0 or newer forest fire, flood and drought, here the drought:
+
+![Switzerland card with the drought of every region](docs/card-switzerland-drought.png)
+
+The climate card: the stripes of the station since its first year, and the running month against its normal:
+
+![Climate card with the climate stripes of Zürich since 1864](docs/card-climate.png)
 
 The main card and the compact sizes on a wall tablet:
 
@@ -73,6 +94,17 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 | `binary_sensor.swiss_meteo_<id>_rain_expected` | On when rain is forecast for one of the next six hours. Attributes: next rain, amount in 6 and 24 hours. |
 | `binary_sensor.swiss_meteo_<id>_strong_wind_expected` | On when the hourly forecast has gusts at or above your threshold (60 km/h by default, set in the Configure dialog) within the next six hours; the peak and its hour as attributes. For blinds and awnings. |
 | `binary_sensor.swiss_meteo_<id>_frost_tonight` | On when the forecast drops to 0 °C or below before 09:00 the next morning, with the minimum and its hour. |
+| `binary_sensor.swiss_meteo_<id>_laundry_weather` | On while today still has four dry hours in a row between 08:00 and 20:00: no precipitation, at most a 30 % chance of rain and 5 °C or more. Attributes: the window and its length. |
+| `binary_sensor.swiss_meteo_<id>_frozen_windscreen` | On when the forecast is at 1 °C or below between 04:00 and 08:00 of the coming morning — ice on the windscreen is likely (glass cools below the air temperature). With the minimum and its hour. |
+| `binary_sensor.swiss_meteo_<id>_cool_night` | On when a hot day (25 °C or more) is followed by a cool night (17 °C or less before 09:00): airing at night cools the house. |
+| `binary_sensor.swiss_meteo_<id>_watering_needed` | On when today reaches 20 °C or more and less than 2 mm of rain is forecast for the next 48 hours. It looks ahead only — how much it rained before is not known to it. |
+| `sensor.swiss_meteo_<id>_apparent_temperature` | What the station's air feels like in the shade, all year: the apparent temperature after Steadman (as the Australian Bureau of Meteorology computes it) from temperature, humidity and wind. |
+| `sensor.swiss_meteo_<id>_pressure_trend` | The change of the station's air pressure over three hours in hPa, with the tendency as an attribute: `rising_fast`, `rising`, `steady` (less than 1 hPa), `falling`, `falling_fast` (3 hPa or more). |
+| `sensor.swiss_meteo_<id>_normal_temperature` | **Climate of your station:** the normal mean temperature of today's calendar day over 1991–2020 (all days within a week of it, 15 days by 30 years), with the normal high and low. Needs at least ten years of the period. |
+| `sensor.swiss_meteo_<id>_yesterday_temperature` / `_temperature_anomaly` | Yesterday's measured mean (high, low, precipitation and sunshine as attributes) and how far it was from its normal, in kelvin. Until yesterday's values are published in the morning it is the day before, the `date` attribute tells which. |
+| `sensor.swiss_meteo_<id>_record_high` / `_record_low` | The highest maximum and the lowest minimum ever measured at the station on today's calendar day, with the year — for many stations back to 1864. |
+| `sensor.swiss_meteo_<id>_first_frost` / `_first_snow` | The date of the season's first frost (minimum below 0 °C) and of the first day with snow on the ground (1 cm or more, where the station measures snow depth); the season runs from 1 July. |
+| `sensor.swiss_meteo_<id>_month_temperature` / `_month_precipitation` | The running month up to the newest measured day: its mean temperature with the normal of the same days and the difference, and its precipitation with the normal of the whole month (1991–2020) and the share reached. |
 | `sensor.swiss_meteo_<id>_pollen_birch` / `_grasses` / `_alder` / `_hazel` / `_beech` / `_ash` / `_oak` | Hourly pollen concentration (pollen/m³) of the chosen MeteoSwiss pollen station, with the day's mean and the MeteoSwiss load class (`level`) as attributes. |
 | `sensor.swiss_meteo_<id>_pollen_level` | The highest load class of the day over the seven species: none, low, moderate, high, very high (MeteoSwiss classes, from the mean daily concentration), with the class per species as attributes. |
 | `sensor.swiss_meteo_<id>_warning_level` | The highest colour of the **official warnings** in force for the forecast point — none, yellow, orange, red (MeteoAlarm's levels; MeteoSwiss publishes its warnings through MeteoAlarm, the EUMETNET warning service). Attributes: the warnings in force and the announced ones (event, level, type, headline, description, instruction, onset, expiry, area names), counts, the next onset. Switzerland's alerts carry the warned area as polygons, so the integration matches them to your point itself — no region to pick, no key, one 1–20 KB feed read every ten minutes. |
@@ -93,6 +125,8 @@ Since 2025 MeteoSwiss publishes its data openly: the local forecast for every Sw
 The radar nowcast reads one frame every five minutes (30 KB when it is dry, up to 160 KB when it rains widely: 8 to 45 MB a day) and estimates the motion of the rain field within 80 km of your point from consecutive frames; the chip on the main card says "raining now", "rain in ~25 min" or how far the nearest rain is.
 
 Data updates: a new forecast run is looked for every 15 minutes with a single HEAD request and read when it appears (hourly values with every run, daily values at most every three hours); the station file is read every ten minutes, and so is the file of the precipitation station when one is chosen (a few kilobytes). Everything is read from `data.geo.admin.ch` over TLS.
+
+The climate figures come from the station's daily archive. It is read once (6 MB for a station that began in 1864, about 1.7 MB on the wire), reduced to a small table and kept; every 30 days (daily in the new year, until last year has been added) a single request looks whether MeteoSwiss has replaced it. The daily values of the current year (about 50 KB) are read every three hours. The rules behind the everyday sensors are fixed and stated above; their attributes show the thresholds and the figures they decided on.
 
 ## Optional: air quality, UV index and pollen forecast
 
@@ -303,6 +337,42 @@ type: custom:swiss-meteo-map-card
 day: 0
 show_names: true
 # entities: [weather.swiss_meteo_ab12, weather.swiss_meteo_cd34]
+```
+
+**Swiss Meteo – Switzerland** (`custom:swiss-meteo-switzerland-card`): the whole country on the swisstopo relief, with three layers to switch between.
+
+- **Weather**: the forecast of 19 places (11 in the overview, the others appear when you zoom in or when the card is wide enough) with symbol, low and high. The row of days below the map picks one of nine days; a tap on a place shows its nine days in that row.
+- **Warnings**: every official warning in force or announced as an area in its colour (yellow, orange, red). A tap on an area names the hazard, the region and the period; where warnings overlap, further taps go through them. This layer needs the official warnings switched on in at least one entry.
+- **Radar**: the precipitation radar of the last hour as a loop, with a slider.
+
+More layers appear by themselves when the integration behind them is set up — nothing is read twice, the card shows what that integration already holds. The card's editor lists the integrations that would add layers and are missing:
+
+- **Avalanches**, with [Swiss Avalanche Bulletin](https://github.com/prusuino/ha_swiss_avalanche_bulletin): the danger level of every region of the SLF bulletin in the colours of the European scale; a tap names the region and its level.
+- **Alerts**, with [Swiss Public Alerts](https://github.com/prusuino/ha_swiss_public_alerts): the alerts of the authorities (Alertswiss) as points in the colour of their severity; a tap shows the alert, *More* opens it.
+- **Forest fire, flood and drought**, with Swiss Public Alerts 1.9.0 or newer: the danger level of every region (for floods also the rivers as lines) from the open geodata of the FOEN; a tap names the region and its level.
+
+Zoom with the buttons, with two fingers or with Ctrl and the mouse wheel; a zoomed map is moved by dragging. The card needs no entity and no extra entry — it works as soon as one Swiss Meteo entry exists.
+
+```yaml
+type: custom:swiss-meteo-switzerland-card
+# layers: [weather, warnings, radar, avalanche, alerts, forestfire, flood, drought]  # default: every layer that is available
+layer: weather                      # the one shown first
+show_relief: true                   # false: plain colour, nothing is loaded from swisstopo
+fit_screen: true                    # the whole card fits on one screen; false: always the full width
+animated: false                     # animated symbols
+theme: meteo                        # or ha, glass
+```
+
+What it reads, and only while a card is open: the three daily forecast files of the whole country (about 0.65 MB together, at most every three hours), the radar frames of the last hour when the radar layer is shown (13 frames of 30 to 160 KB, then one every five minutes), and nothing extra for the warnings — the feed is read for your own place anyway. All of it counts in the traffic sensor of your first entry. The relief tiles are loaded by your browser directly from swisstopo and do not pass through Home Assistant.
+
+**Swiss Meteo – climate** (`custom:swiss-meteo-climate-card`): the climate stripes of your station — one stripe per year since the station started, blue for years colder and red for years warmer than the reference mean. The reference is the mean of 1961–1990 when the station covers at least twenty of those years, else the mean of all its years; the darkest colours stand for 2.4 K or more. A year counts when the station measured on at least 350 days, other years are grey. Tap a stripe (or move the mouse over it) for the year, its mean and the difference. Below the stripes the running month: its mean against the normal of the same days and its precipitation against the normal of the whole month. The entry needs a station; nothing is read for the card, the figures come from the table kept from the station's archive.
+
+```yaml
+type: custom:swiss-meteo-climate-card
+entity: weather.swiss_meteo_ab12
+show_years: true    # first and last year, the reference mean
+show_month: true    # the running month against its normal
+theme: meteo        # or ha, glass
 ```
 
 The standard `weather-forecast` card and the weather tile features work with the entity as well.
