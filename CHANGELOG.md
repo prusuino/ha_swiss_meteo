@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.4 — 2026-11-24
+
+- **Diagnostics without values.** The diagnostics download no longer contains measured or forecast values, only whether each parameter was read and when. MeteoSwiss publishes the same figures for every station and forecast point, so a few values with their timestamp could name the station or the place although its name and coordinates were redacted. The distance to the nearest rain and the time until it arrives are left out as well. If you posted a diagnostics file publicly, consider removing it.
+
 ## 1.8.3 — 2026-11-23
 
 - **Fixed: the triggers stayed silent for what began during an outage.** While MeteoSwiss cannot be reached the entities are unavailable, and Home Assistant ignores every change out of "unavailable". A warning that came into force, rain or frost that became expected, or strong wind that was forecast in that time switched its sensor from unavailable straight to on, and the trigger did not fire. All eleven triggers now compare with the state before the outage: something new fires, something that was already on does not fire a second time, and the "cleared" and "stopped" triggers fire only when the sensor was on before. *New forecast* fires after an outage when the run differs from the one before it.

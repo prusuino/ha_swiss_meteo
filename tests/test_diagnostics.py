@@ -42,22 +42,27 @@ async def test_everything_loaded(hass: HomeAssistant, setup_integration) -> None
     assert forecast["requests_today"] > 0 and forecast["bytes_today"] > 0
     assert forecast["daily"]["tre200px"]["rows"] == 8
     assert forecast["hourly"]["tre200h0"]["rows"] == 72
-    assert forecast["hourly"]["tre200h0"]["sample"][0] == (RUN.isoformat(), 5.0)
+    # no values: the public figures of a station or a forecast point would name it
+    assert "sample" not in forecast["hourly"]["tre200h0"]
+    assert forecast["hourly"]["tre200h0"]["first"] == RUN.isoformat()
 
     assert dump["station"]["configured"] == REDACTED
     assert dump["station"]["fresh"] is True
-    assert dump["station"]["values"]["tre200s0"] == 7.5
+    assert dump["station"]["values"]["tre200s0"] is True
     assert dump["pollen"]["configured"] == REDACTED
-    assert dump["pollen"]["current"] == {"birch": 30.0, "grasses": 2.0}
+    assert dump["pollen"]["current"] == {"birch": True, "grasses": True}
     assert dump["warnings"]["enabled"] is True
     assert dump["warnings"]["feed_alerts"] == 2
     assert [item["level"] for item in dump["warnings"]["matching"]] == ["yellow", "red"]
     assert dump["radar"]["enabled"] is True
-    assert (dump["radar"]["rate"], dump["radar"]["eta_min"]) == (1.5, 0)
+    # the distance to the rain, and the arrival time it follows from, stay out
+    assert (dump["radar"]["rate"], dump["radar"]["eta_min"]) == (1.5, REDACTED)
+    assert dump["radar"]["nearest_km"] in (REDACTED, None)
     assert dump["open_meteo"]["enabled"] is True
     assert dump["open_meteo"]["fetched"] == NOW.isoformat()
     assert dump["open_meteo"]["hours"] > 0
-    assert "european_aqi" in dump["open_meteo"]["current"]
+    assert dump["open_meteo"]["current"]["european_aqi"] in (True, False)
+    assert all(isinstance(read, bool) for read in dump["open_meteo"]["current"].values())
 
 
 async def test_precipitation_station(hass: HomeAssistant, setup_integration) -> None:
@@ -71,7 +76,7 @@ async def test_precipitation_station(hass: HomeAssistant, setup_integration) -> 
         "last_update_success": True,
         "timestamp": "2026-11-08T10:20:00+00:00",
         "fresh": True,
-        "values": {"rre150z0": 1.4},
+        "values": {"rre150z0": True},
     }
     assert dump["station"]["configured"] == REDACTED
 

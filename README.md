@@ -363,7 +363,7 @@ The integration declares **Gold** on the [Home Assistant integration quality sca
 - Daily highs, lows and precipitation count the local calendar day; the daily entries also carry the day's maximum wind and gusts, the chance of rain and the sunshine hours. The hourly list starts with the current hour; past hours of the run are dropped.
 - MeteoSwiss has announced a point API for the local forecast (beta by the end of 2026). The file reader is built behind an interface so the integration can switch to it when it is there — entities and ids will not change.
 - **Official warnings** are not in the MeteoSwiss open-data files; the integration reads them from MeteoAlarm (EUMETNET), where MeteoSwiss publishes them, and matches the warned polygons to the forecast point itself.
-- **Download diagnostics** (entry menu) gives the entry's configuration (place redacted), the parameters read, the newest values and the traffic figures; the coordinates, the altitude, the stations, the place name and the point id are redacted.
+- **Download diagnostics** (entry menu) gives the entry's configuration (place redacted), the parameters read, when they were read and the traffic figures; the coordinates, the altitude, the stations, the place name and the point id are redacted. Measured and forecast values are left out — only whether each one was read is shown — because the public figures of a station or a forecast point would name it; the distance to the nearest rain is left out for the same reason.
 
 ## Disclaimer
 

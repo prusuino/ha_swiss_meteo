@@ -1,6 +1,12 @@
 """Diagnostics download: the entry's configuration, what the last reads
-cost, which parameters were read and the newest values — enough to check
-a forecast problem without the coordinates leaving the file unredacted."""
+cost, which parameters were read and when — enough to check a forecast
+problem without saying where the entry is.
+
+The measured and forecast values themselves are left out: MeteoSwiss
+publishes the same figures for every station and forecast point, so a
+few of them with their timestamp point to the station or the place as
+surely as its name does. Only whether a value was read is kept. The same
+goes for the distance to the nearest rain and the time until it arrives."""
 from __future__ import annotations
 
 from typing import Any
@@ -48,13 +54,21 @@ def _configured(station: str | None) -> str | None:
     return REDACTED if station else station
 
 
+def _read(values: dict | None) -> dict[str, bool] | None:
+    """Per parameter whether a value was read, not the value."""
+    return None if values is None else {key: value is not None for key, value in values.items()}
+
+
+def _hidden(value: Any) -> Any:
+    return REDACTED if value is not None else None
+
+
 def _series_summary(series: dict) -> dict[str, Any]:
     return {
         param: {
             "rows": len(values),
             "first": values[0][0].isoformat() if values else None,
             "last": values[-1][0].isoformat() if values else None,
-            "sample": [(ts.isoformat(), v) for ts, v in values[:3]],
         }
         for param, values in series.items()
     }
@@ -76,8 +90,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "last_update_success": radar.last_update_success if radar else None,
             "frame_time": radar.data.frame_ts.isoformat() if radar and radar.data else None,
             "rate": radar.data.rate if radar and radar.data else None,
-            "nearest_km": radar.data.nearest_km if radar and radar.data else None,
-            "eta_min": radar.data.eta_min if radar and radar.data else None,
+            "nearest_km": _hidden(radar.data.nearest_km) if radar and radar.data else None,
+            "eta_min": _hidden(radar.data.eta_min) if radar and radar.data else None,
             "speed_kmh": radar.data.speed_kmh if radar and radar.data else None,
         },
         "warnings": {
@@ -95,14 +109,14 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "fresh": open_meteo.fresh if open_meteo else None,
             "hours": len(om.times) if om else None,
             "first": om.times[0].isoformat() if om and om.times else None,
-            "current": {key: om.value(key, dt_util.utcnow()) for key in om.series} if om else None,
+            "current": _read({key: om.value(key, dt_util.utcnow()) for key in om.series}) if om else None,
         },
         "pollen": {
             "configured": _configured(pollen.station) if pollen else None,
             "last_update_success": pollen.last_update_success if pollen else None,
             "timestamp": pollen.data.timestamp.isoformat() if pollen and pollen.data else None,
-            "current": pollen.data.current if pollen and pollen.data else None,
-            "daily_mean": pollen.data.daily_mean if pollen and pollen.data else None,
+            "current": _read(pollen.data.current) if pollen and pollen.data else None,
+            "daily_mean": _read(pollen.data.daily_mean) if pollen and pollen.data else None,
         },
         "integration": USER_AGENT,
         "entry": {
@@ -128,13 +142,13 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: ConfigE
             "last_update_success": station.last_update_success if station else None,
             "timestamp": station.data.timestamp.isoformat() if station and station.data else None,
             "fresh": station.fresh if station else None,
-            "values": station.data.values if station and station.data else None,
+            "values": _read(station.data.values) if station and station.data else None,
         },
         "precip_station": {
             "configured": _configured(precip.station) if precip else None,
             "last_update_success": precip.last_update_success if precip else None,
             "timestamp": precip.data.timestamp.isoformat() if precip and precip.data else None,
             "fresh": precip.fresh if precip else None,
-            "values": precip.data.values if precip and precip.data else None,
+            "values": _read(precip.data.values) if precip and precip.data else None,
         },
     }
